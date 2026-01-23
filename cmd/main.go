@@ -37,18 +37,41 @@ func initRoutes(srv *http.Server) {
 	srv.Handler = mux
 }
 
+// graceful shutdown
+func gracefulShutdown(srv *config.Server) error {
+	ctx, cancle := context.WithTimeout(context.Background(), time.Second*30)
+	defer cancle()
+
+	// shutdown the server
+	if err := srv.HttpSrv.Shutdown(ctx); err != nil {
+		fmt.Println("failed to shutdown server:", err)
+		fmt.Println("forcefully shutting down the server")
+		if forceErr := srv.HttpSrv.Close(); forceErr != nil {
+			return errors.Join(err, forceErr)
+		}
+		return err
+	}
+
+	// close the docker client
+	if err := srv.DockerClient.Close(); err != nil {
+		fmt.Println("failed to close docker client:", err)
+	}
+	return nil
+}
+
 // runs the server with graceful shutdown
 func runServer(srv *config.Server) error {
-	sysShutdown := make(chan os.Signal, 1)
+	notify := make(chan os.Signal, 1)
 	srvErr := make(chan error, 1)
 
 	defer func() {
-		close(sysShutdown)
+		close(notify)
 		close(srvErr)
 	}()
 
 	// listen for interrupt  and terminate signals
-	signal.Notify(sysShutdown, syscall.SIGTERM, syscall.SIGINT)
+	signal.Notify(notify, syscall.SIGTERM, syscall.SIGINT)
+	defer signal.Stop(notify) // cleanup signal listeners
 
 	// start the server
 	go func() {
@@ -60,16 +83,9 @@ func runServer(srv *config.Server) error {
 
 	select {
 	// graceful shutdown
-	case <-sysShutdown:
-		ctx, cancle := context.WithTimeout(context.Background(), time.Second*10)
-		defer cancle()
-
-		if err := srv.HttpSrv.Shutdown(ctx); err != nil {
-			fmt.Println("failed to shutdown server:", err)
-			fmt.Println("forcefully shutting down the server")
-			if forceErr := srv.HttpSrv.Close(); forceErr != nil {
-				return errors.Join(err, forceErr)
-			}
+	case <-notify:
+		err := gracefulShutdown(srv)
+		if err != nil {
 			return err
 		}
 
@@ -81,9 +97,14 @@ func runServer(srv *config.Server) error {
 }
 
 func main() {
-	server := config.LoadServerConfig()
-	initRoutes(server.HttpSrv)
-	if err := runServer(server); err != nil {
+	srv, err := config.LoadServerConfig()
+	if err != nil {
+		log.Fatal("failed to load server config:", err)
+		return
+	}
+
+	initRoutes(srv.HttpSrv)
+	if err := runServer(srv); err != nil {
 		log.Fatal("server error:", err)
 	}
 }
