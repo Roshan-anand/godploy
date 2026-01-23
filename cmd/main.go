@@ -12,29 +12,20 @@ import (
 	"time"
 
 	"github.com/Roshan-anand/godploy/internal/config"
+	"github.com/Roshan-anand/godploy/internal/routes"
 )
 
 // initialize routes for the server
-func initRoutes(srv *http.Server) {
+func initRoutes(srv *config.Server) {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET /", func(w http.ResponseWriter, _ *http.Request) {
 		w.Write([]byte("hellow server"))
 	})
 
-	// for testing ongoing req in graceful shutdown
-	mux.HandleFunc("GET /slow", func(w http.ResponseWriter, r *http.Request) {
-		time.Sleep(10 * time.Second)
-		w.Write([]byte("this was a slow request 20"))
-	})
+	routes.DockerRoutes(mux, srv.DockerClient)
 
-	// for testing deadline exceeding req in graceful shutdown
-	mux.HandleFunc("GET /break", func(w http.ResponseWriter, r *http.Request) {
-		time.Sleep(50 * time.Second)
-		w.Write([]byte("this was a slow request 20"))
-	})
-
-	srv.Handler = mux
+	srv.HttpSrv.Handler = mux
 }
 
 // graceful shutdown
@@ -42,21 +33,23 @@ func gracefulShutdown(srv *config.Server) error {
 	ctx, cancle := context.WithTimeout(context.Background(), time.Second*30)
 	defer cancle()
 
+	var gErr error
+
 	// shutdown the server
 	if err := srv.HttpSrv.Shutdown(ctx); err != nil {
 		fmt.Println("failed to shutdown server:", err)
 		fmt.Println("forcefully shutting down the server")
 		if forceErr := srv.HttpSrv.Close(); forceErr != nil {
-			return errors.Join(err, forceErr)
+			gErr = errors.Join(err, forceErr)
 		}
-		return err
+		gErr = err
 	}
 
 	// close the docker client
 	if err := srv.DockerClient.Close(); err != nil {
 		fmt.Println("failed to close docker client:", err)
 	}
-	return nil
+	return gErr
 }
 
 // runs the server with graceful shutdown
@@ -103,7 +96,7 @@ func main() {
 		return
 	}
 
-	initRoutes(srv.HttpSrv)
+	initRoutes(srv)
 	if err := runServer(srv); err != nil {
 		log.Fatal("server error:", err)
 	}

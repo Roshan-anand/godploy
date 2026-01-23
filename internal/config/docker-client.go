@@ -21,7 +21,6 @@ func getDockerClient() (*client.Client, error) {
 	defer cancle()
 
 	// ping the docker server
-
 	_, err = client.Ping(ctx)
 	if err != nil {
 		return nil, err
@@ -31,6 +30,7 @@ func getDockerClient() (*client.Client, error) {
 	if err != nil {
 		return nil, err
 	}
+	
 	fmt.Printf("server connected to docker at %s \n os: %s\n", info.DockerRootDir, info.OperatingSystem, )
 	return client, nil
 }
