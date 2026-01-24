@@ -1,4 +1,5 @@
 start:
 	@clear && \
-	go build -o ./tmp/godploy ./cmd/main.go
-	./tmp/godploy
+	cd frontend && bun run build && \
+    cd .. && go build -o godploy cmd/main.go && \
+    ./godploy
