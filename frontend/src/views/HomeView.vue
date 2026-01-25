@@ -1,9 +1,17 @@
 <script setup lang="ts">
-import TheWelcome from '../components/TheWelcome.vue'
+const testRoute = async () => {
+  try {
+    const res = await fetch('http://localhost:8080/api/test')
+    const data = await res.json()
+    console.log(data)
+  } catch (error) {
+    console.error('Error in testRoute:', error)
+  }
+}
 </script>
 
 <template>
   <main>
-    <TheWelcome />
+    <button @click="testRoute">click</button>
   </main>
 </template>
