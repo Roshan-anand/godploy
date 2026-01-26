@@ -14,11 +14,14 @@ type Server struct {
 	// TODO : add other services like DOCKER client, DB client etc.
 }
 
-func NewAppConfig() *Server {
-	return &Server{}
+// creates a new server instance
+func NewServer() *Server {
+	return new(Server)
 }
 
 // setups new http server with given handler
+//
+// @param h : http handler  to set the server with
 func (s *Server) SetupHttp(h http.Handler) {
 	s.Http = &http.Server{
 		Addr:    ":8080", // TODO: change it to env (konf)
@@ -28,6 +31,8 @@ func (s *Server) SetupHttp(h http.Handler) {
 }
 
 // starts the http server
+//
+// @param srvErr : channel to send server errors
 func (s *Server) StartServer(srvErr chan error) {
 
 	if s.Http == nil {

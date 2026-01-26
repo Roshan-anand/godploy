@@ -11,10 +11,9 @@ import (
 )
 
 func main() {
-	server := config.NewAppConfig() // load app config
+	server := config.NewServer()    // load server config
 	r := routes.SetupRoutes(server) // setup all routes
-
-	server.SetupHttp(r) // setup http server with routes
+	server.SetupHttp(r)             // setup http server with routes
 
 	// context to listen for terminate or interrupt signals
 	sysCtx, cancle := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
@@ -32,13 +31,5 @@ func main() {
 		log.Fatal("server error: ", err)
 	}
 
-	// cfg.SetupHttp(h * http.Handler)
-	// e := echo.New()
-
-	// e.Static("/", "frontend/dist")
-	// e.File("/", "frontend/dist/index.html")
-
-	// if err := e.Start(":8080"); err != nil {
-	// 	e.Logger.Error("failed to start server", "error", err)
-	// }
+	close(srvErr)
 }
