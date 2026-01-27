@@ -1,62 +1,28 @@
 package config
 
 import (
-	"context"
-	"errors"
-	"fmt"
+	"database/sql"
 	"net/http"
-	"time"
 )
 
 // server holds the global configuration for the application
 type Server struct {
 	Http *http.Server
+	db   *sql.DB
 	// TODO : add other services like DOCKER client, DB client etc.
 }
 
 // creates a new server instance
-func NewServer() *Server {
-	return new(Server)
-}
+func NewServer() (*Server, error) {
+	// connect DB, Redis, Docker client etc. here and add them to the server struct
 
-// setups new http server with given handler
-//
-// @param h : http handler  to set the server with
-func (s *Server) SetupHttp(h http.Handler) {
-	s.Http = &http.Server{
-		Addr:    ":8080", // TODO: change it to env (konf)
-		Handler: h,
-		// TODO: other configurations
-	}
-}
-
-// starts the http server
-//
-// @param srvErr : channel to send server errors
-func (s *Server) StartServer(srvErr chan error) {
-
-	if s.Http == nil {
-		srvErr <- fmt.Errorf("http server is not initialized")
+	// initialize database connection
+	db, err := IntiDb()
+	if err != nil {
+		return nil, err
 	}
 
-	// TODO : use logger to log the info
-
-	fmt.Println("starting server on port 8080") // TODO: change it to env (konf)
-	if err := s.Http.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
-		srvErr <- err
-	}
-}
-
-// shuts down the http server gracefully
-func (s *Server) ShutDownServer() error {
-	ctx, stop := context.WithTimeout(context.Background(), 30*time.Second) // TODO : replace 30 into global variable
-	defer stop()
-
-	if err := s.Http.Shutdown(ctx); err != nil {
-		// force close the server
-		if closeErr := s.Http.Close(); closeErr != nil {
-			return errors.Join(err, closeErr)
-		}
-	}
-	return nil
+	return &Server{
+		db: db,
+	}, nil
 }

@@ -11,7 +11,12 @@ import (
 )
 
 func main() {
-	server := config.NewServer()    // load server config
+	server, err := config.NewServer() // load server config
+	if err != nil {
+		log.Fatal("failed to initialize server: ", err)
+		return
+	}
+
 	r := routes.SetupRoutes(server) // setup all routes
 	server.SetupHttp(r)             // setup http server with routes
 
