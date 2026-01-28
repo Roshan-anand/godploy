@@ -55,7 +55,7 @@ DELETE FROM user
 WHERE id = ?
 `
 
-func (q *Queries) RemoveUser(ctx context.Context, id interface{}) error {
+func (q *Queries) RemoveUser(ctx context.Context, id int64) error {
 	_, err := q.db.ExecContext(ctx, removeUser, id)
 	return err
 }

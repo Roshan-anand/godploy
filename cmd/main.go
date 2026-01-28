@@ -17,8 +17,12 @@ func main() {
 		return
 	}
 
-	r := routes.SetupRoutes(server) // setup all routes
-	server.SetupHttp(r)             // setup http server with routes
+	r, err := routes.SetupRoutes(server) // setup all routes
+	if err != nil {
+		log.Fatal("failed to setup routes: ", err)
+		return
+	}
+	server.SetupHttp(r) // setup http server with routes
 
 	// context to listen for terminate or interrupt signals
 	sysCtx, cancle := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)

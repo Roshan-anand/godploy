@@ -9,25 +9,27 @@ import (
 )
 
 type Organization struct {
-	ID        interface{}  `json:"id"`
+	ID        int64        `json:"id"`
 	Name      string       `json:"name"`
 	CreatedAt sql.NullTime `json:"created_at"`
 }
 
 type Project struct {
-	ID        interface{}  `json:"id"`
-	Name      string       `json:"name"`
-	CreatedAt sql.NullTime `json:"created_at"`
+	ID             int64        `json:"id"`
+	Name           string       `json:"name"`
+	OrganizationID int64        `json:"organization_id"`
+	CreatedAt      sql.NullTime `json:"created_at"`
 }
 
 type Service struct {
-	ID        interface{}  `json:"id"`
+	ID        int64        `json:"id"`
 	Name      string       `json:"name"`
+	ProjectID int64        `json:"project_id"`
 	CreatedAt sql.NullTime `json:"created_at"`
 }
 
 type User struct {
-	ID        interface{}  `json:"id"`
+	ID        int64        `json:"id"`
 	Name      string       `json:"name"`
 	Email     string       `json:"email"`
 	HashPass  string       `json:"hash_pass"`

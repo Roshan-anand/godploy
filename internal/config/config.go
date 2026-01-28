@@ -15,7 +15,7 @@ type DataBase struct {
 // server holds the global configuration for the application
 type Server struct {
 	Http *http.Server
-	db   *DataBase
+	DB   *DataBase
 	// TODO : add other services like DOCKER client, DB client etc.
 }
 
@@ -30,6 +30,6 @@ func NewServer() (*Server, error) {
 	}
 
 	return &Server{
-		db: db,
+		DB: db,
 	}, nil
 }

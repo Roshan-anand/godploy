@@ -8,6 +8,10 @@ import (
 	"time"
 )
 
+const (
+	SHUTDOWN_TIMEOUT = 30
+)
+
 // setups new http server with given handler
 //
 // @param h : http handler  to set the server with
@@ -38,7 +42,7 @@ func (s *Server) StartServer(srvErr chan error) {
 
 // shuts down the http server gracefully
 func (s *Server) ShutDownServer() error {
-	ctx, stop := context.WithTimeout(context.Background(), 30*time.Second) // TODO : replace 30 into global variable
+	ctx, stop := context.WithTimeout(context.Background(), SHUTDOWN_TIMEOUT*time.Second)
 	defer stop()
 
 	if err := s.Http.Shutdown(ctx); err != nil {

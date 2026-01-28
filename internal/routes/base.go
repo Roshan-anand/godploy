@@ -1,6 +1,7 @@
 package routes
 
 import (
+	ui "github.com/Roshan-anand/godploy/frontend"
 	"github.com/Roshan-anand/godploy/internal/config"
 	"github.com/labstack/echo/v5"
 	"github.com/labstack/echo/v5/middleware"
@@ -11,14 +12,20 @@ type Handler struct {
 }
 
 // setup all routes
-func SetupRoutes(srv *config.Server) *echo.Echo {
+func SetupRoutes(srv *config.Server) (*echo.Echo, error) {
 	h := &Handler{Server: srv}
 	e := echo.New()
 
-	// middlewares
-	e.Use(middleware.CORS("http://localhost:5173"))
+	uiFs, err := ui.GetEmbedFS() // get embedded frontend filesystem
+	if err != nil {
+		return nil, err
+	}
+	e.StaticFS("/", uiFs)
 
-	e.GET("/api/test", h.samplerRoute)
+	api := e.Group("/api")
+	api.Use(middleware.CORS("http://localhost:5173"))
 
-	return e
+	api.GET("/test", h.samplerRoute)
+
+	return e, nil
 }
