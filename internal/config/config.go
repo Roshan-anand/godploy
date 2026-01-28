@@ -3,12 +3,19 @@ package config
 import (
 	"database/sql"
 	"net/http"
+
+	"github.com/Roshan-anand/godploy/internal/db"
 )
+
+type DataBase struct {
+	Pool    *sql.DB
+	Queries *db.Queries
+}
 
 // server holds the global configuration for the application
 type Server struct {
 	Http *http.Server
-	db   *sql.DB
+	db   *DataBase
 	// TODO : add other services like DOCKER client, DB client etc.
 }
 
