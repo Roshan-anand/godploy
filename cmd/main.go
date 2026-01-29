@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"os/signal"
 	"syscall"
@@ -10,35 +11,64 @@ import (
 	"github.com/Roshan-anand/godploy/internal/routes"
 )
 
-func main() {
-	server, err := config.NewServer() // load server config
+// create and configure the server
+func createServer() (*config.Server, error) {
+	
+	// load server config
+	server, err := config.NewServer()
 	if err != nil {
-		log.Fatal("failed to initialize server: ", err)
-		return
+		return nil, fmt.Errorf("failed to initialize server: %w", err)
 	}
 
-	r, err := routes.SetupRoutes(server) // setup all routes
+	// setup all routes
+	r, err := routes.SetupRoutes(server)
 	if err != nil {
-		log.Fatal("failed to setup routes: ", err)
-		return
+		return nil, fmt.Errorf("failed to setup routes: %w", err)
 	}
+
 	server.SetupHttp(r) // setup http server with routes
 
+	return server, nil
+}
+
+// starts the server
+//
+// listens for terminate or interrupt signals to shutdown the server gracefully
+func runServer(server *config.Server) error {
+
 	// context to listen for terminate or interrupt signals
-	sysCtx, cancle := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
+	notify, cancle := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
 	defer cancle()
 
 	srvErr := make(chan error, 1)
+	defer close(srvErr)
+
 	go server.StartServer(srvErr) // start the server
 
+	// graceful shutdown on terminate or interrupt signal
 	select {
-	case <-sysCtx.Done():
+	case <-notify.Done():
 		if err := server.ShutDownServer(); err != nil {
-			log.Fatal("failed to shutdown server: ", err)
+			return err
 		}
 	case err := <-srvErr:
-		log.Fatal("server error: ", err)
+		return err
 	}
 
-	close(srvErr)
+	return nil
+}
+
+func main() {
+
+	server, err := createServer()
+	if err != nil {
+		log.Fatal("failed to create server config: ", err)
+		return
+	}
+
+	if err := runServer(server); err != nil {
+		log.Fatal("failed to run server: ", err)
+		return
+	}
+
 }

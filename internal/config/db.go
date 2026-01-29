@@ -21,6 +21,8 @@ const (
 	PING_TIMEOUT            = 5
 )
 
+var Pool_Close_Err = fmt.Errorf("DB pool close err")
+
 // for migrating the database
 func MigrateDb(db *sql.DB) error {
 	mFs, err := migration.GetMigrationFS()
@@ -84,9 +86,9 @@ func IntiDb() (*DataBase, error) {
 
 	if err := pool.PingContext(ctx); err != nil {
 		if cErr := pool.Close(); cErr != nil {
-			return nil, errors.Join(err, cErr)
+			return nil, errors.Join(Pool_Close_Err, err, cErr)
 		}
-		return nil, fmt.Errorf("DB ping error : %w", err)
+		return nil, errors.Join(Pool_Close_Err, err)
 	}
 
 	queries := db.New(pool) // get query instance from sqlc generated code
@@ -102,7 +104,7 @@ func IntiDb() (*DataBase, error) {
 func (s *Server) CloseDb() error {
 	fmt.Println("closing database connection")
 	if err := s.DB.Pool.Close(); err != nil {
-		return err
+		return errors.Join(Pool_Close_Err, err)
 	}
 
 	return nil

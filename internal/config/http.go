@@ -27,16 +27,21 @@ func (s *Server) SetupHttp(h http.Handler) {
 //
 // @param srvErr : channel to send server errors
 func (s *Server) StartServer(srvErr chan error) {
+	// check if server is properly configured
+	errMsg := "server config error: "
+	switch {
+	case s.Http == nil:
+		srvErr <- fmt.Errorf("%s : http server is not initialized", errMsg)
 
-	if s.Http == nil {
-		srvErr <- fmt.Errorf("http server is not initialized")
+	case s.DB == nil:
+		srvErr <- fmt.Errorf("%s : database is not initialized", errMsg)
 	}
 
 	// TODO : use logger to log the info
 
 	fmt.Println("starting server on port 8080") // TODO: change it to env (konf)
 	if err := s.Http.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
-		srvErr <- err
+		srvErr <- fmt.Errorf("listen serve error : %w", err)
 	}
 }
 
@@ -45,13 +50,17 @@ func (s *Server) ShutDownServer() error {
 	ctx, stop := context.WithTimeout(context.Background(), SHUTDOWN_TIMEOUT*time.Second)
 	defer stop()
 
+	// close http connections and shutdown server
 	if err := s.Http.Shutdown(ctx); err != nil {
 		// force close the server
 		if closeErr := s.Http.Close(); closeErr != nil {
-			return errors.Join(err, closeErr)
+			return errors.Join(fmt.Errorf("http server close error :"), err, closeErr)
 		}
+
+		return fmt.Errorf("http server shutdown error : %w", err)
 	}
 
+	// close database connections
 	if err := s.CloseDb(); err != nil {
 		return err
 	}
