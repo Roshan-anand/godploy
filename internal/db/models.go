@@ -6,6 +6,7 @@ package db
 
 import (
 	"database/sql"
+	"time"
 )
 
 type Organization struct {
@@ -26,6 +27,14 @@ type Service struct {
 	Name      string        `json:"name"`
 	ProjectID sql.NullInt64 `json:"project_id"`
 	CreatedAt sql.NullTime  `json:"created_at"`
+}
+
+type Session struct {
+	ID        int64        `json:"id"`
+	UserID    int64        `json:"user_id"`
+	Token     string       `json:"token"`
+	CreatedAt sql.NullTime `json:"created_at"`
+	ExpiresAt time.Time    `json:"expires_at"`
 }
 
 type User struct {

@@ -22,6 +22,14 @@ CREATE TABLE user_organization (
     PRIMARY KEY (user_id, organization_id)
 );
 
+CREATE TABLE session (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL REFERENCES user(id) ON DELETE CASCADE,
+    token TEXT UNIQUE NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    expires_at DATETIME NOT NULL
+);
+
 CREATE TABLE project (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
