@@ -9,9 +9,10 @@ import (
 	"context"
 )
 
-const addUser = `-- name: AddUser :exec
+const addUser = `-- name: AddUser :one
 INSERT INTO user (name, email, hash_pass, role)
 VALUES (?, ?, ?, ?)
+RETURNING id
 `
 
 type AddUserParams struct {
@@ -21,14 +22,30 @@ type AddUserParams struct {
 	Role     string `json:"role"`
 }
 
-func (q *Queries) AddUser(ctx context.Context, arg AddUserParams) error {
-	_, err := q.db.ExecContext(ctx, addUser,
+func (q *Queries) AddUser(ctx context.Context, arg AddUserParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, addUser,
 		arg.Name,
 		arg.Email,
 		arg.HashPass,
 		arg.Role,
 	)
-	return err
+	var id int64
+	err := row.Scan(&id)
+	return id, err
+}
+
+const adminExists = `-- name: AdminExists :one
+SELECT CAST(EXISTS (
+    SELECT 1 FROM user
+    WHERE role = 'admin'
+) AS BOOLEAN)
+`
+
+func (q *Queries) AdminExists(ctx context.Context) (bool, error) {
+	row := q.db.QueryRowContext(ctx, adminExists)
+	var column_1 bool
+	err := row.Scan(&column_1)
+	return column_1, err
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one

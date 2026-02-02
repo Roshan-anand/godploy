@@ -16,8 +16,8 @@ CREATE TABLE organization (
 );
 
 CREATE TABLE user_organization (
-    user_id INTEGER REFERENCES user(id) ON DELETE CASCADE,
-    organization_id INTEGER REFERENCES organization(id) ON DELETE CASCADE,
+    user_id INTEGER NOT NULL REFERENCES user(id) ON DELETE CASCADE,
+    organization_id INTEGER NOT NULL REFERENCES organization(id) ON DELETE CASCADE,
     joined_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (user_id, organization_id)
 );

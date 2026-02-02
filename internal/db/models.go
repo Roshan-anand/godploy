@@ -15,17 +15,17 @@ type Organization struct {
 }
 
 type Project struct {
-	ID             int64        `json:"id"`
-	Name           string       `json:"name"`
-	OrganizationID int64        `json:"organization_id"`
-	CreatedAt      sql.NullTime `json:"created_at"`
+	ID             int64         `json:"id"`
+	Name           string        `json:"name"`
+	OrganizationID sql.NullInt64 `json:"organization_id"`
+	CreatedAt      sql.NullTime  `json:"created_at"`
 }
 
 type Service struct {
-	ID        int64        `json:"id"`
-	Name      string       `json:"name"`
-	ProjectID int64        `json:"project_id"`
-	CreatedAt sql.NullTime `json:"created_at"`
+	ID        int64         `json:"id"`
+	Name      string        `json:"name"`
+	ProjectID sql.NullInt64 `json:"project_id"`
+	CreatedAt sql.NullTime  `json:"created_at"`
 }
 
 type User struct {
@@ -35,4 +35,10 @@ type User struct {
 	HashPass  string       `json:"hash_pass"`
 	Role      string       `json:"role"`
 	CreatedAt sql.NullTime `json:"created_at"`
+}
+
+type UserOrganization struct {
+	UserID         int64        `json:"user_id"`
+	OrganizationID int64        `json:"organization_id"`
+	JoinedAt       sql.NullTime `json:"joined_at"`
 }

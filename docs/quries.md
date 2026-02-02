@@ -11,3 +11,7 @@
 - [ ] pooling
     - what why when how pooling
     - simple example Go code for pooling
+    
+- [ ] how to production JWT
+    - how to use JWT in production manner
+    - what are best practices

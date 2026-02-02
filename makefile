@@ -1,7 +1,9 @@
 start:
 	@clear && \
 	cd frontend && bun run build && \
-    cd .. && go mod tidy && \
+    cd .. && \
+    sqlc generate && \
+	go mod tidy && \
 	go build -o ./bin/godploy cmd/main.go && \
     ./bin/godploy
 

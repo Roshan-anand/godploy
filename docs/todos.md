@@ -6,3 +6,8 @@
 - [ ] setup CI/CD
 - [ ] setup linting and formatting
 - [ ] write documentation
+- [ ] setup swagger
+
+# Potential bugs
+
+- [ ] not using enums for columen user.role in [sql](../sqlite/migrations/0001_init_schema.up.sql).

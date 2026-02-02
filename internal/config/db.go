@@ -53,6 +53,8 @@ func MigrateDb(db *sql.DB) error {
 	if err := m.Up(); err != nil && err != migrate.ErrNoChange {
 		return err
 	}
+	
+	fmt.Println("database migrated completed ...")
 	return nil
 }
 
