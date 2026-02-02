@@ -5,9 +5,9 @@ import (
 
 	ui "github.com/Roshan-anand/godploy/frontend"
 	"github.com/Roshan-anand/godploy/internal/config"
+	"github.com/Roshan-anand/godploy/internal/middleware"
 	"github.com/go-playground/validator/v10"
 	"github.com/labstack/echo/v5"
-	"github.com/labstack/echo/v5/middleware"
 )
 
 const (
@@ -31,7 +31,8 @@ type Handler struct {
 
 // setup all routes
 func SetupRoutes(srv *config.Server) (*echo.Echo, error) {
-	h := &Handler{Server: srv, Validate: validator.New(), Ctx: context.Background()}
+	h := &Handler{Server: srv, Validate: validator.New(), Ctx: context.Background()} // initialize handler
+	m := middleware.NewMiddlewares(srv)                                              // initialize middlewares
 	e := echo.New()
 
 	// initialize static file serving route
@@ -41,11 +42,16 @@ func SetupRoutes(srv *config.Server) (*echo.Echo, error) {
 	}
 	e.StaticFS("/", uiFs)
 
-	// initialize api routes
-	api := e.Group("/api")
-	api.Use(middleware.CORS("http://localhost:5173"))
+	e.Use(m.GlobalMiddleware())
 
-	initAuthRoutes(api, h)
+	// initialize auth api routes
+	authApi := e.Group("/api/auth")
+	authApi.GET("/user", h.authUser)
+	authApi.POST("/register", h.appRegiter)
+	authApi.POST("/login", h.appLogin)
+
+	// other routes
+	// api := e.Group("/api")
 
 	return e, nil
 }
