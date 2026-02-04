@@ -10,40 +10,40 @@ import (
 )
 
 type Organization struct {
-	ID        int64        `json:"id"`
-	Name      string       `json:"name"`
-	CreatedAt sql.NullTime `json:"created_at"`
+	ID        int64     `json:"id"`
+	Name      string    `json:"name"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
 type Project struct {
 	ID             int64         `json:"id"`
 	Name           string        `json:"name"`
 	OrganizationID sql.NullInt64 `json:"organization_id"`
-	CreatedAt      sql.NullTime  `json:"created_at"`
+	CreatedAt      time.Time     `json:"created_at"`
 }
 
 type Service struct {
 	ID        int64         `json:"id"`
 	Name      string        `json:"name"`
 	ProjectID sql.NullInt64 `json:"project_id"`
-	CreatedAt sql.NullTime  `json:"created_at"`
+	CreatedAt time.Time     `json:"created_at"`
 }
 
 type Session struct {
-	ID        int64        `json:"id"`
-	UserID    int64        `json:"user_id"`
-	Token     string       `json:"token"`
-	CreatedAt sql.NullTime `json:"created_at"`
-	ExpiresAt time.Time    `json:"expires_at"`
+	ID        int64     `json:"id"`
+	UserID    int64     `json:"user_id"`
+	Token     string    `json:"token"`
+	CreatedAt time.Time `json:"created_at"`
+	ExpiresAt time.Time `json:"expires_at"`
 }
 
 type User struct {
-	ID        int64        `json:"id"`
-	Name      string       `json:"name"`
-	Email     string       `json:"email"`
-	HashPass  string       `json:"hash_pass"`
-	Role      string       `json:"role"`
-	CreatedAt sql.NullTime `json:"created_at"`
+	ID        int64     `json:"id"`
+	Name      string    `json:"name"`
+	Email     string    `json:"email"`
+	HashPass  string    `json:"hash_pass"`
+	Role      string    `json:"role"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
 type UserOrganization struct {

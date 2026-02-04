@@ -1,21 +1,94 @@
 package middleware
 
 import (
+	"context"
+	"fmt"
+	"net/http"
+	"time"
+
 	"github.com/Roshan-anand/godploy/internal/config"
+	"github.com/Roshan-anand/godploy/internal/lib"
 	"github.com/labstack/echo/v5"
 	"github.com/labstack/echo/v5/middleware"
 )
 
 type Middlewares struct {
 	Server *config.Server
+	Ctx    context.Context
+}
+
+type ErrRes struct {
+	Message string `json:"message" validate:"required"`
 }
 
 // return new middlewares instance
 func NewMiddlewares(s *config.Server) *Middlewares {
-	return &Middlewares{Server: s}
+	return &Middlewares{Server: s, Ctx: context.Background()}
 }
 
-// global middleware applicable to all routes
-func (_ *Middlewares) GlobalMiddleware() echo.MiddlewareFunc {
+// global middleware cors applicable to all routes
+func (_ *Middlewares) GlobalMiddlewareCors() echo.MiddlewareFunc {
 	return middleware.CORS("http://localhost:5173")
+}
+
+// global middleware user applicable to all routes
+func (m *Middlewares) GlobalMiddlewareUser(next echo.HandlerFunc) echo.HandlerFunc {
+	return func(c *echo.Context) error {
+		unAuthErr := ErrRes{
+			Message: "unauthorized access"}
+		secret := m.Server.Config.JwtSecret
+
+		// checks for the JWT
+		jwt, err := c.Cookie(m.Server.Config.SessionDataName)
+		if err == nil {
+			claims, err := lib.VerifyJWT(jwt.Value, secret)
+			if err != nil {
+				fmt.Println("jwt verify error:", err)
+				return c.JSON(http.StatusUnauthorized, unAuthErr)
+			}
+
+			// set user in context
+			c.Set(m.Server.Config.EchoCtxUserKey, claims.AuthUser)
+			return next(c)
+		}
+
+		// check for session token
+		token, err := c.Cookie(m.Server.Config.SessionTokenName)
+		if err == nil {
+			sData, err := m.Server.DB.Queries.GetSessionByToken(m.Ctx, token.Value)
+			if err != nil {
+				fmt.Println("get session by token error:", err)
+				return c.JSON(http.StatusUnauthorized, unAuthErr)
+			}
+
+			// if expired
+			if time.Now().After(sData.ExpiresAt) {
+				fmt.Println("session expired")
+				// remove the seesion from DB
+				return c.JSON(http.StatusUnauthorized, unAuthErr)
+			}
+
+			// if expire date is les then 30% then extend expiry
+			diff := sData.ExpiresAt.Sub(time.Now())
+			if diff < lib.SESSION_DATA_EXPIRY_DAY*30/100 {
+				lib.SetSessionCookies(m.Server, c, sData.ID)
+			}
+
+			u := lib.AuthUser{
+				Email: sData.Email,
+				Name:  sData.Name,
+			}
+
+			// set new jwt cookie
+			lib.SetJwtCookie(m.Server, c, u)
+
+			// set user in context
+			c.Set(m.Server.Config.EchoCtxUserKey, u)
+			return next(c)
+		}
+
+		// no auth found
+		fmt.Println("final : ", err)
+		return c.JSON(http.StatusUnauthorized, unAuthErr)
+	}
 }

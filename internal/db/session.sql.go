@@ -7,7 +7,6 @@ package db
 
 import (
 	"context"
-	"database/sql"
 	"time"
 )
 
@@ -28,21 +27,39 @@ func (q *Queries) CreateSession(ctx context.Context, arg CreateSessionParams) er
 }
 
 const getSessionByToken = `-- name: GetSessionByToken :one
-SELECT u.email,s.expires_at,s.created_at
+SELECT u.id,u.email,u.name,s.expires_at,s.created_at
 FROM session s
 INNER JOIN user u ON s.user_id = u.id
 WHERE s.token = ?
 `
 
 type GetSessionByTokenRow struct {
-	Email     string       `json:"email"`
-	ExpiresAt time.Time    `json:"expires_at"`
-	CreatedAt sql.NullTime `json:"created_at"`
+	ID        int64     `json:"id"`
+	Email     string    `json:"email"`
+	Name      string    `json:"name"`
+	ExpiresAt time.Time `json:"expires_at"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
 func (q *Queries) GetSessionByToken(ctx context.Context, token string) (GetSessionByTokenRow, error) {
 	row := q.db.QueryRowContext(ctx, getSessionByToken, token)
 	var i GetSessionByTokenRow
-	err := row.Scan(&i.Email, &i.ExpiresAt, &i.CreatedAt)
+	err := row.Scan(
+		&i.ID,
+		&i.Email,
+		&i.Name,
+		&i.ExpiresAt,
+		&i.CreatedAt,
+	)
 	return i, err
+}
+
+const removeSessionByUID = `-- name: RemoveSessionByUID :exec
+DELETE FROM session
+WHERE user_id = ?
+`
+
+func (q *Queries) RemoveSessionByUID(ctx context.Context, userID int64) error {
+	_, err := q.db.ExecContext(ctx, removeSessionByUID, userID)
+	return err
 }

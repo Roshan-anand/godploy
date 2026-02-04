@@ -3,7 +3,6 @@ package routes
 import (
 	"fmt"
 	"net/http"
-	"time"
 
 	"github.com/Roshan-anand/godploy/internal/db"
 	"github.com/Roshan-anand/godploy/internal/lib"
@@ -34,50 +33,17 @@ type AuthRes struct {
 	// Orgs    []string `json:"orgs,omitempty"`
 }
 
-// sets up session token and jwt cookies
-func SetSessionCookies(c *echo.Context, uId int64, email string, h *Handler) error {
-	sToken, err := lib.GenerateSessionToken()
-	if err != nil {
-		return fmt.Errorf("generate session token error : %w", err)
-	}
-
-	go func() {
-		// store session data
-		h.Server.DB.Queries.CreateSession(h.Ctx, db.CreateSessionParams{
-			UserID:    uId,
-			Token:     sToken,
-			ExpiresAt: time.Now().Add(lib.SESSION_DATA_EXPIRY_DAY),
-		})
-	}()
-
-	// generate JWT  and setcookie
-	jwtStr, err := lib.GenerateJWT(email)
-	if err != nil {
-		return fmt.Errorf("generate jwt error : %w", err)
-	}
-
-	cfg := h.Server.Config
-
-	c.SetCookie(&http.Cookie{
-		Name:    cfg.SessionDataName,
-		Value:   jwtStr,
-		Expires: time.Now().Add(lib.JWT_EXPIRY_HOUR),
-	})
-
-	c.SetCookie(&http.Cookie{
-		Name:    cfg.SessionTokenName,
-		Value:   sToken,
-		Expires: time.Now().Add(lib.SESSION_DATA_EXPIRY_DAY),
-	})
-
-	return nil
-}
-
 // check if user is authenticated
 //
 // route: GET /api/auth/user
 func (h *Handler) authUser(c *echo.Context) error {
-	return nil
+	u := c.Get(h.Server.Config.EchoCtxUserKey).(lib.AuthUser)
+
+	return c.JSON(http.StatusOK, AuthRes{
+		Message: "User Authenticated",
+		Name:    u.Name,
+		Email:   u.Email,
+	})
 }
 
 // register a new application
@@ -139,7 +105,9 @@ func (h *Handler) appRegiter(c *echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, ErrRes{Message: "Internal Server Error"})
 	}
 
-	SetSessionCookies(c, uId, b.Email, h)
+	// set cookies
+	lib.SetSessionCookies(h.Server, c, uId)
+	lib.SetJwtCookie(h.Server, c, lib.AuthUser{Email: b.Email, Name: b.Name})
 
 	r := AuthRes{
 		Message: "Registration Successful",
@@ -176,7 +144,9 @@ func (h *Handler) appLogin(c *echo.Context) error {
 		return c.JSON(http.StatusUnauthorized, ErrRes{Message: "invalid credentials"})
 	}
 
-	SetSessionCookies(c, u.ID, u.Email, h)
+	// set cookies
+	lib.SetSessionCookies(h.Server, c, u.ID)
+	lib.SetJwtCookie(h.Server, c, lib.AuthUser{Email: u.Email, Name: u.Name})
 
 	r := AuthRes{
 		Message: "Login Successful",

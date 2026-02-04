@@ -42,11 +42,11 @@ func SetupRoutes(srv *config.Server) (*echo.Echo, error) {
 	}
 	e.StaticFS("/", uiFs)
 
-	e.Use(m.GlobalMiddleware())
+	e.Use(m.GlobalMiddlewareCors())
 
 	// initialize auth api routes
 	authApi := e.Group("/api/auth")
-	authApi.GET("/user", h.authUser)
+	authApi.GET("/user", h.authUser, m.GlobalMiddlewareUser)
 	authApi.POST("/register", h.appRegiter)
 	authApi.POST("/login", h.appLogin)
 
