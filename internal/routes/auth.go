@@ -18,8 +18,59 @@ const (
 type RegisterReq struct {
 	Name     string `json:"name" validate:"required,min=3,max=50"`
 	Email    string `json:"email" validate:"required,email"`
-	Password string `json:"password" validate:"required,min=8"`
+	Password string `json:"password" validate:"required,min=8,max=15"`
 	Org      string `json:"org" validate:"required,min=3,max=50"`
+}
+
+type LoginReq struct {
+	Email    string `json:"email" validate:"required,email"`
+	Password string `json:"password" validate:"required,min=8,max=15"`
+}
+
+type AuthRes struct {
+	Message string `json:"message"`
+	Name    string `json:"name,omitempty"`
+	Email   string `json:"email,omitempty"`
+	// Orgs    []string `json:"orgs,omitempty"`
+}
+
+// sets up session token and jwt cookies
+func SetSessionCookies(c *echo.Context, uId int64, email string, h *Handler) error {
+	sToken, err := lib.GenerateSessionToken()
+	if err != nil {
+		return fmt.Errorf("generate session token error : %w", err)
+	}
+
+	go func() {
+		// store session data
+		h.Server.DB.Queries.CreateSession(h.Ctx, db.CreateSessionParams{
+			UserID:    uId,
+			Token:     sToken,
+			ExpiresAt: time.Now().Add(lib.SESSION_DATA_EXPIRY_DAY),
+		})
+	}()
+
+	// generate JWT  and setcookie
+	jwtStr, err := lib.GenerateJWT(email)
+	if err != nil {
+		return fmt.Errorf("generate jwt error : %w", err)
+	}
+
+	cfg := h.Server.Config
+
+	c.SetCookie(&http.Cookie{
+		Name:    cfg.SessionDataName,
+		Value:   jwtStr,
+		Expires: time.Now().Add(lib.JWT_EXPIRY_HOUR),
+	})
+
+	c.SetCookie(&http.Cookie{
+		Name:    cfg.SessionTokenName,
+		Value:   sToken,
+		Expires: time.Now().Add(lib.SESSION_DATA_EXPIRY_DAY),
+	})
+
+	return nil
 }
 
 // check if user is authenticated
@@ -44,16 +95,6 @@ func (h *Handler) appRegiter(c *echo.Context) error {
 		return c.JSON(http.StatusBadRequest, ErrRes{Message: fmt.Sprintf("validation error : %v", err)})
 	}
 
-	// check if password length is valid
-	switch {
-	case len(b.Password) < MIN_PASS_COUNT:
-		return c.JSON(http.StatusBadRequest, ErrRes{Message: fmt.Sprintf("Password must be at least %d characters long", MIN_PASS_COUNT)})
-	case len(b.Password) > MAX_PASS_COUNT:
-		return c.JSON(http.StatusBadRequest, ErrRes{Message: fmt.Sprintf("Password must be at most %d characters long", MAX_PASS_COUNT)})
-	}
-
-	// TODO :create seprate table to store creadential like hashed passowrd
-
 	query := h.Server.DB.Queries
 
 	// check if admin user already exists
@@ -70,14 +111,8 @@ func (h *Handler) appRegiter(c *echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, ErrRes{Message: "Internal Server Error"})
 	}
 
-	sToken, err := lib.GenerateSessionToken()
-	if err != nil {
-		fmt.Println(err)
-		return c.JSON(http.StatusInternalServerError, ErrRes{Message: "Internal Server Error"})
-	}
-
 	// register new admin user
-	uId, err := query.AddUser(h.Ctx, db.AddUserParams{
+	uId, err := query.CreateUser(h.Ctx, db.CreateUserParams{
 		Name:     b.Name,
 		Email:    b.Email,
 		HashPass: hPass,
@@ -89,7 +124,7 @@ func (h *Handler) appRegiter(c *echo.Context) error {
 	}
 
 	// create organization
-	orgId, err := query.InsertOrg(h.Ctx, b.Org)
+	orgId, err := query.CreateOrg(h.Ctx, b.Org)
 	if err != nil {
 		fmt.Println("Insert Org Error:", err)
 		return c.JSON(http.StatusInternalServerError, ErrRes{Message: "Internal Server Error"})
@@ -104,38 +139,49 @@ func (h *Handler) appRegiter(c *echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, ErrRes{Message: "Internal Server Error"})
 	}
 
-	// store session data
-	query.InsertSession(h.Ctx, db.InsertSessionParams{
-		UserID:    uId,
-		Token:     sToken,
-		ExpiresAt: time.Now().Add(lib.SESSION_DATA_EXPIRY_DAY),
-	})
+	SetSessionCookies(c, uId, b.Email, h)
 
-	// generate JWT  and setcookie
-	jwtStr, err := lib.GenerateJWT(b.Email)
-	if err != nil {
-		fmt.Println("Generate JWT Error:", err)
-		return c.JSON(http.StatusInternalServerError, ErrRes{Message: "Internal Server Error"})
+	r := AuthRes{
+		Message: "Registration Successful",
+		Name:    b.Name,
+		Email:   b.Email,
 	}
-
-	c.SetCookie(&http.Cookie{
-		Name:    "godploy_session_data",
-		Value:   jwtStr,
-		Expires: time.Now().Add(lib.JWT_EXPIRY_HOUR),
-	})
-
-	c.SetCookie(&http.Cookie{
-		Name:    "godploy_session_token",
-		Value:   sToken,
-		Expires: time.Now().Add(lib.SESSION_DATA_EXPIRY_DAY),
-	})
-
-	return c.JSON(http.StatusOK, SuccessRes{Message: "User Registered Successfully"})
+	return c.JSON(http.StatusOK, r)
 }
 
 // login user
 //
 // route: POST /api/auth/login
 func (h *Handler) appLogin(c *echo.Context) error {
-	return nil
+	b := new(LoginReq)
+
+	if err := c.Bind(b); err != nil {
+		fmt.Println("Bind Error:", err)
+		return c.JSON(http.StatusBadRequest, ErrRes{Message: "Invalid Data"})
+	}
+
+	if err := h.Validate.Struct(b); err != nil {
+		fmt.Println("Validation Error:", err)
+		return c.JSON(http.StatusBadRequest, ErrRes{Message: fmt.Sprintf("validation error : %v", err)})
+	}
+
+	// get the user
+	u, err := h.Server.DB.Queries.GetUserByEmail(h.Ctx, b.Email)
+	if err != nil {
+		return c.JSON(http.StatusNotFound, ErrRes{Message: "user not found"})
+	}
+
+	// check password
+	if !lib.CheckPasswordHash(b.Password, u.HashPass) {
+		return c.JSON(http.StatusUnauthorized, ErrRes{Message: "invalid credentials"})
+	}
+
+	SetSessionCookies(c, u.ID, u.Email, h)
+
+	r := AuthRes{
+		Message: "Login Successful",
+		Name:    u.Name,
+		Email:   u.Email,
+	}
+	return c.JSON(http.StatusOK, r)
 }

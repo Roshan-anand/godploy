@@ -1,4 +1,4 @@
--- name: AddUser :one
+-- name: CreateUser :one
 INSERT INTO user (name, email, hash_pass, role)
 VALUES (?, ?, ?, ?)
 RETURNING id;

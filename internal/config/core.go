@@ -14,14 +14,18 @@ type DataBase struct {
 
 // server holds the global configuration for the application
 type Server struct {
-	Http *http.Server
-	DB   *DataBase
+	Http   *http.Server
+	DB     *DataBase
+	Config *Config
 	// TODO : add other services like DOCKER client, DB client etc.
 }
 
 // creates a new server instance
 func NewServer() (*Server, error) {
 	// connect DB, Redis, Docker client etc. here and add them to the server struct
+
+	// load server config
+	cfg := LoadConfig()
 
 	// initialize database connection
 	db, err := IntiDb()
@@ -30,6 +34,7 @@ func NewServer() (*Server, error) {
 	}
 
 	return &Server{
-		DB: db,
+		DB:     db,
+		Config: cfg,
 	}, nil
 }

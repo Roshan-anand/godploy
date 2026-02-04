@@ -1,4 +1,4 @@
--- name: InsertSession :exec
+-- name: CreateSession :exec
 INSERT INTO session (user_id, token, expires_at)
 VALUES (?, ?, ?);
 

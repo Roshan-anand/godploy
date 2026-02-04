@@ -11,6 +11,22 @@ import (
 	"time"
 )
 
+const createSession = `-- name: CreateSession :exec
+INSERT INTO session (user_id, token, expires_at)
+VALUES (?, ?, ?)
+`
+
+type CreateSessionParams struct {
+	UserID    int64     `json:"user_id"`
+	Token     string    `json:"token"`
+	ExpiresAt time.Time `json:"expires_at"`
+}
+
+func (q *Queries) CreateSession(ctx context.Context, arg CreateSessionParams) error {
+	_, err := q.db.ExecContext(ctx, createSession, arg.UserID, arg.Token, arg.ExpiresAt)
+	return err
+}
+
 const getSessionByToken = `-- name: GetSessionByToken :one
 SELECT u.email,s.expires_at,s.created_at
 FROM session s
@@ -29,20 +45,4 @@ func (q *Queries) GetSessionByToken(ctx context.Context, token string) (GetSessi
 	var i GetSessionByTokenRow
 	err := row.Scan(&i.Email, &i.ExpiresAt, &i.CreatedAt)
 	return i, err
-}
-
-const insertSession = `-- name: InsertSession :exec
-INSERT INTO session (user_id, token, expires_at)
-VALUES (?, ?, ?)
-`
-
-type InsertSessionParams struct {
-	UserID    int64     `json:"user_id"`
-	Token     string    `json:"token"`
-	ExpiresAt time.Time `json:"expires_at"`
-}
-
-func (q *Queries) InsertSession(ctx context.Context, arg InsertSessionParams) error {
-	_, err := q.db.ExecContext(ctx, insertSession, arg.UserID, arg.Token, arg.ExpiresAt)
-	return err
 }

@@ -17,7 +17,7 @@ const (
 // @param h : http handler  to set the server with
 func (s *Server) SetupHttp(h http.Handler) {
 	s.Http = &http.Server{
-		Addr:    ":8080", // TODO: change it to env (konf)
+		Addr:    ":" + s.Config.Port,
 		Handler: h,
 		// TODO: other configurations
 	}

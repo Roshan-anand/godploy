@@ -9,31 +9,6 @@ import (
 	"context"
 )
 
-const addUser = `-- name: AddUser :one
-INSERT INTO user (name, email, hash_pass, role)
-VALUES (?, ?, ?, ?)
-RETURNING id
-`
-
-type AddUserParams struct {
-	Name     string `json:"name"`
-	Email    string `json:"email"`
-	HashPass string `json:"hash_pass"`
-	Role     string `json:"role"`
-}
-
-func (q *Queries) AddUser(ctx context.Context, arg AddUserParams) (int64, error) {
-	row := q.db.QueryRowContext(ctx, addUser,
-		arg.Name,
-		arg.Email,
-		arg.HashPass,
-		arg.Role,
-	)
-	var id int64
-	err := row.Scan(&id)
-	return id, err
-}
-
 const adminExists = `-- name: AdminExists :one
 SELECT CAST(EXISTS (
     SELECT 1 FROM user
@@ -46,6 +21,31 @@ func (q *Queries) AdminExists(ctx context.Context) (bool, error) {
 	var column_1 bool
 	err := row.Scan(&column_1)
 	return column_1, err
+}
+
+const createUser = `-- name: CreateUser :one
+INSERT INTO user (name, email, hash_pass, role)
+VALUES (?, ?, ?, ?)
+RETURNING id
+`
+
+type CreateUserParams struct {
+	Name     string `json:"name"`
+	Email    string `json:"email"`
+	HashPass string `json:"hash_pass"`
+	Role     string `json:"role"`
+}
+
+func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, createUser,
+		arg.Name,
+		arg.Email,
+		arg.HashPass,
+		arg.Role,
+	)
+	var id int64
+	err := row.Scan(&id)
+	return id, err
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one

@@ -9,14 +9,14 @@ import (
 	"context"
 )
 
-const insertOrg = `-- name: InsertOrg :one
+const createOrg = `-- name: CreateOrg :one
 INSERT INTO organization (name)
 VALUES (?)
 RETURNING id
 `
 
-func (q *Queries) InsertOrg(ctx context.Context, name string) (int64, error) {
-	row := q.db.QueryRowContext(ctx, insertOrg, name)
+func (q *Queries) CreateOrg(ctx context.Context, name string) (int64, error) {
+	row := q.db.QueryRowContext(ctx, createOrg, name)
 	var id int64
 	err := row.Scan(&id)
 	return id, err
