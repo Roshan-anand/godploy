@@ -12,21 +12,18 @@ func TestPassword(t *testing.T) {
 		hassPass, err = HashPassword(pass)
 		if err != nil {
 			t.Fatal("err hashing passowrd : ", err)
-			return
 		}
 	})
 
 	t.Run("match password and hash", func(t *testing.T) {
 		if !CheckPasswordHash(pass, hassPass) {
 			t.Fatal("password didnt match but want to match")
-			return
 		}
 	})
 
 	t.Run("match wrong password and hash", func(t *testing.T) {
 		if CheckPasswordHash(wrongPass, hassPass) {
 			t.Fatal("password matched but want not match")
-			return
 		}
 	})
 }

@@ -46,10 +46,7 @@ func SetupRoutes(srv *config.Server) (*echo.Echo, error) {
 
 	// health check route
 	e.GET("/api/health", func(c *echo.Context) error {
-		switch {
-		case h.Server.Http == nil:
-			return c.JSON(500, ErrRes{Message: "http server not initialized"})
-		case h.Server.DB == nil:
+		if srv.DB == nil {
 			return c.JSON(500, ErrRes{Message: "database not initialized"})
 		}
 		return c.JSON(200, SuccessRes{Message: "ok"})

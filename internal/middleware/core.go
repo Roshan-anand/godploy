@@ -27,8 +27,8 @@ func NewMiddlewares(s *config.Server) *Middlewares {
 }
 
 // global middleware cors applicable to all routes
-func (_ *Middlewares) GlobalMiddlewareCors() echo.MiddlewareFunc {
-	return middleware.CORS("http://localhost:5173")
+func (m *Middlewares) GlobalMiddlewareCors() echo.MiddlewareFunc {
+	return middleware.CORS(m.Server.Config.AllowedCors...)
 }
 
 // global middleware user applicable to all routes
@@ -43,7 +43,6 @@ func (m *Middlewares) GlobalMiddlewareUser(next echo.HandlerFunc) echo.HandlerFu
 		if err == nil {
 			claims, err := lib.VerifyJWT(jwt.Value, secret)
 			if err != nil {
-				fmt.Println("jwt verify error:", err)
 				return c.JSON(http.StatusUnauthorized, unAuthErr)
 			}
 
@@ -57,11 +56,10 @@ func (m *Middlewares) GlobalMiddlewareUser(next echo.HandlerFunc) echo.HandlerFu
 		if err == nil {
 			sData, err := m.Server.DB.Queries.GetSessionByToken(m.Ctx, token.Value)
 			if err != nil {
-				fmt.Println("get session by token error:", err)
 				return c.JSON(http.StatusUnauthorized, unAuthErr)
 			}
 
-			// session expired then remove 
+			// session expired then remove
 			if time.Now().After(sData.ExpiresAt) {
 				if err := m.Server.DB.Queries.RemoveSessionByUID(context.Background(), sData.ID); err != nil {
 					fmt.Println("remove session by uid error:", err)
@@ -89,7 +87,6 @@ func (m *Middlewares) GlobalMiddlewareUser(next echo.HandlerFunc) echo.HandlerFu
 		}
 
 		// no auth found
-		fmt.Println("final : ", err)
 		return c.JSON(http.StatusUnauthorized, unAuthErr)
 	}
 }

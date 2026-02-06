@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"path/filepath"
 	"time"
 
 	"github.com/Roshan-anand/godploy/internal/db"
@@ -53,15 +54,16 @@ func MigrateDb(db *sql.DB) error {
 	if err := m.Up(); err != nil && err != migrate.ErrNoChange {
 		return err
 	}
-	
+
 	fmt.Println("database migrated completed ...")
 	return nil
 }
 
 // initialize and return a new database connection
-func IntiDb() (*DataBase, error) {
+func IntiDb(dir string) (*DataBase, error) {
+	p := filepath.Join(dir, "base.db")
 	// TODO : replace path with config value
-	dsn := "file:" + "test.db" +
+	dsn := "file:" + p +
 		"?_pragma=journal_mode(WAL)" +
 		"&_pragma=foreign_keys(ON)" +
 		"&_pragma=busy_timeout(5000)" +

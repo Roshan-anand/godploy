@@ -136,7 +136,7 @@ func (h *Handler) appLogin(c *echo.Context) error {
 	// get the user
 	u, err := h.Server.DB.Queries.GetUserByEmail(h.Ctx, b.Email)
 	if err != nil {
-		return c.JSON(http.StatusNotFound, ErrRes{Message: "user not found"})
+		return c.JSON(http.StatusUnauthorized, ErrRes{Message: "user not found"})
 	}
 
 	// check password

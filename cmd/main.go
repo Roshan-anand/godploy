@@ -13,9 +13,11 @@ import (
 
 // create and configure the server
 func createServer() (*config.Server, error) {
-	
-	// load server config
-	server, err := config.NewServer()
+
+	cfg := config.LoadConfig()
+
+	// create server instance
+	server, err := config.NewServer(cfg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize server: %w", err)
 	}

@@ -20,7 +20,6 @@ func TestJwt(t *testing.T) {
 		jwtToken, err = generateJWT(u, secret)
 		if err != nil {
 			t.Fatalf("Failed to generate JWT: %v", err)
-			return
 		}
 	})
 
@@ -28,7 +27,6 @@ func TestJwt(t *testing.T) {
 		claims, err = VerifyJWT(jwtToken, secret)
 		if err != nil {
 			t.Fatalf("Failed to verify JWT: %v", err)
-			return
 		}
 	})
 

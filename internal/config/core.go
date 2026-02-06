@@ -21,14 +21,11 @@ type Server struct {
 }
 
 // creates a new server instance
-func NewServer() (*Server, error) {
+func NewServer(cfg *Config) (*Server, error) {
 	// connect DB, Redis, Docker client etc. here and add them to the server struct
 
-	// load server config
-	cfg := LoadConfig()
-
 	// initialize database connection
-	db, err := IntiDb()
+	db, err := IntiDb(cfg.DbDir)
 	if err != nil {
 		return nil, err
 	}
