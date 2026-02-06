@@ -9,7 +9,7 @@ build:
 	cd .. && go build -o ./bin/godploy cmd/main.go
 
 test:
-	@clear && go test -v ./internal/testing/...
+	@clear && go test -v ./testing/...
 
 start:
 	@clear && \

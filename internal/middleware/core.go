@@ -61,10 +61,11 @@ func (m *Middlewares) GlobalMiddlewareUser(next echo.HandlerFunc) echo.HandlerFu
 				return c.JSON(http.StatusUnauthorized, unAuthErr)
 			}
 
-			// if expired
+			// session expired then remove 
 			if time.Now().After(sData.ExpiresAt) {
-				fmt.Println("session expired")
-				// remove the seesion from DB
+				if err := m.Server.DB.Queries.RemoveSessionByUID(context.Background(), sData.ID); err != nil {
+					fmt.Println("remove session by uid error:", err)
+				}
 				return c.JSON(http.StatusUnauthorized, unAuthErr)
 			}
 

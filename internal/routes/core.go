@@ -44,6 +44,17 @@ func SetupRoutes(srv *config.Server) (*echo.Echo, error) {
 
 	e.Use(m.GlobalMiddlewareCors())
 
+	// health check route
+	e.GET("/api/health", func(c *echo.Context) error {
+		switch {
+		case h.Server.Http == nil:
+			return c.JSON(500, ErrRes{Message: "http server not initialized"})
+		case h.Server.DB == nil:
+			return c.JSON(500, ErrRes{Message: "database not initialized"})
+		}
+		return c.JSON(200, SuccessRes{Message: "ok"})
+	})
+
 	// initialize auth api routes
 	authApi := e.Group("/api/auth")
 	authApi.GET("/user", h.authUser, m.GlobalMiddlewareUser)

@@ -31,7 +31,7 @@ const (
 )
 
 // generate JWT token with the given user id
-func GenerateJWT(u AuthUser, secret string) (string, error) {
+func generateJWT(u AuthUser, secret string) (string, error) {
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, CustomClaims{
 		AuthUser: u,
@@ -115,7 +115,7 @@ func SetSessionCookies(s *config.Server, c *echo.Context, uId int64) error {
 // sets up new JWT cookie
 func SetJwtCookie(s *config.Server, c *echo.Context, u AuthUser) error {
 	// generate JWT  and setcookie
-	jwtStr, err := GenerateJWT(u, s.Config.JwtSecret)
+	jwtStr, err := generateJWT(u, s.Config.JwtSecret)
 	if err != nil {
 		return fmt.Errorf("generate jwt error : %w", err)
 	}
