@@ -9,7 +9,7 @@ build:
 	cd .. && go build -o ./bin/godploy cmd/main.go
 
 test:
-	@clear && go test -v ./testing/...
+	@clear && go test -v ./...
 
 start:
 	@clear && \
@@ -22,7 +22,7 @@ start:
 
 reset:
 	@clear && \
-	rm -rf ./test.db && \
+	rm -rf ./data/* && \
 	go build -o ./bin/godploy cmd/main.go
 
 generate:

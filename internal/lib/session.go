@@ -79,7 +79,7 @@ func generateSessionToken() (string, error) {
 
 // sets up session token
 func SetSessionCookies(s *config.Server, c *echo.Context, uId int64) error {
-	sToken, err :=generateSessionToken()
+	sToken, err := generateSessionToken()
 	if err != nil {
 		return fmt.Errorf("generate session token error : %w", err)
 	}

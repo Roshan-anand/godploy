@@ -98,7 +98,7 @@ func (h *Handler) appRegiter(c *echo.Context) error {
 
 	// link user with organization
 	if err := query.LinkUserNOrg(h.Ctx, db.LinkUserNOrgParams{
-		UserID:         uId,
+		UserEmail:      b.Email,
 		OrganizationID: orgId,
 	}); err != nil {
 		fmt.Println("Link User N Org Error:", err)

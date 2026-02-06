@@ -16,10 +16,10 @@ CREATE TABLE organization (
 );
 
 CREATE TABLE user_organization (
-    user_id INTEGER NOT NULL REFERENCES user(id) ON DELETE CASCADE,
+    user_email TEXT NOT NULL REFERENCES user(email) ON DELETE CASCADE,
     organization_id INTEGER NOT NULL REFERENCES organization(id) ON DELETE CASCADE,
     joined_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (user_id, organization_id)
+    PRIMARY KEY (user_email, organization_id)
 );
 
 CREATE TABLE session (

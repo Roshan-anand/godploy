@@ -47,7 +47,7 @@ type User struct {
 }
 
 type UserOrganization struct {
-	UserID         int64        `json:"user_id"`
+	UserEmail      string       `json:"user_email"`
 	OrganizationID int64        `json:"organization_id"`
 	JoinedAt       sql.NullTime `json:"joined_at"`
 }

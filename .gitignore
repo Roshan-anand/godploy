@@ -1,3 +1,4 @@
 .env
 bin
-test.db
+/test.db
+/data

@@ -1,12 +1,12 @@
 # All API Endpoints
 
-- [ ] GET /api/auth/user :
+- [x] GET /api/auth/user :
   - validate JWT -> isAuth goto /dshboard
   - else check accExists goto /login else /register
 
-- [ ] POST /api/login : validate pass, generate JWT -> goto /dashboard
+- [x] POST /api/login : validate pass, generate JWT -> goto /dashboard
 
-- [ ] POST /api/register : create acc, generate JWT -> goto /dashboard
+- [x] POST /api/register : create acc, generate JWT -> goto /dashboard
 
 - [ ] GET /api/orgs : return all organisations
 

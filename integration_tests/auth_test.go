@@ -9,7 +9,7 @@ import (
 	"github.com/Roshan-anand/godploy/internal/routes"
 )
 
-func HasCookie(c []*http.Cookie, cfg *config.Config) bool {
+func hasCookie(c []*http.Cookie, cfg *config.Config) bool {
 	for _, cookie := range c {
 		switch cookie.Name {
 		case cfg.SessionDataName, cfg.SessionTokenName:
@@ -79,7 +79,7 @@ func TestUserLogin(t *testing.T) {
 			t.Fatalf("expected status code %d, got %d", http.StatusUnauthorized, r.StatusCode)
 		}
 
-		if !HasCookie(r.Cookies(), cfg) {
+		if !hasCookie(r.Cookies(), cfg) {
 			t.Fatal("expected cookies not found in response")
 		}
 	})
@@ -116,7 +116,7 @@ func TestUserLogin(t *testing.T) {
 			t.Fatalf("expected status code %d, got %d", http.StatusOK, r.StatusCode)
 		}
 
-		if !HasCookie(r.Cookies(), cfg) {
+		if !hasCookie(r.Cookies(), cfg) {
 			t.Fatal("expected cookies not found in response")
 		}
 	})

@@ -5,7 +5,7 @@ VALUES (?, ?, ?);
 -- name: GetSessionByToken :one
 SELECT u.id,u.email,u.name,s.expires_at,s.created_at
 FROM session s
-INNER JOIN user u ON s.user_id = u.id
+JOIN user u ON s.user_id = u.id
 WHERE s.token = ?;
 
 -- name: RemoveSessionByUID :exec

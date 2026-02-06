@@ -10,16 +10,16 @@ import (
 )
 
 const linkUserNOrg = `-- name: LinkUserNOrg :exec
-INSERT INTO user_organization (user_id, organization_id)
+INSERT INTO user_organization (user_email, organization_id)
 VALUES (?, ?)
 `
 
 type LinkUserNOrgParams struct {
-	UserID         int64 `json:"user_id"`
-	OrganizationID int64 `json:"organization_id"`
+	UserEmail      string `json:"user_email"`
+	OrganizationID int64  `json:"organization_id"`
 }
 
 func (q *Queries) LinkUserNOrg(ctx context.Context, arg LinkUserNOrgParams) error {
-	_, err := q.db.ExecContext(ctx, linkUserNOrg, arg.UserID, arg.OrganizationID)
+	_, err := q.db.ExecContext(ctx, linkUserNOrg, arg.UserEmail, arg.OrganizationID)
 	return err
 }
