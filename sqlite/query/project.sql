@@ -7,13 +7,13 @@ RETURNING id;
 DELETE FROM organization
 WHERE id = ?;
 
--- name: GetAllOrg :one
+-- name: GetAllOrg :many
 SELECT o.id,o.name
 FROM organization o
 JOIN user_organization uo ON o.id = uo.organization_id
 WHERE uo.user_email = ?;
 
--- name: GetAllProjects :one
+-- name: GetAllProjects :many
 SELECT p.id,p.name
 FROM organization o
 JOIN project p ON o.id = p.organization_id
@@ -28,7 +28,7 @@ RETURNING id;
 DELETE FROM project
 WHERE id = ?;
 
--- name: GetAllServices :one
+-- name: GetAllServices :many
 SELECT p.id,p.name
 FROM project p
 JOIN service s ON p.id = s.project_id

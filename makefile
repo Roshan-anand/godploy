@@ -27,3 +27,11 @@ reset:
 
 generate:
 	sqlc generate
+	
+service-up:
+	@clear && \
+	docker compose -f ./dynamic/compose.yaml up -d
+
+service-down:
+	@clear && \
+	docker compose -f ./dynamic/compose.yaml down

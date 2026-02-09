@@ -89,7 +89,7 @@ func (q *Queries) DeleteService(ctx context.Context, id int64) error {
 	return err
 }
 
-const getAllOrg = `-- name: GetAllOrg :one
+const getAllOrg = `-- name: GetAllOrg :many
 SELECT o.id,o.name
 FROM organization o
 JOIN user_organization uo ON o.id = uo.organization_id
@@ -101,14 +101,30 @@ type GetAllOrgRow struct {
 	Name string `json:"name"`
 }
 
-func (q *Queries) GetAllOrg(ctx context.Context, userEmail string) (GetAllOrgRow, error) {
-	row := q.db.QueryRowContext(ctx, getAllOrg, userEmail)
-	var i GetAllOrgRow
-	err := row.Scan(&i.ID, &i.Name)
-	return i, err
+func (q *Queries) GetAllOrg(ctx context.Context, userEmail string) ([]GetAllOrgRow, error) {
+	rows, err := q.db.QueryContext(ctx, getAllOrg, userEmail)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetAllOrgRow
+	for rows.Next() {
+		var i GetAllOrgRow
+		if err := rows.Scan(&i.ID, &i.Name); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
-const getAllProjects = `-- name: GetAllProjects :one
+const getAllProjects = `-- name: GetAllProjects :many
 SELECT p.id,p.name
 FROM organization o
 JOIN project p ON o.id = p.organization_id
@@ -120,14 +136,30 @@ type GetAllProjectsRow struct {
 	Name string `json:"name"`
 }
 
-func (q *Queries) GetAllProjects(ctx context.Context, id int64) (GetAllProjectsRow, error) {
-	row := q.db.QueryRowContext(ctx, getAllProjects, id)
-	var i GetAllProjectsRow
-	err := row.Scan(&i.ID, &i.Name)
-	return i, err
+func (q *Queries) GetAllProjects(ctx context.Context, id int64) ([]GetAllProjectsRow, error) {
+	rows, err := q.db.QueryContext(ctx, getAllProjects, id)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetAllProjectsRow
+	for rows.Next() {
+		var i GetAllProjectsRow
+		if err := rows.Scan(&i.ID, &i.Name); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
-const getAllServices = `-- name: GetAllServices :one
+const getAllServices = `-- name: GetAllServices :many
 SELECT p.id,p.name
 FROM project p
 JOIN service s ON p.id = s.project_id
@@ -139,11 +171,27 @@ type GetAllServicesRow struct {
 	Name string `json:"name"`
 }
 
-func (q *Queries) GetAllServices(ctx context.Context, id int64) (GetAllServicesRow, error) {
-	row := q.db.QueryRowContext(ctx, getAllServices, id)
-	var i GetAllServicesRow
-	err := row.Scan(&i.ID, &i.Name)
-	return i, err
+func (q *Queries) GetAllServices(ctx context.Context, id int64) ([]GetAllServicesRow, error) {
+	rows, err := q.db.QueryContext(ctx, getAllServices, id)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetAllServicesRow
+	for rows.Next() {
+		var i GetAllServicesRow
+		if err := rows.Scan(&i.ID, &i.Name); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const getService = `-- name: GetService :one
