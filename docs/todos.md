@@ -1,6 +1,7 @@
 # TODOs
 
-## staging 
+## staging
+
 - [ ] Setup logger
 - [x] setup tests
 - [ ] integration test for main func
@@ -12,15 +13,19 @@
 - [ ] setup monorepo
 
 ## traefik
+
 - [ ] setup traefik lifecycle
 - [ ] setup traefik local setup
 - [ ] setup traefik SSL certs, LoadBalancer
+- [ ] create dynamic password management for traefik dashbaord in middleware
 
 ## git provider
+
 - [ ] able to connet any git provider
 - [ ] able to pull any repo from the git porvider
 
 ## OCI image builder
+
 - [ ] able to build image using Docker
 - [ ] able to build image using Nixpack
 - [ ] able to build image using Buildpack
