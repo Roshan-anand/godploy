@@ -10,8 +10,6 @@ import (
 	"github.com/labstack/echo/v5"
 )
 
-
-
 type ErrRes struct {
 	Message string `json:"message" validate:"required"`
 }
@@ -60,7 +58,9 @@ func SetupRoutes(srv *config.Server) (*echo.Echo, error) {
 	api.Use(m.GlobalMiddlewareUser)
 
 	projectApi := api.Group("/project")
-	projectApi.POST("/", h.createProject)
+	projectApi.GET("/?org_id", h.getProjects)
+	projectApi.POST("", h.createProject)
+	projectApi.DELETE("", h.deleteProject)
 
 	return e, nil
 }

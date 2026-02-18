@@ -20,3 +20,7 @@
 - [ ] how to production JWT
     - how to use JWT in production manner
     - what are best practices
+    
+- [ ] wht is COLESCE in SQL
+    - what is COALESCE in SQL
+    - how it pairs with GROUP BY
