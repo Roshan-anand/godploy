@@ -215,3 +215,18 @@ func (q *Queries) GetService(ctx context.Context, id int64) (Service, error) {
 	)
 	return i, err
 }
+
+const hasProjectServices = `-- name: HasProjectServices :one
+SELECT CAST(EXISTS (
+    SELECT 1 FROM service s
+    JOIN project p ON s.project_id = p.id
+    WHERE p.id = ?
+) AS BOOLEAN)
+`
+
+func (q *Queries) HasProjectServices(ctx context.Context, id int64) (bool, error) {
+	row := q.db.QueryRowContext(ctx, hasProjectServices, id)
+	var column_1 bool
+	err := row.Scan(&column_1)
+	return column_1, err
+}

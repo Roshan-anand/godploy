@@ -51,20 +51,43 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (int64, 
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, name, email, hash_pass, role, created_at FROM user
-WHERE email = ?
+SELECT
+   u.id,
+   u.name,
+   u.email,
+   u.hash_pass,
+   u.role,
+   CAST(
+    json_group_array(
+        json_object('id', o.id, 'name', o.name, 'created_at',  strftime('%Y-%m-%dT%H:%M:%SZ', o.created_at))
+    ) AS TEXT
+   ) AS orgs
+FROM user u
+JOIN user_organization uo ON u.email = uo.user_email
+JOIN organization o ON uo.organization_id = o.id
+WHERE u.email = ?
+GROUP BY u.name, u.email, u.hash_pass,u.role
 `
 
-func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error) {
+type GetUserByEmailRow struct {
+	ID       int64          `json:"id"`
+	Name     string         `json:"name"`
+	Email    string         `json:"email"`
+	HashPass string         `json:"hash_pass"`
+	Role     types.UserRole `json:"role"`
+	Orgs     string         `json:"orgs"`
+}
+
+func (q *Queries) GetUserByEmail(ctx context.Context, email string) (GetUserByEmailRow, error) {
 	row := q.db.QueryRowContext(ctx, getUserByEmail, email)
-	var i User
+	var i GetUserByEmailRow
 	err := row.Scan(
 		&i.ID,
 		&i.Name,
 		&i.Email,
 		&i.HashPass,
 		&i.Role,
-		&i.CreatedAt,
+		&i.Orgs,
 	)
 	return i, err
 }

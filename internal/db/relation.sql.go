@@ -9,6 +9,25 @@ import (
 	"context"
 )
 
+const checkUserOrgExists = `-- name: CheckUserOrgExists :one
+SELECT CAST(EXISTS(
+    SELECT 1 FROM user_organization uo
+    WHERE uo.user_email = ? AND uo.organization_id = ?
+)AS BOOLEAN)
+`
+
+type CheckUserOrgExistsParams struct {
+	UserEmail      string `json:"user_email"`
+	OrganizationID int64  `json:"organization_id"`
+}
+
+func (q *Queries) CheckUserOrgExists(ctx context.Context, arg CheckUserOrgExistsParams) (bool, error) {
+	row := q.db.QueryRowContext(ctx, checkUserOrgExists, arg.UserEmail, arg.OrganizationID)
+	var column_1 bool
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
 const linkUserNOrg = `-- name: LinkUserNOrg :exec
 INSERT INTO user_organization (user_email, organization_id)
 VALUES (?, ?)

@@ -34,6 +34,13 @@ FROM project p
 JOIN service s ON p.id = s.project_id
 WHERE p.id = ?;
 
+-- name: HasProjectServices :one
+SELECT CAST(EXISTS (
+    SELECT 1 FROM service s
+    JOIN project p ON s.project_id = p.id
+    WHERE p.id = ?
+) AS BOOLEAN);
+
 -- name: GetService :one
 SELECT *
 FROM service

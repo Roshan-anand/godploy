@@ -8,7 +8,6 @@ import (
 	"github.com/Roshan-anand/godploy/internal/routes"
 )
 
-
 func TestUserLogin(t *testing.T) {
 	// route paths
 	rUser := "/api/auth/user"

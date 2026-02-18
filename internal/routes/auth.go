@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 
@@ -28,10 +29,10 @@ type LoginReq struct {
 }
 
 type AuthRes struct {
-	Message string `json:"message"`
-	Name    string `json:"name,omitempty"`
-	Email   string `json:"email,omitempty"`
-	Orgs    []string `json:"orgs,omitempty"`
+	Message string            `json:"message"`
+	Name    string            `json:"name"`
+	Email   string            `json:"email"`
+	Orgs    []db.Organization `json:"orgs"`
 }
 
 // check if user is authenticated
@@ -53,13 +54,8 @@ func (h *Handler) authUser(c *echo.Context) error {
 func (h *Handler) appRegiter(c *echo.Context) error {
 	b := new(RegisterReq)
 
-	if err := c.Bind(b); err != nil {
-		fmt.Println("Bind Error:", err)
-		return c.JSON(http.StatusBadRequest, ErrRes{Message: "Invalid Data"})
-	}
-
-	if err := h.Validate.Struct(b); err != nil {
-		return c.JSON(http.StatusBadRequest, ErrRes{Message: fmt.Sprintf("validation error : %v", err)})
+	if ErrRes := bindAndValidate(b, c, h.Validate); ErrRes != nil {
+		return c.JSON(http.StatusBadRequest, ErrRes)
 	}
 
 	query := h.Server.DB.Queries
@@ -114,6 +110,7 @@ func (h *Handler) appRegiter(c *echo.Context) error {
 		Message: "Registration Successful",
 		Name:    b.Name,
 		Email:   b.Email,
+		Orgs:    []db.Organization{{ID: orgId, Name: b.Org}},
 	}
 	return c.JSON(http.StatusOK, r)
 }
@@ -124,20 +121,18 @@ func (h *Handler) appRegiter(c *echo.Context) error {
 func (h *Handler) appLogin(c *echo.Context) error {
 	b := new(LoginReq)
 
-	if err := c.Bind(b); err != nil {
-		fmt.Println("Bind Error:", err)
-		return c.JSON(http.StatusBadRequest, ErrRes{Message: "Invalid Data"})
-	}
-
-	if err := h.Validate.Struct(b); err != nil {
-		fmt.Println("Validation Error:", err)
-		return c.JSON(http.StatusBadRequest, ErrRes{Message: fmt.Sprintf("validation error : %v", err)})
+	if ErrRes := bindAndValidate(b, c, h.Validate); ErrRes != nil {
+		return c.JSON(http.StatusBadRequest, ErrRes)
 	}
 
 	// get the user
 	u, err := h.Server.DB.Queries.GetUserByEmail(h.Ctx, b.Email)
 	if err != nil {
 		return c.JSON(http.StatusUnauthorized, ErrRes{Message: "user not found"})
+	}
+	var orgs []db.Organization
+	if err := json.Unmarshal([]byte(u.Orgs), &orgs); err != nil {
+		return c.JSON(http.StatusInternalServerError, ErrRes{Message: "Internal Server Error"})
 	}
 
 	// check password
@@ -153,6 +148,7 @@ func (h *Handler) appLogin(c *echo.Context) error {
 		Message: "Login Successful",
 		Name:    u.Name,
 		Email:   u.Email,
+		Orgs:    orgs,
 	}
 	return c.JSON(http.StatusOK, r)
 }
