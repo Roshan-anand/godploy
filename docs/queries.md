@@ -1,4 +1,9 @@
-# Quries
+# Queries
+
+- [ ] AI Knowledge Capture
+    - When AI introduces new design/concept in code, add summary comment explaining the reasoning
+    - Update `/docs/queries.md` with the topic and brief explanation for future reference
+    - This creates a searchable knowledge base of engineering decisions
 
 - [ ] what is embed.FS
     ```go
