@@ -59,7 +59,11 @@ func SetupRoutes(srv *config.Server) (*echo.Echo, error) {
 	authApi.POST("/login", h.appLogin)
 
 	// other routes
-	// api := e.Group("/api")
+	api := e.Group("/api")
+	api.Use(m.GlobalMiddlewareUser)
+
+	projectApi := api.Group("/project")
+	projectApi.POST("/", h.createProject)
 
 	return e, nil
 }

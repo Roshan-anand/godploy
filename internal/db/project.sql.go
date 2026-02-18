@@ -7,7 +7,6 @@ package db
 
 import (
 	"context"
-	"database/sql"
 )
 
 const createOrg = `-- name: CreateOrg :one
@@ -26,19 +25,24 @@ func (q *Queries) CreateOrg(ctx context.Context, name string) (int64, error) {
 const createProject = `-- name: CreateProject :one
 INSERT INTO project (name,organization_id)
 VALUES (?,?)
-RETURNING id
+RETURNING id,name
 `
 
 type CreateProjectParams struct {
-	Name           string        `json:"name"`
-	OrganizationID sql.NullInt64 `json:"organization_id"`
+	Name           string `json:"name"`
+	OrganizationID int64  `json:"organization_id"`
 }
 
-func (q *Queries) CreateProject(ctx context.Context, arg CreateProjectParams) (int64, error) {
+type CreateProjectRow struct {
+	ID   int64  `json:"id"`
+	Name string `json:"name"`
+}
+
+func (q *Queries) CreateProject(ctx context.Context, arg CreateProjectParams) (CreateProjectRow, error) {
 	row := q.db.QueryRowContext(ctx, createProject, arg.Name, arg.OrganizationID)
-	var id int64
-	err := row.Scan(&id)
-	return id, err
+	var i CreateProjectRow
+	err := row.Scan(&i.ID, &i.Name)
+	return i, err
 }
 
 const createService = `-- name: CreateService :one
@@ -48,8 +52,8 @@ RETURNING id
 `
 
 type CreateServiceParams struct {
-	Name      string        `json:"name"`
-	ProjectID sql.NullInt64 `json:"project_id"`
+	Name      string `json:"name"`
+	ProjectID int64  `json:"project_id"`
 }
 
 func (q *Queries) CreateService(ctx context.Context, arg CreateServiceParams) (int64, error) {

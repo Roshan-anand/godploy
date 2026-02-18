@@ -22,7 +22,7 @@ WHERE o.id = ?;
 -- name: CreateProject :one
 INSERT INTO project (name,organization_id)
 VALUES (?,?)
-RETURNING id;
+RETURNING id,name;
 
 -- name: DeleteProject :exec
 DELETE FROM project

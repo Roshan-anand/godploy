@@ -16,17 +16,17 @@ type Organization struct {
 }
 
 type Project struct {
-	ID             int64         `json:"id"`
-	Name           string        `json:"name"`
-	OrganizationID sql.NullInt64 `json:"organization_id"`
-	CreatedAt      time.Time     `json:"created_at"`
+	ID             int64     `json:"id"`
+	Name           string    `json:"name"`
+	OrganizationID int64     `json:"organization_id"`
+	CreatedAt      time.Time `json:"created_at"`
 }
 
 type Service struct {
-	ID        int64         `json:"id"`
-	Name      string        `json:"name"`
-	ProjectID sql.NullInt64 `json:"project_id"`
-	CreatedAt time.Time     `json:"created_at"`
+	ID        int64     `json:"id"`
+	Name      string    `json:"name"`
+	ProjectID int64     `json:"project_id"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
 type Session struct {
