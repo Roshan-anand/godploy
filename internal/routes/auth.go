@@ -6,6 +6,7 @@ import (
 
 	"github.com/Roshan-anand/godploy/internal/db"
 	"github.com/Roshan-anand/godploy/internal/lib"
+	"github.com/Roshan-anand/godploy/internal/types"
 	"github.com/labstack/echo/v5"
 )
 
@@ -82,7 +83,7 @@ func (h *Handler) appRegiter(c *echo.Context) error {
 		Name:     b.Name,
 		Email:    b.Email,
 		HashPass: hPass,
-		Role:     AdminRole,
+		Role:     types.AdminRole,
 	})
 	if err != nil {
 		fmt.Println("Add User Error:", err)
@@ -107,7 +108,7 @@ func (h *Handler) appRegiter(c *echo.Context) error {
 
 	// set cookies
 	lib.SetSessionCookies(h.Server, c, uId)
-	lib.SetJwtCookie(h.Server, c, lib.AuthUser{Email: b.Email, Name: b.Name})
+	lib.SetJwtCookie(h.Server, c, lib.AuthUser{Email: b.Email, Name: b.Name, Role: types.AdminRole})
 
 	r := AuthRes{
 		Message: "Registration Successful",
@@ -146,7 +147,7 @@ func (h *Handler) appLogin(c *echo.Context) error {
 
 	// set cookies
 	lib.SetSessionCookies(h.Server, c, u.ID)
-	lib.SetJwtCookie(h.Server, c, lib.AuthUser{Email: u.Email, Name: u.Name})
+	lib.SetJwtCookie(h.Server, c, lib.AuthUser{Email: u.Email, Name: u.Name, Role: u.Role})
 
 	r := AuthRes{
 		Message: "Login Successful",

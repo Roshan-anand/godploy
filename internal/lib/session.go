@@ -10,6 +10,7 @@ import (
 
 	"github.com/Roshan-anand/godploy/internal/config"
 	"github.com/Roshan-anand/godploy/internal/db"
+	"github.com/Roshan-anand/godploy/internal/types"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/labstack/echo/v5"
 )
@@ -17,6 +18,7 @@ import (
 type AuthUser struct {
 	Name  string
 	Email string
+	Role  types.UserRole
 }
 
 type CustomClaims struct {

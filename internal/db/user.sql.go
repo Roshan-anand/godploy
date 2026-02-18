@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/Roshan-anand/godploy/internal/types"
 )
 
 const adminExists = `-- name: AdminExists :one
@@ -30,10 +32,10 @@ RETURNING id
 `
 
 type CreateUserParams struct {
-	Name     string `json:"name"`
-	Email    string `json:"email"`
-	HashPass string `json:"hash_pass"`
-	Role     string `json:"role"`
+	Name     string         `json:"name"`
+	Email    string         `json:"email"`
+	HashPass string         `json:"hash_pass"`
+	Role     types.UserRole `json:"role"`
 }
 
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (int64, error) {

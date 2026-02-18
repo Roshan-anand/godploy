@@ -8,6 +8,8 @@ package db
 import (
 	"context"
 	"time"
+
+	"github.com/Roshan-anand/godploy/internal/types"
 )
 
 const createSession = `-- name: CreateSession :exec
@@ -27,18 +29,19 @@ func (q *Queries) CreateSession(ctx context.Context, arg CreateSessionParams) er
 }
 
 const getSessionByToken = `-- name: GetSessionByToken :one
-SELECT u.id,u.email,u.name,s.expires_at,s.created_at
+SELECT u.id,u.email,u.name,u.role,s.expires_at,s.created_at
 FROM session s
 JOIN user u ON s.user_id = u.id
 WHERE s.token = ?
 `
 
 type GetSessionByTokenRow struct {
-	ID        int64     `json:"id"`
-	Email     string    `json:"email"`
-	Name      string    `json:"name"`
-	ExpiresAt time.Time `json:"expires_at"`
-	CreatedAt time.Time `json:"created_at"`
+	ID        int64          `json:"id"`
+	Email     string         `json:"email"`
+	Name      string         `json:"name"`
+	Role      types.UserRole `json:"role"`
+	ExpiresAt time.Time      `json:"expires_at"`
+	CreatedAt time.Time      `json:"created_at"`
 }
 
 func (q *Queries) GetSessionByToken(ctx context.Context, token string) (GetSessionByTokenRow, error) {
@@ -48,6 +51,7 @@ func (q *Queries) GetSessionByToken(ctx context.Context, token string) (GetSessi
 		&i.ID,
 		&i.Email,
 		&i.Name,
+		&i.Role,
 		&i.ExpiresAt,
 		&i.CreatedAt,
 	)

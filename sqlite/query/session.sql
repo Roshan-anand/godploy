@@ -3,7 +3,7 @@ INSERT INTO session (user_id, token, expires_at)
 VALUES (?, ?, ?);
 
 -- name: GetSessionByToken :one
-SELECT u.id,u.email,u.name,s.expires_at,s.created_at
+SELECT u.id,u.email,u.name,u.role,s.expires_at,s.created_at
 FROM session s
 JOIN user u ON s.user_id = u.id
 WHERE s.token = ?;

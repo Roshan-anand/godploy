@@ -10,10 +10,7 @@ import (
 	"github.com/labstack/echo/v5"
 )
 
-const (
-	AdminRole  string = "admin"
-	MemberRole string = "member"
-)
+
 
 type ErrRes struct {
 	Message string `json:"message" validate:"required"`
