@@ -52,6 +52,31 @@ func mockConfigServer() (*echo.Echo, *config.Config, error) {
 	return r, cfg, nil
 }
 
+// mock a new logined user
+func mockUserRejister(url string, h *http.Client, cfg *config.Config) error {
+	rRegister := "/api/auth/register"
+
+	registerReq := routes.RegisterReq{
+		Name:     "test",
+		Email:    "test@test.com",
+		Password: "testtest",
+		Org:      "test_org",
+	}
+	r, err := h.Post(url+rRegister, "application/json", reqBody(registerReq))
+	if err != nil {
+		return fmt.Errorf("err making request: %v", err)
+	}
+
+	if r.StatusCode != http.StatusOK {
+		return fmt.Errorf("expected status code %d, got %d", http.StatusUnauthorized, r.StatusCode)
+	}
+
+	if !hasCookie(r.Cookies(), cfg) {
+		return fmt.Errorf("expected cookies not found in response")
+	}
+	return nil
+}
+
 // get a new http client with cookie jar
 func getNewClient() (*http.Client, error) {
 	jar, err := cookiejar.New(nil)
@@ -62,6 +87,18 @@ func getNewClient() (*http.Client, error) {
 	h := http.DefaultClient
 	h.Jar = jar
 	return h, nil
+}
+
+// check if cookies exists
+func hasCookie(c []*http.Cookie, cfg *config.Config) bool {
+	for _, cookie := range c {
+		switch cookie.Name {
+		case cfg.SessionDataName, cfg.SessionTokenName:
+		default:
+			return false
+		}
+	}
+	return true
 }
 
 // get a random free port

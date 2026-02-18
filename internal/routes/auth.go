@@ -31,7 +31,7 @@ type AuthRes struct {
 	Message string `json:"message"`
 	Name    string `json:"name,omitempty"`
 	Email   string `json:"email,omitempty"`
-	// Orgs    []string `json:"orgs,omitempty"`
+	Orgs    []string `json:"orgs,omitempty"`
 }
 
 // check if user is authenticated

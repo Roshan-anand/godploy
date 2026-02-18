@@ -109,6 +109,7 @@ func SetSessionCookies(s *config.Server, c *echo.Context, uId int64) error {
 		Name:    s.Config.SessionTokenName,
 		Value:   sToken,
 		Expires: time.Now().Add(SESSION_DATA_EXPIRY_DAY),
+		Path:    "/",
 	})
 
 	return nil
@@ -126,6 +127,7 @@ func SetJwtCookie(s *config.Server, c *echo.Context, u AuthUser) error {
 		Name:    s.Config.SessionDataName,
 		Value:   jwtStr,
 		Expires: time.Now().Add(JWT_EXPIRY_HOUR),
+		Path:    "/",
 	})
 
 	return nil

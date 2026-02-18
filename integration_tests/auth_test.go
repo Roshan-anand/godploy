@@ -5,20 +5,9 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/Roshan-anand/godploy/internal/config"
 	"github.com/Roshan-anand/godploy/internal/routes"
 )
 
-func hasCookie(c []*http.Cookie, cfg *config.Config) bool {
-	for _, cookie := range c {
-		switch cookie.Name {
-		case cfg.SessionDataName, cfg.SessionTokenName:
-		default:
-			return false
-		}
-	}
-	return true
-}
 
 func TestUserLogin(t *testing.T) {
 	// route paths
