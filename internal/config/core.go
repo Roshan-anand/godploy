@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/Roshan-anand/godploy/internal/db"
+	"github.com/docker/docker/client"
 )
 
 type DataBase struct {
@@ -17,6 +18,7 @@ type Server struct {
 	Http   *http.Server
 	DB     *DataBase
 	Config *Config
+	Docker *client.Client
 	// TODO : add other services like DOCKER client, DB client etc.
 }
 
@@ -30,8 +32,15 @@ func NewServer(cfg *Config) (*Server, error) {
 		return nil, err
 	}
 
+	//initialize docker client
+	docker, err := InitDockerClient()
+	if err != nil {
+		return nil, err
+	}
+
 	return &Server{
 		DB:     db,
 		Config: cfg,
+		Docker: docker,
 	}, nil
 }

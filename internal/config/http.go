@@ -64,5 +64,11 @@ func (s *Server) ShutDownServer() error {
 	if err := s.CloseDb(); err != nil {
 		return err
 	}
+
+	// close docker client connection
+	if err := s.CloseDockerClient(); err != nil {
+		return err
+	}
+
 	return nil
 }
