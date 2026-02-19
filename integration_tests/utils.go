@@ -23,12 +23,6 @@ func mockConfigServer() (*echo.Echo, *config.Config, error) {
 	// update config to include testing data
 	cfg.AllowedCors = []string{"*"}
 
-	// port, err := GetFreePort()
-	// if err != nil {
-	// 	return nil, fmt.Errorf("failed to get free port: %w", err)
-	// }
-	// cfg.Port = fmt.Sprintf(":%d", port)
-
 	tempDir, err := getTempDir()
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to get temp dir: %w", err)
@@ -87,6 +81,20 @@ func getNewClient() (*http.Client, error) {
 	h := http.DefaultClient
 	h.Jar = jar
 	return h, nil
+}
+
+// reads the reader and unmarshal it
+func readAndUnmarshl(body io.ReadCloser, v any) error {
+	b, err := io.ReadAll(body)
+	if err != nil {
+		return err
+	}
+
+	if err := json.Unmarshal(b, v); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // check if cookies exists

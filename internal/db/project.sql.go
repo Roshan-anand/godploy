@@ -9,6 +9,26 @@ import (
 	"context"
 )
 
+const checkProjectExist = `-- name: CheckProjectExist :one
+SELECT CAST(EXISTS(
+    SELECT 1 FROM project p
+    JOIN organization o ON o.id = p.organization_id
+    WHERE o.id = ?1  AND p.name = ?2
+) AS BOOLEAN )
+`
+
+type CheckProjectExistParams struct {
+	OrgID       int64  `json:"org_id"`
+	ProjectName string `json:"project_name"`
+}
+
+func (q *Queries) CheckProjectExist(ctx context.Context, arg CheckProjectExistParams) (bool, error) {
+	row := q.db.QueryRowContext(ctx, checkProjectExist, arg.OrgID, arg.ProjectName)
+	var column_1 bool
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
 const createOrg = `-- name: CreateOrg :one
 INSERT INTO organization (name)
 VALUES (?)
@@ -45,24 +65,6 @@ func (q *Queries) CreateProject(ctx context.Context, arg CreateProjectParams) (C
 	return i, err
 }
 
-const createService = `-- name: CreateService :one
-INSERT INTO service (name,project_id)
-VALUES (?,?)
-RETURNING id
-`
-
-type CreateServiceParams struct {
-	Name      string `json:"name"`
-	ProjectID int64  `json:"project_id"`
-}
-
-func (q *Queries) CreateService(ctx context.Context, arg CreateServiceParams) (int64, error) {
-	row := q.db.QueryRowContext(ctx, createService, arg.Name, arg.ProjectID)
-	var id int64
-	err := row.Scan(&id)
-	return id, err
-}
-
 const deleteOrg = `-- name: DeleteOrg :exec
 DELETE FROM organization
 WHERE id = ?
@@ -80,16 +82,6 @@ WHERE id = ?
 
 func (q *Queries) DeleteProject(ctx context.Context, id int64) error {
 	_, err := q.db.ExecContext(ctx, deleteProject, id)
-	return err
-}
-
-const deleteService = `-- name: DeleteService :exec
-DELETE FROM service
-WHERE id = ?
-`
-
-func (q *Queries) DeleteService(ctx context.Context, id int64) error {
-	_, err := q.db.ExecContext(ctx, deleteService, id)
 	return err
 }
 
@@ -161,72 +153,4 @@ func (q *Queries) GetAllProjects(ctx context.Context, id int64) ([]GetAllProject
 		return nil, err
 	}
 	return items, nil
-}
-
-const getAllServices = `-- name: GetAllServices :many
-SELECT p.id,p.name
-FROM project p
-JOIN service s ON p.id = s.project_id
-WHERE p.id = ?
-`
-
-type GetAllServicesRow struct {
-	ID   int64  `json:"id"`
-	Name string `json:"name"`
-}
-
-func (q *Queries) GetAllServices(ctx context.Context, id int64) ([]GetAllServicesRow, error) {
-	rows, err := q.db.QueryContext(ctx, getAllServices, id)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []GetAllServicesRow
-	for rows.Next() {
-		var i GetAllServicesRow
-		if err := rows.Scan(&i.ID, &i.Name); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const getService = `-- name: GetService :one
-SELECT id, name, project_id, created_at
-FROM service
-WHERE id = ?
-`
-
-func (q *Queries) GetService(ctx context.Context, id int64) (Service, error) {
-	row := q.db.QueryRowContext(ctx, getService, id)
-	var i Service
-	err := row.Scan(
-		&i.ID,
-		&i.Name,
-		&i.ProjectID,
-		&i.CreatedAt,
-	)
-	return i, err
-}
-
-const hasProjectServices = `-- name: HasProjectServices :one
-SELECT CAST(EXISTS (
-    SELECT 1 FROM service s
-    JOIN project p ON s.project_id = p.id
-    WHERE p.id = ?
-) AS BOOLEAN)
-`
-
-func (q *Queries) HasProjectServices(ctx context.Context, id int64) (bool, error) {
-	row := q.db.QueryRowContext(ctx, hasProjectServices, id)
-	var column_1 bool
-	err := row.Scan(&column_1)
-	return column_1, err
 }

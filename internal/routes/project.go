@@ -2,6 +2,7 @@ package routes
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -49,6 +50,16 @@ func (h *Handler) createProject(c *echo.Context) error {
 	status, errRes := CheckUserExistsInOrg(q, u.Email, b.OrgID)
 	if errRes != nil {
 		return c.JSON(status, errRes)
+	}
+
+	// check if project already exists
+	if exist, err := q.CheckProjectExist(h.Ctx, db.CheckProjectExistParams{
+		OrgID:       b.OrgID,
+		ProjectName: b.Name,
+	}); err != nil {
+		return c.JSON(http.StatusInternalServerError, ErrRes{Message: "internal server error"})
+	} else if exist {
+		return c.JSON(http.StatusConflict, ErrRes{Message: fmt.Sprintf("project with name %s already exists ", b.Name)})
 	}
 
 	p, err := q.CreateProject(h.Ctx, db.CreateProjectParams{
@@ -102,7 +113,7 @@ func (h *Handler) deleteProject(c *echo.Context) error {
 	}
 
 	// check if other service exists
-	if has, err := h.Server.DB.Queries.HasProjectServices(h.Ctx, b.Id); err != nil {
+	if has, err := h.Server.DB.Queries.CheckProjectHasServices(h.Ctx, b.Id); err != nil {
 		return c.JSON(http.StatusInternalServerError, ErrRes{Message: "Failed to delete project"})
 	} else if has {
 		return c.JSON(http.StatusConflict, ErrRes{Message: "Project has services associated with it. Please delete the services first."})
