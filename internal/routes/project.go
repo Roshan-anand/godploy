@@ -4,24 +4,24 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"strconv"
 
 	"github.com/Roshan-anand/godploy/internal/db"
 	"github.com/Roshan-anand/godploy/internal/lib"
+	"github.com/google/uuid"
 	"github.com/labstack/echo/v5"
 )
 
 type CreateProjectReq struct {
-	Name  string `json:"name" validate:"required,min=3,max=50"`
-	OrgID int64  `json:"org_id" validate:"required"`
+	Name  string    `json:"name" validate:"required,min=3,max=50"`
+	OrgID uuid.UUID `json:"org_id" validate:"required"`
 }
 
 type DeleteProjectReq struct {
-	Id int64 `json:"name" validate:"required"`
+	Id uuid.UUID `json:"name" validate:"required"`
 }
 
 // check if user in part of the organization
-func CheckUserExistsInOrg(q *db.Queries, email string, orgId int64) (int, *ErrRes) {
+func CheckUserExistsInOrg(q *db.Queries, email string, orgId uuid.UUID) (int, *ErrRes) {
 	if exists, err := q.CheckUserOrgExists(context.Background(), db.CheckUserOrgExistsParams{
 		UserEmail:      email,
 		OrganizationID: orgId,
@@ -77,22 +77,22 @@ func (h *Handler) createProject(c *echo.Context) error {
 //
 // route: GET /api/project?org_id
 func (h *Handler) getProjects(c *echo.Context) error {
+	u := c.Get(h.Server.Config.EchoCtxUserKey).(lib.AuthUser)
 
 	// get the value of org_id from query params
-	orgIdStr := c.QueryParam("org_id")
-	if orgIdStr == "" {
-		return c.JSON(http.StatusBadRequest, ErrRes{Message: "org_id query param is required"})
-	}
-
-	// convert orgIdStr to int64
-	orgId, err := strconv.ParseInt(orgIdStr, 10, 64)
+	orgId, err := uuid.Parse(c.QueryParam("org_id"))
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, ErrRes{Message: "org_id query param must be a valid integer"})
+		return c.JSON(http.StatusBadRequest, ErrRes{Message: "invalid organisation id"})
 	}
+	q := h.Server.DB.Queries
 
 	// TODO : check weather the user exists in the organization or not
+	status, errRes := CheckUserExistsInOrg(q, u.Email, orgId)
+	if errRes != nil {
+		return c.JSON(status, errRes)
+	}
 
-	p, err := h.Server.DB.Queries.GetAllProjects(h.Ctx, orgId)
+	p, err := q.GetAllProjects(h.Ctx, orgId)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, ErrRes{Message: "Failed to create project"})
 	}
@@ -104,8 +104,6 @@ func (h *Handler) getProjects(c *echo.Context) error {
 //
 // route: DELETE /api/project
 func (h *Handler) deleteProject(c *echo.Context) error {
-	// u := c.Get(h.Server.Config.EchoCtxUserKey).(lib.AuthUser)
-
 	b := new(DeleteProjectReq)
 
 	if ErrRes := bindAndValidate(b, c, h.Validate); ErrRes != nil {
@@ -121,7 +119,7 @@ func (h *Handler) deleteProject(c *echo.Context) error {
 
 	err := h.Server.DB.Queries.DeleteProject(h.Ctx, b.Id)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, ErrRes{Message: "Failed to create project"})
+		return c.JSON(http.StatusInternalServerError, ErrRes{Message: "Failed to delete project"})
 	}
 
 	return c.JSON(http.StatusOK, SuccessRes{

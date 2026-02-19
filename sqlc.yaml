@@ -9,6 +9,14 @@ sql:
         out: "internal/db"
         emit_json_tags: true
         overrides:
+          - column: "*.id"
+            go_type:
+              import: "github.com/google/uuid"
+              type: "UUID"
+          - column: "*.*_id"
+            go_type:
+              import: "github.com/google/uuid"
+              type: "UUID" 
           - column: "user.role"
             go_type:
               import: "github.com/Roshan-anand/godploy/internal/types"

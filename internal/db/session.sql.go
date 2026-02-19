@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/Roshan-anand/godploy/internal/types"
+	"github.com/google/uuid"
 )
 
 const createSession = `-- name: CreateSession :exec
@@ -18,7 +19,7 @@ VALUES (?, ?, ?)
 `
 
 type CreateSessionParams struct {
-	UserID    int64     `json:"user_id"`
+	UserID    uuid.UUID `json:"user_id"`
 	Token     string    `json:"token"`
 	ExpiresAt time.Time `json:"expires_at"`
 }
@@ -36,7 +37,7 @@ WHERE s.token = ?
 `
 
 type GetSessionByTokenRow struct {
-	ID        int64          `json:"id"`
+	ID        uuid.UUID      `json:"id"`
 	Email     string         `json:"email"`
 	Name      string         `json:"name"`
 	Role      types.UserRole `json:"role"`
@@ -63,7 +64,7 @@ DELETE FROM session
 WHERE user_id = ?
 `
 
-func (q *Queries) RemoveSessionByUID(ctx context.Context, userID int64) error {
+func (q *Queries) RemoveSessionByUID(ctx context.Context, userID uuid.UUID) error {
 	_, err := q.db.ExecContext(ctx, removeSessionByUID, userID)
 	return err
 }

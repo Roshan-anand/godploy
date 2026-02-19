@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/google/uuid"
 )
 
 const checkProjectHasServices = `-- name: CheckProjectHasServices :one
@@ -17,7 +19,7 @@ SELECT CAST(EXISTS (
 ) AS BOOLEAN)
 `
 
-func (q *Queries) CheckProjectHasServices(ctx context.Context, id int64) (bool, error) {
+func (q *Queries) CheckProjectHasServices(ctx context.Context, id uuid.UUID) (bool, error) {
 	row := q.db.QueryRowContext(ctx, checkProjectHasServices, id)
 	var column_1 bool
 	err := row.Scan(&column_1)
@@ -31,13 +33,13 @@ RETURNING id
 `
 
 type CreateServiceParams struct {
-	Name      string `json:"name"`
-	ProjectID int64  `json:"project_id"`
+	Name      string    `json:"name"`
+	ProjectID uuid.UUID `json:"project_id"`
 }
 
-func (q *Queries) CreateService(ctx context.Context, arg CreateServiceParams) (int64, error) {
+func (q *Queries) CreateService(ctx context.Context, arg CreateServiceParams) (uuid.UUID, error) {
 	row := q.db.QueryRowContext(ctx, createService, arg.Name, arg.ProjectID)
-	var id int64
+	var id uuid.UUID
 	err := row.Scan(&id)
 	return id, err
 }
@@ -47,7 +49,7 @@ DELETE FROM service
 WHERE id = ?
 `
 
-func (q *Queries) DeleteService(ctx context.Context, id int64) error {
+func (q *Queries) DeleteService(ctx context.Context, id uuid.UUID) error {
 	_, err := q.db.ExecContext(ctx, deleteService, id)
 	return err
 }
@@ -60,11 +62,11 @@ WHERE p.id = ?
 `
 
 type GetAllServicesRow struct {
-	ID   int64  `json:"id"`
-	Name string `json:"name"`
+	ID   uuid.UUID `json:"id"`
+	Name string    `json:"name"`
 }
 
-func (q *Queries) GetAllServices(ctx context.Context, id int64) ([]GetAllServicesRow, error) {
+func (q *Queries) GetAllServices(ctx context.Context, id uuid.UUID) ([]GetAllServicesRow, error) {
 	rows, err := q.db.QueryContext(ctx, getAllServices, id)
 	if err != nil {
 		return nil, err
@@ -93,7 +95,7 @@ FROM service
 WHERE id = ?
 `
 
-func (q *Queries) GetService(ctx context.Context, id int64) (Service, error) {
+func (q *Queries) GetService(ctx context.Context, id uuid.UUID) (Service, error) {
 	row := q.db.QueryRowContext(ctx, getService, id)
 	var i Service
 	err := row.Scan(

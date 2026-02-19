@@ -9,6 +9,7 @@ import (
 	"context"
 
 	"github.com/Roshan-anand/godploy/internal/types"
+	"github.com/google/uuid"
 )
 
 const adminExists = `-- name: AdminExists :one
@@ -38,14 +39,14 @@ type CreateUserParams struct {
 	Role     types.UserRole `json:"role"`
 }
 
-func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (int64, error) {
+func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (uuid.UUID, error) {
 	row := q.db.QueryRowContext(ctx, createUser,
 		arg.Name,
 		arg.Email,
 		arg.HashPass,
 		arg.Role,
 	)
-	var id int64
+	var id uuid.UUID
 	err := row.Scan(&id)
 	return id, err
 }
@@ -70,7 +71,7 @@ GROUP BY u.name, u.email, u.hash_pass,u.role
 `
 
 type GetUserByEmailRow struct {
-	ID       int64          `json:"id"`
+	ID       uuid.UUID      `json:"id"`
 	Name     string         `json:"name"`
 	Email    string         `json:"email"`
 	HashPass string         `json:"hash_pass"`
@@ -97,7 +98,7 @@ DELETE FROM user
 WHERE id = ?
 `
 
-func (q *Queries) RemoveUser(ctx context.Context, id int64) error {
+func (q *Queries) RemoveUser(ctx context.Context, id uuid.UUID) error {
 	_, err := q.db.ExecContext(ctx, removeUser, id)
 	return err
 }

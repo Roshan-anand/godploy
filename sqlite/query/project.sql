@@ -24,7 +24,7 @@ SELECT CAST(EXISTS(
 SELECT p.id,p.name
 FROM organization o
 JOIN project p ON o.id = p.organization_id
-WHERE o.id = ?;
+WHERE o.id = @org_id;
 
 -- name: CreateProject :one
 INSERT INTO project (name,organization_id)

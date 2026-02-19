@@ -21,5 +21,3 @@ func bindAndValidate(b any, c *echo.Context, v *validator.Validate) *ErrRes {
 
 	return nil
 }
-
-// 
