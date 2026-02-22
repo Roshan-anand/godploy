@@ -15,3 +15,6 @@
 # Potential bugs
 
 - [x] not using enums for column user.role in [sql](../sqlite/migrations/0001_init_schema.up.sql). **[ solved ]**
+
+# extras 
+- [ ] write tests for project lifecycle

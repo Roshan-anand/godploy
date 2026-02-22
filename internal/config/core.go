@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"github.com/Roshan-anand/godploy/internal/db"
-	"github.com/docker/docker/client"
+	"github.com/moby/moby/client"
 )
 
 type DataBase struct {
