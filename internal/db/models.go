@@ -9,39 +9,38 @@ import (
 	"time"
 
 	"github.com/Roshan-anand/godploy/internal/types"
-	"github.com/google/uuid"
 )
 
 type Organization struct {
-	ID        uuid.UUID `json:"id"`
+	ID        string    `json:"id"`
 	Name      string    `json:"name"`
 	CreatedAt time.Time `json:"created_at"`
 }
 
 type Project struct {
-	ID             uuid.UUID `json:"id"`
+	ID             string    `json:"id"`
 	Name           string    `json:"name"`
-	OrganizationID uuid.UUID `json:"organization_id"`
+	OrganizationID string    `json:"organization_id"`
 	CreatedAt      time.Time `json:"created_at"`
 }
 
 type Service struct {
-	ID        uuid.UUID `json:"id"`
+	ID        string    `json:"id"`
 	Name      string    `json:"name"`
-	ProjectID uuid.UUID `json:"project_id"`
+	ProjectID string    `json:"project_id"`
 	CreatedAt time.Time `json:"created_at"`
 }
 
 type Session struct {
-	ID        uuid.UUID `json:"id"`
-	UserID    uuid.UUID `json:"user_id"`
+	ID        string    `json:"id"`
+	UserID    string    `json:"user_id"`
 	Token     string    `json:"token"`
 	CreatedAt time.Time `json:"created_at"`
 	ExpiresAt time.Time `json:"expires_at"`
 }
 
 type User struct {
-	ID        uuid.UUID      `json:"id"`
+	ID        string         `json:"id"`
 	Name      string         `json:"name"`
 	Email     string         `json:"email"`
 	HashPass  string         `json:"hash_pass"`
@@ -51,6 +50,6 @@ type User struct {
 
 type UserOrganization struct {
 	UserEmail      string       `json:"user_email"`
-	OrganizationID uuid.UUID    `json:"organization_id"`
+	OrganizationID string       `json:"organization_id"`
 	JoinedAt       sql.NullTime `json:"joined_at"`
 }

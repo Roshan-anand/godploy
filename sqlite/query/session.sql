@@ -1,6 +1,6 @@
 -- name: CreateSession :exec
-INSERT INTO session (user_id, token, expires_at)
-VALUES (?, ?, ?);
+INSERT INTO session (id, user_id, token, expires_at)
+VALUES (?, ?, ?, ?);
 
 -- name: GetSessionByToken :one
 SELECT u.id,u.email,u.name,u.role,s.expires_at,s.created_at

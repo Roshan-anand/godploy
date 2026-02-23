@@ -1,6 +1,6 @@
 -- name: CreateOrg :one
-INSERT INTO organization (name)
-VALUES (?)
+INSERT INTO organization (id, name)
+VALUES (?, ?)
 RETURNING id;
 
 -- name: DeleteOrg :exec
@@ -27,8 +27,8 @@ JOIN project p ON o.id = p.organization_id
 WHERE o.id = @org_id;
 
 -- name: CreateProject :one
-INSERT INTO project (name,organization_id)
-VALUES (?,?)
+INSERT INTO project (id, name,organization_id)
+VALUES (?,?,?)
 RETURNING id,name;
 
 -- name: DeleteProject :exec

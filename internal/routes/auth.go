@@ -76,6 +76,7 @@ func (h *Handler) appRegiter(c *echo.Context) error {
 
 	// register new admin user
 	uId, err := query.CreateUser(h.Ctx, db.CreateUserParams{
+		ID:       lib.NewID(),
 		Name:     b.Name,
 		Email:    b.Email,
 		HashPass: hPass,
@@ -87,7 +88,10 @@ func (h *Handler) appRegiter(c *echo.Context) error {
 	}
 
 	// create organization
-	orgId, err := query.CreateOrg(h.Ctx, b.Org)
+	orgId, err := query.CreateOrg(h.Ctx, db.CreateOrgParams{
+		ID:   lib.NewID(),
+		Name: b.Org,
+	})
 	if err != nil {
 		fmt.Println("Insert Org Error:", err)
 		return c.JSON(http.StatusInternalServerError, ErrRes{Message: "Internal Server Error"})

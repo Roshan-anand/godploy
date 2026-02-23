@@ -25,9 +25,6 @@ reset:
 	rm -rf ./data/* && \
 	go build -o ./bin/godploy cmd/main.go
 
-generate:
-	sqlc generate
-	
 service-up:
 	@clear && \
 	docker compose -f ./dynamic/compose.yaml up -d

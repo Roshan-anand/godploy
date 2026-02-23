@@ -10,22 +10,27 @@ import (
 	"time"
 
 	"github.com/Roshan-anand/godploy/internal/types"
-	"github.com/google/uuid"
 )
 
 const createSession = `-- name: CreateSession :exec
-INSERT INTO session (user_id, token, expires_at)
-VALUES (?, ?, ?)
+INSERT INTO session (id, user_id, token, expires_at)
+VALUES (?, ?, ?, ?)
 `
 
 type CreateSessionParams struct {
-	UserID    uuid.UUID `json:"user_id"`
+	ID        string    `json:"id"`
+	UserID    string    `json:"user_id"`
 	Token     string    `json:"token"`
 	ExpiresAt time.Time `json:"expires_at"`
 }
 
 func (q *Queries) CreateSession(ctx context.Context, arg CreateSessionParams) error {
-	_, err := q.db.ExecContext(ctx, createSession, arg.UserID, arg.Token, arg.ExpiresAt)
+	_, err := q.db.ExecContext(ctx, createSession,
+		arg.ID,
+		arg.UserID,
+		arg.Token,
+		arg.ExpiresAt,
+	)
 	return err
 }
 
@@ -37,7 +42,7 @@ WHERE s.token = ?
 `
 
 type GetSessionByTokenRow struct {
-	ID        uuid.UUID      `json:"id"`
+	ID        string         `json:"id"`
 	Email     string         `json:"email"`
 	Name      string         `json:"name"`
 	Role      types.UserRole `json:"role"`
@@ -64,7 +69,7 @@ DELETE FROM session
 WHERE user_id = ?
 `
 
-func (q *Queries) RemoveSessionByUID(ctx context.Context, userID uuid.UUID) error {
+func (q *Queries) RemoveSessionByUID(ctx context.Context, userID string) error {
 	_, err := q.db.ExecContext(ctx, removeSessionByUID, userID)
 	return err
 }

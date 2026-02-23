@@ -7,8 +7,6 @@ package db
 
 import (
 	"context"
-
-	"github.com/google/uuid"
 )
 
 const checkUserOrgExists = `-- name: CheckUserOrgExists :one
@@ -19,8 +17,8 @@ SELECT CAST(EXISTS(
 `
 
 type CheckUserOrgExistsParams struct {
-	UserEmail      string    `json:"user_email"`
-	OrganizationID uuid.UUID `json:"organization_id"`
+	UserEmail      string `json:"user_email"`
+	OrganizationID string `json:"organization_id"`
 }
 
 func (q *Queries) CheckUserOrgExists(ctx context.Context, arg CheckUserOrgExistsParams) (bool, error) {
@@ -36,8 +34,8 @@ VALUES (?, ?)
 `
 
 type LinkUserNOrgParams struct {
-	UserEmail      string    `json:"user_email"`
-	OrganizationID uuid.UUID `json:"organization_id"`
+	UserEmail      string `json:"user_email"`
+	OrganizationID string `json:"organization_id"`
 }
 
 func (q *Queries) LinkUserNOrg(ctx context.Context, arg LinkUserNOrgParams) error {
