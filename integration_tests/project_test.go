@@ -11,8 +11,8 @@ import (
 	"github.com/Roshan-anand/godploy/internal/routes"
 )
 
-func getDeleteReq(url string, rDeletBody routes.DeleteProjectReq) (*http.Request, error) {
-	deleteReq, err := http.NewRequest(http.MethodDelete, url, reqBody(rDeletBody))
+func getDeleteReq(url string, body any) (*http.Request, error) {
+	deleteReq, err := http.NewRequest(http.MethodDelete, url, reqBody(body))
 	if err != nil {
 		return nil, fmt.Errorf("error creating delete req : %w", err)
 	}

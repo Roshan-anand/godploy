@@ -64,6 +64,7 @@ func SetupRoutes(srv *config.Server) (*echo.Echo, error) {
 
 	serviceApi := api.Group("/service")
 	serviceApi.POST("/psql", h.createPsqlService)
+	serviceApi.DELETE("/psql", h.deletePsqlService)
 	serviceApi.POST("/psql/deploy", h.deployPsqlService)
 	serviceApi.POST("/psql/stop", h.stopPsqlService)
 
