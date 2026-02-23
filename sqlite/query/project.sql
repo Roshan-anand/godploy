@@ -27,10 +27,17 @@ JOIN project p ON o.id = p.organization_id
 WHERE o.id = @org_id;
 
 -- name: CreateProject :one
-INSERT INTO project (id, name,organization_id)
-VALUES (?,?,?)
+INSERT INTO project (id,name,organization_id)
+VALUES (?,?,@org_id)
 RETURNING id,name;
 
 -- name: DeleteProject :exec
 DELETE FROM project
 WHERE id = ?;
+
+-- name: CheckProjectHasServices :one
+SELECT CAST(EXISTS (
+    SELECT 1 FROM project p
+    JOIN psql_service psql ON psql.project_id = p.id
+    WHERE p.id = ?
+) AS BOOLEAN);

@@ -1,26 +1,18 @@
--- name: GetAllServices :many
-SELECT p.id,p.name
-FROM project p
-JOIN service s ON p.id = s.project_id
-WHERE p.id = ?;
+-- name: CreatePsqlService :one
+INSERT INTO psql_service (psql_id,project_id, name, app_name, description, db_name, db_user, db_password, image, internal_url)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+RETURNING *;
 
--- name: CheckProjectHasServices :one
-SELECT CAST(EXISTS (
-    SELECT 1 FROM service s
-    JOIN project p ON s.project_id = p.id
-    WHERE p.id = ?
-) AS BOOLEAN);
-
--- name: GetService :one
+-- name: GetPsqlServiceById :one
 SELECT *
-FROM service
-WHERE id = ?;
+FROM psql_service
+WHERE psql_id = ?;
 
--- name: CreateService :one
-INSERT INTO service (name,project_id)
-VALUES (?,?)
-RETURNING id;
+-- name: SetPsqlServiceId :exec
+UPDATE psql_service
+SET serviceid = ?
+WHERE psql_id = ?;
 
--- name: DeleteService :exec
-DELETE FROM service
-WHERE id = ?;
+-- name: DeletePsqlService :exec
+DELETE FROM psql_service
+WHERE psql_id = ?

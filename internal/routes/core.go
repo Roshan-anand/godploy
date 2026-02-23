@@ -58,9 +58,14 @@ func SetupRoutes(srv *config.Server) (*echo.Echo, error) {
 	api.Use(m.GlobalMiddlewareUser)
 
 	projectApi := api.Group("/project")
-	projectApi.GET("/?org_id", h.getProjects)
+	projectApi.GET("", h.getProjects)
 	projectApi.POST("", h.createProject)
 	projectApi.DELETE("", h.deleteProject)
+
+	serviceApi := api.Group("/service")
+	serviceApi.POST("/psql", h.createPsqlService)
+	serviceApi.POST("/psql/deploy", h.deployPsqlService)
+	serviceApi.POST("/psql/stop", h.stopPsqlService)
 
 	return e, nil
 }

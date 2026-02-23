@@ -7,100 +7,107 @@ package db
 
 import (
 	"context"
+	"database/sql"
 )
 
-const checkProjectHasServices = `-- name: CheckProjectHasServices :one
-SELECT CAST(EXISTS (
-    SELECT 1 FROM service s
-    JOIN project p ON s.project_id = p.id
-    WHERE p.id = ?
-) AS BOOLEAN)
+const createPsqlService = `-- name: CreatePsqlService :one
+INSERT INTO psql_service (psql_id,project_id, name, app_name, description, db_name, db_user, db_password, image, internal_url)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+RETURNING psql_id, project_id, serviceid, name, app_name, description, db_name, db_user, db_password, image, internal_url, created_at
 `
 
-func (q *Queries) CheckProjectHasServices(ctx context.Context, id string) (bool, error) {
-	row := q.db.QueryRowContext(ctx, checkProjectHasServices, id)
-	var column_1 bool
-	err := row.Scan(&column_1)
-	return column_1, err
+type CreatePsqlServiceParams struct {
+	PsqlID      string `json:"psql_id"`
+	ProjectID   string `json:"project_id"`
+	Name        string `json:"name"`
+	AppName     string `json:"app_name"`
+	Description string `json:"description"`
+	DbName      string `json:"db_name"`
+	DbUser      string `json:"db_user"`
+	DbPassword  string `json:"db_password"`
+	Image       string `json:"image"`
+	InternalUrl string `json:"internal_url"`
 }
 
-const createService = `-- name: CreateService :one
-INSERT INTO service (name,project_id)
-VALUES (?,?)
-RETURNING id
-`
-
-type CreateServiceParams struct {
-	Name      string `json:"name"`
-	ProjectID string `json:"project_id"`
-}
-
-func (q *Queries) CreateService(ctx context.Context, arg CreateServiceParams) (string, error) {
-	row := q.db.QueryRowContext(ctx, createService, arg.Name, arg.ProjectID)
-	var id string
-	err := row.Scan(&id)
-	return id, err
-}
-
-const deleteService = `-- name: DeleteService :exec
-DELETE FROM service
-WHERE id = ?
-`
-
-func (q *Queries) DeleteService(ctx context.Context, id string) error {
-	_, err := q.db.ExecContext(ctx, deleteService, id)
-	return err
-}
-
-const getAllServices = `-- name: GetAllServices :many
-SELECT p.id,p.name
-FROM project p
-JOIN service s ON p.id = s.project_id
-WHERE p.id = ?
-`
-
-type GetAllServicesRow struct {
-	ID   string `json:"id"`
-	Name string `json:"name"`
-}
-
-func (q *Queries) GetAllServices(ctx context.Context, id string) ([]GetAllServicesRow, error) {
-	rows, err := q.db.QueryContext(ctx, getAllServices, id)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []GetAllServicesRow
-	for rows.Next() {
-		var i GetAllServicesRow
-		if err := rows.Scan(&i.ID, &i.Name); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const getService = `-- name: GetService :one
-SELECT id, name, project_id, created_at
-FROM service
-WHERE id = ?
-`
-
-func (q *Queries) GetService(ctx context.Context, id string) (Service, error) {
-	row := q.db.QueryRowContext(ctx, getService, id)
-	var i Service
+func (q *Queries) CreatePsqlService(ctx context.Context, arg CreatePsqlServiceParams) (PsqlService, error) {
+	row := q.db.QueryRowContext(ctx, createPsqlService,
+		arg.PsqlID,
+		arg.ProjectID,
+		arg.Name,
+		arg.AppName,
+		arg.Description,
+		arg.DbName,
+		arg.DbUser,
+		arg.DbPassword,
+		arg.Image,
+		arg.InternalUrl,
+	)
+	var i PsqlService
 	err := row.Scan(
-		&i.ID,
-		&i.Name,
+		&i.PsqlID,
 		&i.ProjectID,
+		&i.Serviceid,
+		&i.Name,
+		&i.AppName,
+		&i.Description,
+		&i.DbName,
+		&i.DbUser,
+		&i.DbPassword,
+		&i.Image,
+		&i.InternalUrl,
 		&i.CreatedAt,
 	)
 	return i, err
+}
+
+const deletePsqlService = `-- name: DeletePsqlService :exec
+DELETE FROM psql_service
+WHERE psql_id = ?
+`
+
+func (q *Queries) DeletePsqlService(ctx context.Context, psqlID string) error {
+	_, err := q.db.ExecContext(ctx, deletePsqlService, psqlID)
+	return err
+}
+
+const getPsqlServiceById = `-- name: GetPsqlServiceById :one
+SELECT psql_id, project_id, serviceid, name, app_name, description, db_name, db_user, db_password, image, internal_url, created_at
+FROM psql_service
+WHERE psql_id = ?
+`
+
+func (q *Queries) GetPsqlServiceById(ctx context.Context, psqlID string) (PsqlService, error) {
+	row := q.db.QueryRowContext(ctx, getPsqlServiceById, psqlID)
+	var i PsqlService
+	err := row.Scan(
+		&i.PsqlID,
+		&i.ProjectID,
+		&i.Serviceid,
+		&i.Name,
+		&i.AppName,
+		&i.Description,
+		&i.DbName,
+		&i.DbUser,
+		&i.DbPassword,
+		&i.Image,
+		&i.InternalUrl,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const setPsqlServiceId = `-- name: SetPsqlServiceId :exec
+UPDATE psql_service
+SET serviceid = ?
+WHERE psql_id = ?
+`
+
+type SetPsqlServiceIdParams struct {
+	Serviceid sql.NullString `json:"serviceid"`
+	PsqlID    string         `json:"psql_id"`
+}
+
+func (q *Queries) SetPsqlServiceId(ctx context.Context, arg SetPsqlServiceIdParams) error {
+	_, err := q.db.ExecContext(ctx, setPsqlServiceId, arg.Serviceid, arg.PsqlID)
+	return err
 }

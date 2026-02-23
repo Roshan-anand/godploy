@@ -27,7 +27,7 @@ func TestUserLogin(t *testing.T) {
 	}
 
 	// initialize mock server
-	e, cfg, err := mockConfigServer()
+	e, srv, err := mockConfigServer()
 	if err != nil {
 		t.Fatal("err config server :", err)
 	}
@@ -67,7 +67,7 @@ func TestUserLogin(t *testing.T) {
 			t.Fatalf("expected status code %d, got %d", http.StatusUnauthorized, r.StatusCode)
 		}
 
-		if !hasCookie(r.Cookies(), cfg) {
+		if !hasCookie(r.Cookies(), srv.Config) {
 			t.Fatal("expected cookies not found in response")
 		}
 	})
@@ -104,7 +104,7 @@ func TestUserLogin(t *testing.T) {
 			t.Fatalf("expected status code %d, got %d", http.StatusOK, r.StatusCode)
 		}
 
-		if !hasCookie(r.Cookies(), cfg) {
+		if !hasCookie(r.Cookies(), srv.Config) {
 			t.Fatal("expected cookies not found in response")
 		}
 	})

@@ -24,11 +24,19 @@ type Project struct {
 	CreatedAt      time.Time `json:"created_at"`
 }
 
-type Service struct {
-	ID        string    `json:"id"`
-	Name      string    `json:"name"`
-	ProjectID string    `json:"project_id"`
-	CreatedAt time.Time `json:"created_at"`
+type PsqlService struct {
+	PsqlID      string         `json:"psql_id"`
+	ProjectID   string         `json:"project_id"`
+	Serviceid   sql.NullString `json:"serviceid"`
+	Name        string         `json:"name"`
+	AppName     string         `json:"app_name"`
+	Description string         `json:"description"`
+	DbName      string         `json:"db_name"`
+	DbUser      string         `json:"db_user"`
+	DbPassword  string         `json:"db_password"`
+	Image       string         `json:"image"`
+	InternalUrl string         `json:"internal_url"`
+	CreatedAt   time.Time      `json:"created_at"`
 }
 
 type Session struct {

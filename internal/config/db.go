@@ -61,7 +61,7 @@ func MigrateDb(db *sql.DB) error {
 }
 
 // initialize and return a new database connection
-func IntiDb(dir string) (*DataBase, error) {
+func InitDb(dir string) (*DataBase, error) {
 	// if directory doesn't exist create it
 	if err := os.MkdirAll(dir, os.FileMode(0755)); err != nil {
 		return nil, fmt.Errorf("failed to create db directory: %w", err)

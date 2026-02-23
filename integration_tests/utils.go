@@ -11,12 +11,13 @@ import (
 	"os"
 
 	"github.com/Roshan-anand/godploy/internal/config"
+	"github.com/Roshan-anand/godploy/internal/db"
 	"github.com/Roshan-anand/godploy/internal/routes"
 	"github.com/labstack/echo/v5"
 )
 
 // initialize a mock server for testing with config values suitable for testing
-func mockConfigServer() (*echo.Echo, *config.Config, error) {
+func mockConfigServer() (*echo.Echo, *config.Server, error) {
 
 	cfg := config.LoadConfig()
 
@@ -43,11 +44,26 @@ func mockConfigServer() (*echo.Echo, *config.Config, error) {
 
 	// server.SetupHttp(r) // setup http server with routes
 
-	return r, cfg, nil
+	return r, server, nil
+}
+
+// mock db connection
+func mockDbConnection() (*db.Queries, error) {
+	tempDir, err := getTempDir()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get temp dir: %w", err)
+	}
+
+	db, err := config.InitDb(tempDir)
+	if err != nil {
+		return nil, fmt.Errorf("failed to init db: %w", err)
+	}
+
+	return db.Queries, nil
 }
 
 // mock a new logined user
-func mockUserRejister(url string, h *http.Client, cfg *config.Config) error {
+func mockUserRejister(url string, h *http.Client, cfg *config.Config) (*routes.AuthRes, error) {
 	rRegister := "/api/auth/register"
 
 	registerReq := routes.RegisterReq{
@@ -58,17 +74,24 @@ func mockUserRejister(url string, h *http.Client, cfg *config.Config) error {
 	}
 	r, err := h.Post(url+rRegister, "application/json", reqBody(registerReq))
 	if err != nil {
-		return fmt.Errorf("err making request: %v", err)
+		return nil, fmt.Errorf("err making request: %v", err)
 	}
+	defer r.Body.Close()
 
 	if r.StatusCode != http.StatusOK {
-		return fmt.Errorf("expected status code %d, got %d", http.StatusUnauthorized, r.StatusCode)
+		return nil, fmt.Errorf("expected status code %d, got %d", http.StatusUnauthorized, r.StatusCode)
 	}
 
 	if !hasCookie(r.Cookies(), cfg) {
-		return fmt.Errorf("expected cookies not found in response")
+		return nil, fmt.Errorf("expected cookies not found in response")
 	}
-	return nil
+
+	body := new(routes.AuthRes)
+	if err := readAndUnmarshl(r.Body, body); err != nil {
+		return nil, fmt.Errorf("err reading response body: %v", err)
+	}
+
+	return body, nil
 }
 
 // get a new http client with cookie jar

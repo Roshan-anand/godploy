@@ -10,13 +10,8 @@ import (
 	"github.com/labstack/echo/v5"
 )
 
-type CreateProjectReq struct {
-	Name  string `json:"name" validate:"required,min=3,max=50"`
-	OrgID string `json:"org_id" validate:"required"`
-}
-
 type DeleteProjectReq struct {
-	Id string `json:"name" validate:"required"`
+	ID string `json:"id"`
 }
 
 // check if user in part of the organization
@@ -38,7 +33,7 @@ func CheckUserExistsInOrg(q *db.Queries, email string, orgId string) (int, *ErrR
 // route: POST /api/project
 func (h *Handler) createProject(c *echo.Context) error {
 	u := c.Get(h.Server.Config.EchoCtxUserKey).(lib.AuthUser)
-	b := new(CreateProjectReq)
+	b := new(db.CreateProjectParams)
 
 	if errRes := bindAndValidate(b, c, h.Validate); errRes != nil {
 		return c.JSON(http.StatusBadRequest, errRes)
@@ -62,8 +57,8 @@ func (h *Handler) createProject(c *echo.Context) error {
 	}
 
 	p, err := q.CreateProject(h.Ctx, db.CreateProjectParams{
-		Name:           b.Name,
-		OrganizationID: b.OrgID,
+		Name:  b.Name,
+		OrgID: b.OrgID,
 	})
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, ErrRes{Message: "Failed to create project"})
@@ -93,7 +88,7 @@ func (h *Handler) getProjects(c *echo.Context) error {
 
 	p, err := q.GetAllProjects(h.Ctx, orgId)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, ErrRes{Message: "Failed to create project"})
+		return c.JSON(http.StatusInternalServerError, ErrRes{Message: "Failed to get project"})
 	}
 
 	return c.JSON(http.StatusOK, p)
@@ -110,13 +105,13 @@ func (h *Handler) deleteProject(c *echo.Context) error {
 	}
 
 	// check if other service exists
-	if has, err := h.Server.DB.Queries.CheckProjectHasServices(h.Ctx, b.Id); err != nil {
+	if has, err := h.Server.DB.Queries.CheckProjectHasServices(h.Ctx, b.ID); err != nil {
 		return c.JSON(http.StatusInternalServerError, ErrRes{Message: "Failed to delete project"})
 	} else if has {
 		return c.JSON(http.StatusConflict, ErrRes{Message: "Project has services associated with it. Please delete the services first."})
 	}
 
-	err := h.Server.DB.Queries.DeleteProject(h.Ctx, b.Id)
+	err := h.Server.DB.Queries.DeleteProject(h.Ctx, b.ID)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, ErrRes{Message: "Failed to delete project"})
 	}

@@ -29,6 +29,21 @@ func (q *Queries) CheckProjectExist(ctx context.Context, arg CheckProjectExistPa
 	return column_1, err
 }
 
+const checkProjectHasServices = `-- name: CheckProjectHasServices :one
+SELECT CAST(EXISTS (
+    SELECT 1 FROM project p
+    JOIN psql_service psql ON psql.project_id = p.id
+    WHERE p.id = ?
+) AS BOOLEAN)
+`
+
+func (q *Queries) CheckProjectHasServices(ctx context.Context, id string) (bool, error) {
+	row := q.db.QueryRowContext(ctx, checkProjectHasServices, id)
+	var column_1 bool
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
 const createOrg = `-- name: CreateOrg :one
 INSERT INTO organization (id, name)
 VALUES (?, ?)
@@ -48,15 +63,15 @@ func (q *Queries) CreateOrg(ctx context.Context, arg CreateOrgParams) (string, e
 }
 
 const createProject = `-- name: CreateProject :one
-INSERT INTO project (id, name,organization_id)
+INSERT INTO project (id,name,organization_id)
 VALUES (?,?,?)
 RETURNING id,name
 `
 
 type CreateProjectParams struct {
-	ID             string `json:"id"`
-	Name           string `json:"name"`
-	OrganizationID string `json:"organization_id"`
+	ID    string `json:"id"`
+	Name  string `json:"name"`
+	OrgID string `json:"org_id"`
 }
 
 type CreateProjectRow struct {
@@ -65,7 +80,7 @@ type CreateProjectRow struct {
 }
 
 func (q *Queries) CreateProject(ctx context.Context, arg CreateProjectParams) (CreateProjectRow, error) {
-	row := q.db.QueryRowContext(ctx, createProject, arg.ID, arg.Name, arg.OrganizationID)
+	row := q.db.QueryRowContext(ctx, createProject, arg.ID, arg.Name, arg.OrgID)
 	var i CreateProjectRow
 	err := row.Scan(&i.ID, &i.Name)
 	return i, err

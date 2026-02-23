@@ -27,7 +27,7 @@ func NewServer(cfg *Config) (*Server, error) {
 	// connect DB, Redis, Docker client etc. here and add them to the server struct
 
 	// initialize database connection
-	db, err := IntiDb(cfg.DbDir)
+	db, err := InitDb(cfg.DbDir)
 	if err != nil {
 		return nil, err
 	}
