@@ -1,25 +1,28 @@
 .PHONY: start reset restart build
+
+install-web:
+	cd frontend && bun install
 	
-install:
-	cd frontend && bun install && \
-	cd .. && go mod tidy
+install-server:
+	go mod tidy
 
-
+install: install-web install-server
+	
 build-web:
-	cd frontend && bun run build
+	cd frontend && \
+	bun install && bun run build
 
 build-bin:
 	go mod tidy && \
 	go build -o ./bin/godploy cmd/main.go
 
-build:
-	$(MAKE) build-web && \
-	cd .. && go build -o ./bin/godploy cmd/main.go
+build: build-web build-bin
 
-start: 
-	@sqlc generate && \
-    $(MAKE) build && \
-    ./bin/godploy
+generate:
+	sqlc generate
+	
+start: generate build
+	@./bin/godploy
 
 reset:
 	rm -rf ./data/*

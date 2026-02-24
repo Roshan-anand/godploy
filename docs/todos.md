@@ -4,6 +4,7 @@
 
 - [ ] setup openAPI
 - [ ] Setup logger
+- [ ] setup health check route
 - [x] setup tests
 - [ ] integration test for main func
 - [ ] setup CI/CD
