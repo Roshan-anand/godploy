@@ -53,7 +53,7 @@ func TestProjectOperations(t *testing.T) {
 	rProject := "/api/project"
 
 	// route req body
-	rCreateBody := db.CreateProjectParams{Name: "test", OrgID: orgid}
+	rCreateBody := routes.CreateProjectReq{Name: "test", OrgID: orgid}
 	rDeletBody := routes.DeleteProjectReq{}
 
 	// route res body

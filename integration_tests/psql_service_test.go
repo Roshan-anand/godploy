@@ -39,7 +39,7 @@ func TestPsqlOperation(t *testing.T) {
 
 	// route req body
 	p := new(db.CreateProjectRow)
-	r, err := h.Post(ts.URL+"/api/project", "application/json", reqBody(db.CreateProjectParams{Name: "test", OrgID: orgid}))
+	r, err := h.Post(ts.URL+"/api/project", "application/json", reqBody(routes.CreateProjectReq{Name: "test", OrgID: orgid}))
 	if err != nil {
 		t.Fatal("err making request:", err)
 	}

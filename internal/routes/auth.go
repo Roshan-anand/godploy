@@ -20,7 +20,7 @@ type RegisterReq struct {
 	Name     string `json:"name" validate:"required,min=3,max=50"`
 	Email    string `json:"email" validate:"required,email"`
 	Password string `json:"password" validate:"required,min=8,max=15"`
-	Org      string `json:"org" validate:"required,min=3,max=50"`
+	OrgName  string `json:"orgName" validate:"required,min=3,max=50"`
 }
 
 type LoginReq struct {
@@ -90,7 +90,7 @@ func (h *Handler) appRegiter(c *echo.Context) error {
 	// create organization
 	orgId, err := query.CreateOrg(h.Ctx, db.CreateOrgParams{
 		ID:   lib.NewID(),
-		Name: b.Org,
+		Name: b.OrgName,
 	})
 	if err != nil {
 		fmt.Println("Insert Org Error:", err)
@@ -114,7 +114,7 @@ func (h *Handler) appRegiter(c *echo.Context) error {
 		Message: "Registration Successful",
 		Name:    b.Name,
 		Email:   b.Email,
-		Orgs:    []db.Organization{{ID: orgId, Name: b.Org}},
+		Orgs:    []db.Organization{{ID: orgId, Name: b.OrgName}},
 	}
 	return c.JSON(http.StatusOK, r)
 }

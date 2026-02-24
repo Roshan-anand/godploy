@@ -10,6 +10,11 @@ import (
 	"github.com/labstack/echo/v5"
 )
 
+type CreateProjectReq struct {
+	Name  string `json:"name" validate:"required",min=3`
+	OrgID string `json:"orgId" validate:"required"`
+}
+
 type DeleteProjectReq struct {
 	ID string `json:"id"`
 }
@@ -33,7 +38,7 @@ func CheckUserExistsInOrg(q *db.Queries, email string, orgId string) (int, *ErrR
 // route: POST /api/project
 func (h *Handler) createProject(c *echo.Context) error {
 	u := c.Get(h.Server.Config.EchoCtxUserKey).(lib.AuthUser)
-	b := new(db.CreateProjectParams)
+	b := new(CreateProjectReq)
 
 	if errRes := bindAndValidate(b, c, h.Validate); errRes != nil {
 		return c.JSON(http.StatusBadRequest, errRes)
@@ -57,6 +62,7 @@ func (h *Handler) createProject(c *echo.Context) error {
 	}
 
 	p, err := q.CreateProject(h.Ctx, db.CreateProjectParams{
+		ID:    lib.NewID(),
 		Name:  b.Name,
 		OrgID: b.OrgID,
 	})

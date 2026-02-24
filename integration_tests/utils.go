@@ -70,7 +70,7 @@ func mockUserRejister(url string, h *http.Client, cfg *config.Config) (*routes.A
 		Name:     "test",
 		Email:    "test@test.com",
 		Password: "testtest",
-		Org:      "test_org",
+		OrgName:      "test_org",
 	}
 	r, err := h.Post(url+rRegister, "application/json", reqBody(registerReq))
 	if err != nil {

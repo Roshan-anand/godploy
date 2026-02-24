@@ -1,34 +1,36 @@
+.PHONY: start reset restart build
+	
 install:
-	@clear && \
 	cd frontend && bun install && \
 	cd .. && go mod tidy
 
+
+build-web:
+	cd frontend && bun run build
+
+build-bin:
+	go mod tidy && \
+	go build -o ./bin/godploy cmd/main.go
+
 build:
-	@clear && \
-	cd frontend && bun run build && \
+	$(MAKE) build-web && \
 	cd .. && go build -o ./bin/godploy cmd/main.go
 
-test:
-	@clear && go test -v ./...
-
-start:
-	@clear && \
-	cd frontend && bun run build && \
-    cd .. && \
-    sqlc generate && \
-	go mod tidy && \
-	go build -o ./bin/godploy cmd/main.go && \
+start: 
+	@sqlc generate && \
+    $(MAKE) build && \
     ./bin/godploy
 
 reset:
-	@clear && \
-	rm -rf ./data/* && \
-	go build -o ./bin/godploy cmd/main.go
+	rm -rf ./data/*
+
+restart: reset start
+
+test:
+	go test -v ./...
 
 service-up:
-	@clear && \
 	docker compose -f ./dynamic/compose.yaml up -d
 
 service-down:
-	@clear && \
 	docker compose -f ./dynamic/compose.yaml down

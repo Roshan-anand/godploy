@@ -15,17 +15,17 @@ import (
 )
 
 type PsqlServiceReq struct {
-	PsqlId string `json:"psql_id" validate:"required"`
+	PsqlId string `json:"psqlId" validate:"required"`
 }
 
 type CreatePsqlServiceReq struct {
-	ProjectID   string `json:"project_id"`
+	ProjectID   string `json:"projectId"`
 	Name        string `json:"name"`
-	AppName     string `json:"app_name"`
+	AppName     string `json:"appName"`
 	Description string `json:"description"`
-	DbName      string `json:"db_name"`
-	DbUser      string `json:"db_user"`
-	DbPassword  string `json:"db_password"`
+	DbName      string `json:"dbName"`
+	DbUser      string `json:"dbUser"`
+	DbPassword  string `json:"dbPassword"`
 	Image       string `json:"image"`
 }
 

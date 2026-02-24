@@ -21,6 +21,7 @@ func TestDbQueries(t *testing.T) {
 
 	t.Run("create and get user", func(t *testing.T) {
 		if _, err := q.CreateUser(ctx, db.CreateUserParams{
+			ID: lib.NewID(),
 			Name:     "a",
 			Email:    email,
 			HashPass: "qwe",
