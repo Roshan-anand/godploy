@@ -12,7 +12,7 @@ import (
 )
 
 type CreateProjectReq struct {
-	Name  string    `json:"name" validate:"required",min=3`
+	Name  string    `json:"name" validate:"required,min=3"`
 	OrgID uuid.UUID `json:"org_id" validate:"required"`
 }
 

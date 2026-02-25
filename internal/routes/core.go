@@ -53,6 +53,10 @@ func SetupRoutes(srv *config.Server) (*echo.Echo, error) {
 	authApi.POST("/register", h.appRegiter)
 	authApi.POST("/login", h.appLogin)
 
+	// unsecured test route
+	testApi := e.Group("/test")
+	testApi.POST("", h.testRoute)
+
 	// other routes
 	api := e.Group("/api")
 	api.Use(m.GlobalMiddlewareUser)
