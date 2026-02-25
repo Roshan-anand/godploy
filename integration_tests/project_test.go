@@ -9,6 +9,7 @@ import (
 
 	"github.com/Roshan-anand/godploy/internal/db"
 	"github.com/Roshan-anand/godploy/internal/routes"
+	"github.com/google/uuid"
 )
 
 func getDeleteReq(url string, body any) (*http.Request, error) {
@@ -88,7 +89,7 @@ func TestProjectOperations(t *testing.T) {
 	})
 
 	t.Run("GET /project?org_id : returns projects avalible in the org", func(t *testing.T) {
-		r, err := h.Get(ts.URL + rProject + "?org_id=" + orgid)
+		r, err := h.Get(ts.URL + rProject + "?org_id=" + orgid.String())
 		if err != nil {
 			t.Fatal("err making request:", err)
 		}
@@ -108,7 +109,7 @@ func TestProjectOperations(t *testing.T) {
 	})
 
 	service, err := srv.DB.Queries.CreatePsqlService(context.Background(), db.CreatePsqlServiceParams{
-		PsqlID:      "123",
+		ID:          uuid.New(),
 		ProjectID:   createBodyRes.ID,
 		Name:        "sample",
 		AppName:     "sample",
@@ -140,7 +141,7 @@ func TestProjectOperations(t *testing.T) {
 		}
 	})
 
-	if err := srv.DB.Queries.DeletePsqlService(context.Background(), service.PsqlID); err != nil {
+	if err := srv.DB.Queries.DeletePsqlService(context.Background(), service.ID); err != nil {
 		t.Fatal("error deleting service :", err)
 	}
 

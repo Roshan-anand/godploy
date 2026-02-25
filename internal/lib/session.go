@@ -12,6 +12,7 @@ import (
 	"github.com/Roshan-anand/godploy/internal/db"
 	"github.com/Roshan-anand/godploy/internal/types"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
 	"github.com/labstack/echo/v5"
 )
 
@@ -80,7 +81,7 @@ func generateSessionToken() (string, error) {
 }
 
 // sets up session token
-func SetSessionCookies(s *config.Server, c *echo.Context, uId string) error {
+func SetSessionCookies(s *config.Server, c *echo.Context, uId uuid.UUID) error {
 	sToken, err := generateSessionToken()
 	if err != nil {
 		return fmt.Errorf("generate session token error : %w", err)

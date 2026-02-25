@@ -1,7 +1,7 @@
 CREATE TABLE psql_service (
-    psql_id TEXT PRIMARY KEY,
-    project_id TEXT NOT NULL REFERENCES project(id) ON DELETE CASCADE,
-    serviceid TEXT UNIQUE,
+    id uuid PRIMARY KEY,
+    project_id uuid NOT NULL REFERENCES project(id) ON DELETE CASCADE,
+    service_id TEXT NOT NULL,
     name TEXT NOT NULL,
     app_name TEXT NOT NULL UNIQUE,
     description TEXT NOT NULL,

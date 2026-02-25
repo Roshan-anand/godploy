@@ -70,7 +70,7 @@ func mockUserRejister(url string, h *http.Client, cfg *config.Config) (*routes.A
 		Name:     "test",
 		Email:    "test@test.com",
 		Password: "testtest",
-		OrgName:      "test_org",
+		OrgName:  "test_org",
 	}
 	r, err := h.Post(url+rRegister, "application/json", reqBody(registerReq))
 	if err != nil {
@@ -118,6 +118,16 @@ func readAndUnmarshl(body io.ReadCloser, v any) error {
 	}
 
 	return nil
+}
+
+// reads the reader it
+func readOnly(body io.ReadCloser) (string, error) {
+	b, err := io.ReadAll(body)
+	if err != nil {
+		return "", err
+	}
+
+	return string(b), nil
 }
 
 // check if cookies exists

@@ -13,3 +13,7 @@ sql:
             go_type:
               import: "github.com/Roshan-anand/godploy/internal/types"
               type: "UserRole"
+          - db_type: "uuid"
+            go_type:
+              import: "github.com/google/uuid"
+              type: "UUID"

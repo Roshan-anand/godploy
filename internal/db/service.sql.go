@@ -7,32 +7,35 @@ package db
 
 import (
 	"context"
-	"database/sql"
+
+	"github.com/google/uuid"
 )
 
 const createPsqlService = `-- name: CreatePsqlService :one
-INSERT INTO psql_service (psql_id,project_id, name, app_name, description, db_name, db_user, db_password, image, internal_url)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-RETURNING psql_id, project_id, serviceid, name, app_name, description, db_name, db_user, db_password, image, internal_url, created_at
+INSERT INTO psql_service (id,project_id,service_id, name, app_name, description, db_name, db_user, db_password, image, internal_url)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+RETURNING id, project_id, service_id, name, app_name, description, db_name, db_user, db_password, image, internal_url, created_at
 `
 
 type CreatePsqlServiceParams struct {
-	PsqlID      string `json:"psql_id"`
-	ProjectID   string `json:"project_id"`
-	Name        string `json:"name"`
-	AppName     string `json:"app_name"`
-	Description string `json:"description"`
-	DbName      string `json:"db_name"`
-	DbUser      string `json:"db_user"`
-	DbPassword  string `json:"db_password"`
-	Image       string `json:"image"`
-	InternalUrl string `json:"internal_url"`
+	ID          uuid.UUID `json:"id"`
+	ProjectID   uuid.UUID `json:"project_id"`
+	ServiceID   string    `json:"service_id"`
+	Name        string    `json:"name"`
+	AppName     string    `json:"app_name"`
+	Description string    `json:"description"`
+	DbName      string    `json:"db_name"`
+	DbUser      string    `json:"db_user"`
+	DbPassword  string    `json:"db_password"`
+	Image       string    `json:"image"`
+	InternalUrl string    `json:"internal_url"`
 }
 
 func (q *Queries) CreatePsqlService(ctx context.Context, arg CreatePsqlServiceParams) (PsqlService, error) {
 	row := q.db.QueryRowContext(ctx, createPsqlService,
-		arg.PsqlID,
+		arg.ID,
 		arg.ProjectID,
+		arg.ServiceID,
 		arg.Name,
 		arg.AppName,
 		arg.Description,
@@ -44,9 +47,9 @@ func (q *Queries) CreatePsqlService(ctx context.Context, arg CreatePsqlServicePa
 	)
 	var i PsqlService
 	err := row.Scan(
-		&i.PsqlID,
+		&i.ID,
 		&i.ProjectID,
-		&i.Serviceid,
+		&i.ServiceID,
 		&i.Name,
 		&i.AppName,
 		&i.Description,
@@ -62,27 +65,27 @@ func (q *Queries) CreatePsqlService(ctx context.Context, arg CreatePsqlServicePa
 
 const deletePsqlService = `-- name: DeletePsqlService :exec
 DELETE FROM psql_service
-WHERE psql_id = ?
+WHERE id = ?
 `
 
-func (q *Queries) DeletePsqlService(ctx context.Context, psqlID string) error {
-	_, err := q.db.ExecContext(ctx, deletePsqlService, psqlID)
+func (q *Queries) DeletePsqlService(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.ExecContext(ctx, deletePsqlService, id)
 	return err
 }
 
 const getPsqlServiceById = `-- name: GetPsqlServiceById :one
-SELECT psql_id, project_id, serviceid, name, app_name, description, db_name, db_user, db_password, image, internal_url, created_at
+SELECT id, project_id, service_id, name, app_name, description, db_name, db_user, db_password, image, internal_url, created_at
 FROM psql_service
-WHERE psql_id = ?
+WHERE id = ?
 `
 
-func (q *Queries) GetPsqlServiceById(ctx context.Context, psqlID string) (PsqlService, error) {
-	row := q.db.QueryRowContext(ctx, getPsqlServiceById, psqlID)
+func (q *Queries) GetPsqlServiceById(ctx context.Context, id uuid.UUID) (PsqlService, error) {
+	row := q.db.QueryRowContext(ctx, getPsqlServiceById, id)
 	var i PsqlService
 	err := row.Scan(
-		&i.PsqlID,
+		&i.ID,
 		&i.ProjectID,
-		&i.Serviceid,
+		&i.ServiceID,
 		&i.Name,
 		&i.AppName,
 		&i.Description,
@@ -98,16 +101,16 @@ func (q *Queries) GetPsqlServiceById(ctx context.Context, psqlID string) (PsqlSe
 
 const setPsqlServiceId = `-- name: SetPsqlServiceId :exec
 UPDATE psql_service
-SET serviceid = ?
-WHERE psql_id = ?
+SET service_id = ?
+WHERE id = ?
 `
 
 type SetPsqlServiceIdParams struct {
-	Serviceid sql.NullString `json:"serviceid"`
-	PsqlID    string         `json:"psql_id"`
+	ServiceID string    `json:"service_id"`
+	ID        uuid.UUID `json:"id"`
 }
 
 func (q *Queries) SetPsqlServiceId(ctx context.Context, arg SetPsqlServiceIdParams) error {
-	_, err := q.db.ExecContext(ctx, setPsqlServiceId, arg.Serviceid, arg.PsqlID)
+	_, err := q.db.ExecContext(ctx, setPsqlServiceId, arg.ServiceID, arg.ID)
 	return err
 }

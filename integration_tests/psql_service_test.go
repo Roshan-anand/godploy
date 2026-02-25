@@ -1,6 +1,7 @@
 package testing
 
 import (
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -58,7 +59,7 @@ func TestPsqlOperation(t *testing.T) {
 
 	// route req body
 	rCreateBody := routes.CreatePsqlServiceReq{ProjectID: p.ID, Name: "test", AppName: "test", Description: "", DbName: "test", DbUser: "test", DbPassword: "test", Image: "postgres:16"}
-	rPsqlBody := routes.PsqlServiceReq{PsqlId: "test"}
+	rPsqlBody := routes.ServiceReq{}
 
 	// route res body
 	createBodyRes := new(db.PsqlService)
@@ -71,6 +72,11 @@ func TestPsqlOperation(t *testing.T) {
 		defer r.Body.Close()
 
 		if r.StatusCode != http.StatusOK {
+			data, err := readOnly(r.Body)
+			if err != nil {
+				t.Fatal("err reading response body:", err)
+			}
+			fmt.Println("response :", data)
 			t.Fatalf("expected status code %d, got %d", http.StatusOK, r.StatusCode)
 		}
 
@@ -79,7 +85,7 @@ func TestPsqlOperation(t *testing.T) {
 		}
 	})
 
-	rPsqlBody.PsqlId = createBodyRes.PsqlID
+	rPsqlBody.ServiceId = createBodyRes.ID
 
 	t.Run("POST /service/psql : returns sucess for creating service", func(t *testing.T) {
 		deleteReq, err := getDeleteReq(ts.URL+rPsql, rPsqlBody)

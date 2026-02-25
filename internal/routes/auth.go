@@ -20,7 +20,7 @@ type RegisterReq struct {
 	Name     string `json:"name" validate:"required,min=3,max=50"`
 	Email    string `json:"email" validate:"required,email"`
 	Password string `json:"password" validate:"required,min=8,max=15"`
-	OrgName  string `json:"orgName" validate:"required,min=3,max=50"`
+	OrgName  string `json:"org_name" validate:"required,min=3,max=50"`
 }
 
 type LoginReq struct {

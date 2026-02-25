@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/google/uuid"
 )
 
 const checkProjectExist = `-- name: CheckProjectExist :one
@@ -18,8 +20,8 @@ SELECT CAST(EXISTS(
 `
 
 type CheckProjectExistParams struct {
-	OrgID       string `json:"org_id"`
-	ProjectName string `json:"project_name"`
+	OrgID       uuid.UUID `json:"org_id"`
+	ProjectName string    `json:"project_name"`
 }
 
 func (q *Queries) CheckProjectExist(ctx context.Context, arg CheckProjectExistParams) (bool, error) {
@@ -37,7 +39,7 @@ SELECT CAST(EXISTS (
 ) AS BOOLEAN)
 `
 
-func (q *Queries) CheckProjectHasServices(ctx context.Context, id string) (bool, error) {
+func (q *Queries) CheckProjectHasServices(ctx context.Context, id uuid.UUID) (bool, error) {
 	row := q.db.QueryRowContext(ctx, checkProjectHasServices, id)
 	var column_1 bool
 	err := row.Scan(&column_1)
@@ -51,13 +53,13 @@ RETURNING id
 `
 
 type CreateOrgParams struct {
-	ID   string `json:"id"`
-	Name string `json:"name"`
+	ID   uuid.UUID `json:"id"`
+	Name string    `json:"name"`
 }
 
-func (q *Queries) CreateOrg(ctx context.Context, arg CreateOrgParams) (string, error) {
+func (q *Queries) CreateOrg(ctx context.Context, arg CreateOrgParams) (uuid.UUID, error) {
 	row := q.db.QueryRowContext(ctx, createOrg, arg.ID, arg.Name)
-	var id string
+	var id uuid.UUID
 	err := row.Scan(&id)
 	return id, err
 }
@@ -69,14 +71,14 @@ RETURNING id,name
 `
 
 type CreateProjectParams struct {
-	ID    string `json:"id"`
-	Name  string `json:"name"`
-	OrgID string `json:"org_id"`
+	ID    uuid.UUID `json:"id"`
+	Name  string    `json:"name"`
+	OrgID uuid.UUID `json:"org_id"`
 }
 
 type CreateProjectRow struct {
-	ID   string `json:"id"`
-	Name string `json:"name"`
+	ID   uuid.UUID `json:"id"`
+	Name string    `json:"name"`
 }
 
 func (q *Queries) CreateProject(ctx context.Context, arg CreateProjectParams) (CreateProjectRow, error) {
@@ -91,7 +93,7 @@ DELETE FROM organization
 WHERE id = ?
 `
 
-func (q *Queries) DeleteOrg(ctx context.Context, id string) error {
+func (q *Queries) DeleteOrg(ctx context.Context, id uuid.UUID) error {
 	_, err := q.db.ExecContext(ctx, deleteOrg, id)
 	return err
 }
@@ -101,7 +103,7 @@ DELETE FROM project
 WHERE id = ?
 `
 
-func (q *Queries) DeleteProject(ctx context.Context, id string) error {
+func (q *Queries) DeleteProject(ctx context.Context, id uuid.UUID) error {
 	_, err := q.db.ExecContext(ctx, deleteProject, id)
 	return err
 }
@@ -114,8 +116,8 @@ WHERE uo.user_email = ?
 `
 
 type GetAllOrgRow struct {
-	ID   string `json:"id"`
-	Name string `json:"name"`
+	ID   uuid.UUID `json:"id"`
+	Name string    `json:"name"`
 }
 
 func (q *Queries) GetAllOrg(ctx context.Context, userEmail string) ([]GetAllOrgRow, error) {
@@ -149,11 +151,11 @@ WHERE o.id = ?1
 `
 
 type GetAllProjectsRow struct {
-	ID   string `json:"id"`
-	Name string `json:"name"`
+	ID   uuid.UUID `json:"id"`
+	Name string    `json:"name"`
 }
 
-func (q *Queries) GetAllProjects(ctx context.Context, orgID string) ([]GetAllProjectsRow, error) {
+func (q *Queries) GetAllProjects(ctx context.Context, orgID uuid.UUID) ([]GetAllProjectsRow, error) {
 	rows, err := q.db.QueryContext(ctx, getAllProjects, orgID)
 	if err != nil {
 		return nil, err

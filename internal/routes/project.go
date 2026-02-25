@@ -7,20 +7,21 @@ import (
 
 	"github.com/Roshan-anand/godploy/internal/db"
 	"github.com/Roshan-anand/godploy/internal/lib"
+	"github.com/google/uuid"
 	"github.com/labstack/echo/v5"
 )
 
 type CreateProjectReq struct {
-	Name  string `json:"name" validate:"required",min=3`
-	OrgID string `json:"orgId" validate:"required"`
+	Name  string    `json:"name" validate:"required",min=3`
+	OrgID uuid.UUID `json:"org_id" validate:"required"`
 }
 
 type DeleteProjectReq struct {
-	ID string `json:"id"`
+	ID uuid.UUID `json:"id"`
 }
 
 // check if user in part of the organization
-func CheckUserExistsInOrg(q *db.Queries, email string, orgId string) (int, *ErrRes) {
+func CheckUserExistsInOrg(q *db.Queries, email string, orgId uuid.UUID) (int, *ErrRes) {
 	if exists, err := q.CheckUserOrgExists(context.Background(), db.CheckUserOrgExistsParams{
 		UserEmail:      email,
 		OrganizationID: orgId,
@@ -80,8 +81,8 @@ func (h *Handler) getProjects(c *echo.Context) error {
 	u := c.Get(h.Server.Config.EchoCtxUserKey).(lib.AuthUser)
 
 	// get the value of org_id from query params
-	orgId := c.QueryParam("org_id")
-	if orgId == "" {
+	orgId, err := uuid.Parse(c.QueryParam("org_id"))
+	if err != nil {
 		return c.JSON(http.StatusBadRequest, ErrRes{Message: "invalid organisation id"})
 	}
 	q := h.Server.DB.Queries
