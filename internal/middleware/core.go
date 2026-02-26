@@ -76,7 +76,7 @@ func (m *Middlewares) GlobalMiddlewareUser(next echo.HandlerFunc) echo.HandlerFu
 			u := lib.AuthUser{
 				Email: sData.Email,
 				Name:  sData.Name,
-				Role: sData.Role,
+				Role:  sData.Role,
 			}
 
 			// set new jwt cookie
@@ -84,6 +84,11 @@ func (m *Middlewares) GlobalMiddlewareUser(next echo.HandlerFunc) echo.HandlerFu
 
 			// set user in context
 			c.Set(m.Server.Config.EchoCtxUserKey, u)
+			return next(c)
+		}
+
+		// check if path is /api/user
+		if c.Path() == "/api/auth/user"{
 			return next(c)
 		}
 

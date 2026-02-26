@@ -39,12 +39,26 @@ type AuthRes struct {
 //
 // route: GET /api/auth/user
 func (h *Handler) authUser(c *echo.Context) error {
-	u := c.Get(h.Server.Config.EchoCtxUserKey).(lib.AuthUser)
+	u, ok := c.Get(h.Server.Config.EchoCtxUserKey).(lib.AuthUser)
+
+	if !ok {
+		exists, err := h.Server.DB.Queries.AdminExists(h.Ctx)
+		if err != nil {
+			fmt.Println("Admin Exists Error:", err)
+			return c.JSON(http.StatusInternalServerError, ErrRes{Message: "Internal Sever Error"})
+		}
+
+		if !exists {
+			return c.JSON(http.StatusForbidden, ErrRes{Message: "No admin registered"})
+		}
+		return c.JSON(http.StatusUnauthorized, ErrRes{Message: "Unauthorized"})
+	}
 
 	return c.JSON(http.StatusOK, AuthRes{
 		Message: "User Authenticated",
 		Name:    u.Name,
 		Email:   u.Email,
+		Orgs: []db.Organization{},
 	})
 }
 

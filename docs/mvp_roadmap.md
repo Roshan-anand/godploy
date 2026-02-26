@@ -44,7 +44,7 @@
 
 ## User Stories
 
-- [ ] able to login to Dashboard
+- [x] able to login to Dashboard
 - [ ] able to create a new project.
 - [ ] able to delete a project.
 - [ ] able to view all the projects in the dashboard.

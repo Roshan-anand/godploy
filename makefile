@@ -7,6 +7,9 @@ install-server:
 	go mod tidy
 
 install: install-web install-server
+
+check:
+	cd frontend && bun check:all
 	
 build-web:
 	cd frontend && \

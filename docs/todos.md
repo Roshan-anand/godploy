@@ -13,6 +13,9 @@
 - [ ] rememberMe functionality for login
 - [ ] setup monorepo
 
+# enhancements
+- [ ] use dynamic imports in client side
+
 # Potential bugs
 
 - [x] not using enums for column user.role in [sql](../sqlite/migrations/0001_init_schema.up.sql). **[ solved ]**
