@@ -1,4 +1,4 @@
-package routes
+package projectroutes
 
 import (
 	"context"
@@ -7,6 +7,7 @@ import (
 
 	"github.com/Roshan-anand/godploy/internal/db"
 	"github.com/Roshan-anand/godploy/internal/lib"
+	ru "github.com/Roshan-anand/godploy/internal/routes/utils"
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v5"
 )
@@ -21,14 +22,14 @@ type DeleteProjectReq struct {
 }
 
 // check if user in part of the organization
-func CheckUserExistsInOrg(q *db.Queries, email string, orgId uuid.UUID) (int, *ErrRes) {
+func CheckUserExistsInOrg(q *db.Queries, email string, orgId uuid.UUID) (int, *lib.Res) {
 	if exists, err := q.CheckUserOrgExists(context.Background(), db.CheckUserOrgExistsParams{
 		UserEmail:      email,
 		OrganizationID: orgId,
 	}); err != nil {
-		return http.StatusInternalServerError, &ErrRes{Message: "Failed to create project"}
+		return http.StatusInternalServerError, &lib.Res{Message: "Failed to create project"}
 	} else if !exists {
-		return http.StatusForbidden, &ErrRes{Message: "User does not have access to the organization"}
+		return http.StatusForbidden, &lib.Res{Message: "User does not have access to the organization"}
 	}
 
 	return http.StatusOK, nil
@@ -37,19 +38,19 @@ func CheckUserExistsInOrg(q *db.Queries, email string, orgId uuid.UUID) (int, *E
 // create a new project
 //
 // route: POST /api/project
-func (h *Handler) createProject(c *echo.Context) error {
+func (h *ProjectHandler) CreateProject(c *echo.Context) error {
 	u := c.Get(h.Server.Config.EchoCtxUserKey).(lib.AuthUser)
 	b := new(CreateProjectReq)
 
-	if errRes := bindAndValidate(b, c, h.Validate); errRes != nil {
-		return c.JSON(http.StatusBadRequest, errRes)
+	if Res := ru.BindAndValidate(b, c, h.Validate); Res != nil {
+		return c.JSON(http.StatusBadRequest, Res)
 	}
 
 	q := h.Server.DB.Queries
 
-	status, errRes := CheckUserExistsInOrg(q, u.Email, b.OrgID)
-	if errRes != nil {
-		return c.JSON(status, errRes)
+	status, Res := CheckUserExistsInOrg(q, u.Email, b.OrgID)
+	if Res != nil {
+		return c.JSON(status, Res)
 	}
 
 	// check if project already exists
@@ -57,9 +58,9 @@ func (h *Handler) createProject(c *echo.Context) error {
 		OrgID:       b.OrgID,
 		ProjectName: b.Name,
 	}); err != nil {
-		return c.JSON(http.StatusInternalServerError, ErrRes{Message: "internal server error"})
+		return c.JSON(http.StatusInternalServerError, &lib.Res{Message: "internal server error"})
 	} else if exist {
-		return c.JSON(http.StatusConflict, ErrRes{Message: fmt.Sprintf("project with name %s already exists ", b.Name)})
+		return c.JSON(http.StatusConflict, lib.Res{Message: fmt.Sprintf("project with name %s already exists ", b.Name)})
 	}
 
 	p, err := q.CreateProject(h.Ctx, db.CreateProjectParams{
@@ -68,7 +69,7 @@ func (h *Handler) createProject(c *echo.Context) error {
 		OrgID: b.OrgID,
 	})
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, ErrRes{Message: "Failed to create project"})
+		return c.JSON(http.StatusInternalServerError, lib.Res{Message: "Failed to create project"})
 	}
 
 	return c.JSON(http.StatusOK, p)
@@ -77,25 +78,25 @@ func (h *Handler) createProject(c *echo.Context) error {
 // get all the  projects of the organization
 //
 // route: GET /api/project?org_id
-func (h *Handler) getProjects(c *echo.Context) error {
+func (h *ProjectHandler) GetProjects(c *echo.Context) error {
 	u := c.Get(h.Server.Config.EchoCtxUserKey).(lib.AuthUser)
 
 	// get the value of org_id from query params
 	orgId, err := uuid.Parse(c.QueryParam("org_id"))
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, ErrRes{Message: "invalid organisation id"})
+		return c.JSON(http.StatusBadRequest, lib.Res{Message: "invalid organisation id"})
 	}
 	q := h.Server.DB.Queries
 
 	// TODO : check weather the user exists in the organization or not
-	status, errRes := CheckUserExistsInOrg(q, u.Email, orgId)
-	if errRes != nil {
-		return c.JSON(status, errRes)
+	status, Res := CheckUserExistsInOrg(q, u.Email, orgId)
+	if Res != nil {
+		return c.JSON(status, Res)
 	}
 
 	p, err := q.GetAllProjects(h.Ctx, orgId)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, ErrRes{Message: "Failed to get project"})
+		return c.JSON(http.StatusInternalServerError, lib.Res{Message: "Failed to get project"})
 	}
 
 	return c.JSON(http.StatusOK, p)
@@ -104,26 +105,26 @@ func (h *Handler) getProjects(c *echo.Context) error {
 // delete a project
 //
 // route: DELETE /api/project
-func (h *Handler) deleteProject(c *echo.Context) error {
+func (h *ProjectHandler) DeleteProject(c *echo.Context) error {
 	b := new(DeleteProjectReq)
 
-	if ErrRes := bindAndValidate(b, c, h.Validate); ErrRes != nil {
-		return c.JSON(http.StatusBadRequest, ErrRes)
+	if Res := ru.BindAndValidate(b, c, h.Validate); Res != nil {
+		return c.JSON(http.StatusBadRequest, Res)
 	}
 
 	// check if other service exists
 	if has, err := h.Server.DB.Queries.CheckProjectHasServices(h.Ctx, b.ID); err != nil {
-		return c.JSON(http.StatusInternalServerError, ErrRes{Message: "Failed to delete project"})
+		return c.JSON(http.StatusInternalServerError, lib.Res{Message: "Failed to delete project"})
 	} else if has {
-		return c.JSON(http.StatusConflict, ErrRes{Message: "Project has services associated with it. Please delete the services first."})
+		return c.JSON(http.StatusConflict, lib.Res{Message: "Project has services associated with it. Please delete the services first."})
 	}
 
 	err := h.Server.DB.Queries.DeleteProject(h.Ctx, b.ID)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, ErrRes{Message: "Failed to delete project"})
+		return c.JSON(http.StatusInternalServerError, lib.Res{Message: "Failed to delete project"})
 	}
 
-	return c.JSON(http.StatusOK, SuccessRes{
+	return c.JSON(http.StatusOK, lib.Res{
 		Message: "Project deleted successfully",
 	})
 }

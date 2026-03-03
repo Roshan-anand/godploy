@@ -1,4 +1,4 @@
-package routes
+package serviceroutes
 
 import (
 	"github.com/google/uuid"

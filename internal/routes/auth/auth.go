@@ -1,4 +1,4 @@
-package routes
+package authroutes
 
 import (
 	"encoding/json"
@@ -7,6 +7,7 @@ import (
 
 	"github.com/Roshan-anand/godploy/internal/db"
 	"github.com/Roshan-anand/godploy/internal/lib"
+	ru "github.com/Roshan-anand/godploy/internal/routes/utils"
 	"github.com/Roshan-anand/godploy/internal/types"
 	"github.com/labstack/echo/v5"
 )
@@ -38,54 +39,54 @@ type AuthRes struct {
 // check if user is authenticated
 //
 // route: GET /api/auth/user
-func (h *Handler) authUser(c *echo.Context) error {
+func (h *AuthHandler) AuthUser(c *echo.Context) error {
 	u, ok := c.Get(h.Server.Config.EchoCtxUserKey).(lib.AuthUser)
 
 	if !ok {
 		exists, err := h.Server.DB.Queries.AdminExists(h.Ctx)
 		if err != nil {
 			fmt.Println("Admin Exists Error:", err)
-			return c.JSON(http.StatusInternalServerError, ErrRes{Message: "Internal Sever Error"})
+			return c.JSON(http.StatusInternalServerError, lib.Res{Message: "Internal Sever Error"})
 		}
 
 		if !exists {
-			return c.JSON(http.StatusForbidden, ErrRes{Message: "No admin registered"})
+			return c.JSON(http.StatusForbidden, lib.Res{Message: "No admin registered"})
 		}
-		return c.JSON(http.StatusUnauthorized, ErrRes{Message: "Unauthorized"})
+		return c.JSON(http.StatusUnauthorized, lib.Res{Message: "Unauthorized"})
 	}
 
 	return c.JSON(http.StatusOK, AuthRes{
 		Message: "User Authenticated",
 		Name:    u.Name,
 		Email:   u.Email,
-		Orgs: []db.Organization{},
+		Orgs:    []db.Organization{},
 	})
 }
 
 // register a new application
 //
 // route: POST /api/auth/register
-func (h *Handler) appRegiter(c *echo.Context) error {
+func (h *AuthHandler) AppRegiter(c *echo.Context) error {
 	b := new(RegisterReq)
 
-	if ErrRes := bindAndValidate(b, c, h.Validate); ErrRes != nil {
-		return c.JSON(http.StatusBadRequest, ErrRes)
+	if Res := ru.BindAndValidate(b, c, h.Validate); Res != nil {
+		return c.JSON(http.StatusBadRequest, Res)
 	}
 
 	query := h.Server.DB.Queries
 
 	// check if admin user already exists
 	if exist, err := query.AdminExists(h.Ctx); err != nil {
-		return c.JSON(http.StatusInternalServerError, ErrRes{Message: "Internal Server Error"})
+		return c.JSON(http.StatusInternalServerError, lib.Res{Message: "Internal Server Error"})
 	} else if exist {
-		return c.JSON(http.StatusBadRequest, ErrRes{Message: "Admin User Already Exists"})
+		return c.JSON(http.StatusBadRequest, lib.Res{Message: "Admin User Already Exists"})
 	}
 
 	// hash password
 	hPass, err := lib.HashPassword(b.Password)
 	if err != nil {
 		fmt.Println(err)
-		return c.JSON(http.StatusInternalServerError, ErrRes{Message: "Internal Server Error"})
+		return c.JSON(http.StatusInternalServerError, lib.Res{Message: "Internal Server Error"})
 	}
 
 	// register new admin user
@@ -98,7 +99,7 @@ func (h *Handler) appRegiter(c *echo.Context) error {
 	})
 	if err != nil {
 		fmt.Println("Add User Error:", err)
-		return c.JSON(http.StatusInternalServerError, ErrRes{Message: "Internal Server Error"})
+		return c.JSON(http.StatusInternalServerError, lib.Res{Message: "Internal Server Error"})
 	}
 
 	// create organization
@@ -108,7 +109,7 @@ func (h *Handler) appRegiter(c *echo.Context) error {
 	})
 	if err != nil {
 		fmt.Println("Insert Org Error:", err)
-		return c.JSON(http.StatusInternalServerError, ErrRes{Message: "Internal Server Error"})
+		return c.JSON(http.StatusInternalServerError, lib.Res{Message: "Internal Server Error"})
 	}
 
 	// link user with organization
@@ -117,7 +118,7 @@ func (h *Handler) appRegiter(c *echo.Context) error {
 		OrganizationID: orgId,
 	}); err != nil {
 		fmt.Println("Link User N Org Error:", err)
-		return c.JSON(http.StatusInternalServerError, ErrRes{Message: "Internal Server Error"})
+		return c.JSON(http.StatusInternalServerError, lib.Res{Message: "Internal Server Error"})
 	}
 
 	// set cookies
@@ -136,26 +137,26 @@ func (h *Handler) appRegiter(c *echo.Context) error {
 // login user
 //
 // route: POST /api/auth/login
-func (h *Handler) appLogin(c *echo.Context) error {
+func (h *AuthHandler) AppLogin(c *echo.Context) error {
 	b := new(LoginReq)
 
-	if ErrRes := bindAndValidate(b, c, h.Validate); ErrRes != nil {
-		return c.JSON(http.StatusBadRequest, ErrRes)
+	if Res := ru.BindAndValidate(b, c, h.Validate); Res != nil {
+		return c.JSON(http.StatusBadRequest, Res)
 	}
 
 	// get the user
 	u, err := h.Server.DB.Queries.GetUserByEmail(h.Ctx, b.Email)
 	if err != nil {
-		return c.JSON(http.StatusUnauthorized, ErrRes{Message: "user not found"})
+		return c.JSON(http.StatusUnauthorized, lib.Res{Message: "user not found"})
 	}
 	var orgs []db.Organization
 	if err := json.Unmarshal([]byte(u.Orgs), &orgs); err != nil {
-		return c.JSON(http.StatusInternalServerError, ErrRes{Message: "Internal Server Error"})
+		return c.JSON(http.StatusInternalServerError, lib.Res{Message: "Internal Server Error"})
 	}
 
 	// check password
 	if !lib.CheckPasswordHash(b.Password, u.HashPass) {
-		return c.JSON(http.StatusUnauthorized, ErrRes{Message: "invalid credentials"})
+		return c.JSON(http.StatusUnauthorized, lib.Res{Message: "invalid credentials"})
 	}
 
 	// set cookies

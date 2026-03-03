@@ -17,10 +17,6 @@ type Middlewares struct {
 	Ctx    context.Context
 }
 
-type ErrRes struct {
-	Message string `json:"message" validate:"required"`
-}
-
 // return new middlewares instance
 func NewMiddlewares(s *config.Server) *Middlewares {
 	return &Middlewares{Server: s, Ctx: context.Background()}
@@ -34,7 +30,7 @@ func (m *Middlewares) GlobalMiddlewareCors() echo.MiddlewareFunc {
 // global middleware user applicable to all routes
 func (m *Middlewares) GlobalMiddlewareUser(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c *echo.Context) error {
-		unAuthErr := ErrRes{
+		unAuthErr := lib.Res{
 			Message: "unauthorized access"}
 		secret := m.Server.Config.JwtSecret
 

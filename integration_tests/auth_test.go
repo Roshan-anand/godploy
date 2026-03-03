@@ -5,7 +5,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/Roshan-anand/godploy/internal/routes"
+	authroutes "github.com/Roshan-anand/godploy/internal/routes/auth"
 )
 
 func TestUserLogin(t *testing.T) {
@@ -14,12 +14,12 @@ func TestUserLogin(t *testing.T) {
 	rLogin := "/api/auth/login"
 	rRegister := "/api/auth/register"
 
-	loginReq := routes.LoginReq{
+	loginReq := authroutes.LoginReq{
 		Email:    "test@test.com",
 		Password: "testtest",
 	}
 
-	registerReq := routes.RegisterReq{
+	registerReq := authroutes.RegisterReq{
 		Name:     "test",
 		Email:    "test@test.com",
 		Password: "testtest",
@@ -46,14 +46,14 @@ func TestUserLogin(t *testing.T) {
 		t.Fatal("err creating http client:", err)
 	}
 
-	t.Run("/user : no cookie and session returns 401", func(t *testing.T) {
+	t.Run("first time authenticating retusn 403 as no admin", func(t *testing.T) {
 		r, err := h.Get(ts.URL + rUser)
 		if err != nil {
 			t.Fatal("err making request:", err)
 		}
 
-		if r.StatusCode != http.StatusUnauthorized {
-			t.Fatalf("expected status code %d, got %d", http.StatusUnauthorized, r.StatusCode)
+		if r.StatusCode != http.StatusForbidden {
+			t.Fatalf("expected status code %d, got %d", http.StatusForbidden, r.StatusCode)
 		}
 	})
 

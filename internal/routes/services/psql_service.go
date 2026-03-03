@@ -1,4 +1,4 @@
-package routes
+package serviceroutes
 
 import (
 	"fmt"
@@ -6,6 +6,7 @@ import (
 
 	"github.com/Roshan-anand/godploy/internal/db"
 	"github.com/Roshan-anand/godploy/internal/lib"
+	ru "github.com/Roshan-anand/godploy/internal/routes/utils"
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v5"
 	"github.com/moby/moby/api/types/mount"
@@ -27,12 +28,12 @@ type CreatePsqlServiceReq struct {
 // create a new psql service
 //
 // route: POST /api/service/psql
-func (h *Handler) createPsqlService(c *echo.Context) error {
+func (h *ServiceHandler) CreatePsqlService(c *echo.Context) error {
 
 	b := new(CreatePsqlServiceReq)
 
-	if ErrRes := bindAndValidate(b, c, h.Validate); ErrRes != nil {
-		return c.JSON(http.StatusBadRequest, ErrRes)
+	if Res := ru.BindAndValidate(b, c, h.Validate); Res != nil {
+		return c.JSON(http.StatusBadRequest, Res)
 	}
 
 	// service name to be unique
@@ -52,7 +53,7 @@ func (h *Handler) createPsqlService(c *echo.Context) error {
 		InternalUrl: "", // TODO : create internal URl
 	})
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, ErrRes{Message: "Failed to create service"})
+		return c.JSON(http.StatusInternalServerError, lib.Res{Message: "Failed to create service"})
 	}
 
 	return c.JSON(http.StatusOK, service)
@@ -61,19 +62,19 @@ func (h *Handler) createPsqlService(c *echo.Context) error {
 // deploy the psql service to docker swarm
 //
 // route: POST /api/service/psql/deploy
-func (h *Handler) deployPsqlService(c *echo.Context) error {
+func (h *ServiceHandler) DeployPsqlService(c *echo.Context) error {
 	docker := h.Server.Docker
 	query := h.Server.DB.Queries
 
 	b := new(ServiceReq)
 
-	if ErrRes := bindAndValidate(b, c, h.Validate); ErrRes != nil {
-		return c.JSON(http.StatusBadRequest, ErrRes)
+	if Res := ru.BindAndValidate(b, c, h.Validate); Res != nil {
+		return c.JSON(http.StatusBadRequest, Res)
 	}
 
 	service, err := query.GetPsqlServiceById(h.Ctx, b.ServiceId)
 	if err != nil {
-		return c.JSON(http.StatusNotFound, ErrRes{Message: "service not found"})
+		return c.JSON(http.StatusNotFound, lib.Res{Message: "service not found"})
 	}
 
 	// create a volume for the service
@@ -127,7 +128,7 @@ func (h *Handler) deployPsqlService(c *echo.Context) error {
 	// depoly the service
 	sRes, err := docker.ServiceCreate(h.Ctx, spec)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, ErrRes{Message: "Failed to deploy service"})
+		return c.JSON(http.StatusInternalServerError, lib.Res{Message: "Failed to deploy service"})
 	}
 
 	// update the service ID
@@ -135,7 +136,7 @@ func (h *Handler) deployPsqlService(c *echo.Context) error {
 		ServiceID: sRes.ID,
 	}); err != nil {
 		docker.ServiceRemove(h.Ctx, sRes.ID, client.ServiceRemoveOptions{})
-		return c.JSON(http.StatusInternalServerError, ErrRes{Message: "Failed to update service with service id"})
+		return c.JSON(http.StatusInternalServerError, lib.Res{Message: "Failed to update service with service id"})
 	}
 
 	return c.JSON(http.StatusOK, map[string]string{
@@ -146,60 +147,60 @@ func (h *Handler) deployPsqlService(c *echo.Context) error {
 // stop the psql service
 //
 // route: POST /api/service/psql/stop
-func (h *Handler) stopPsqlService(c *echo.Context) error {
+func (h *ServiceHandler) StopPsqlService(c *echo.Context) error {
 	docker := h.Server.Docker
 	query := h.Server.DB.Queries
 
 	b := new(ServiceReq)
 
-	if ErrRes := bindAndValidate(b, c, h.Validate); ErrRes != nil {
-		return c.JSON(http.StatusBadRequest, ErrRes)
+	if Res := ru.BindAndValidate(b, c, h.Validate); Res != nil {
+		return c.JSON(http.StatusBadRequest, Res)
 	}
 
 	service, err := query.GetPsqlServiceById(h.Ctx, b.ServiceId)
 	if err != nil {
-		return c.JSON(http.StatusNotFound, ErrRes{Message: "service not found"})
+		return c.JSON(http.StatusNotFound, lib.Res{Message: "service not found"})
 	}
 
 	fmt.Println("service id :", service.ServiceID)
 	if _, err := docker.ServiceRemove(h.Ctx, service.ServiceID, client.ServiceRemoveOptions{}); err != nil {
 		fmt.Println("error removing service :", err)
-		return c.JSON(http.StatusInternalServerError, ErrRes{Message: "error removing service"})
+		return c.JSON(http.StatusInternalServerError, lib.Res{Message: "error removing service"})
 	}
 
-	return c.JSON(http.StatusOK, SuccessRes{Message: "successfully removed the service"})
+	return c.JSON(http.StatusOK, lib.Res{Message: "successfully removed the service"})
 }
 
 // stops and delete the psql service
 //
 // route: DELETE /api/service/psql
-func (h *Handler) deletePsqlService(c *echo.Context) error {
+func (h *ServiceHandler) DeletePsqlService(c *echo.Context) error {
 	docker := h.Server.Docker
 	query := h.Server.DB.Queries
 
 	b := new(ServiceReq)
 
-	if ErrRes := bindAndValidate(b, c, h.Validate); ErrRes != nil {
-		return c.JSON(http.StatusBadRequest, ErrRes)
+	if Res := ru.BindAndValidate(b, c, h.Validate); Res != nil {
+		return c.JSON(http.StatusBadRequest, Res)
 	}
 
 	service, err := query.GetPsqlServiceById(h.Ctx, b.ServiceId)
 	if err != nil {
-		return c.JSON(http.StatusConflict, ErrRes{Message: "Failed to fetch service details"})
+		return c.JSON(http.StatusConflict, lib.Res{Message: "Failed to fetch service details"})
 	}
 
 	// check and stop the service if it is running
 	if s, _ := docker.ServiceInspect(h.Ctx, service.ServiceID, client.ServiceInspectOptions{}); s.Service.ID != "" {
 		if _, err := docker.ServiceRemove(h.Ctx, service.ServiceID, client.ServiceRemoveOptions{}); err != nil {
-			return c.JSON(http.StatusInternalServerError, ErrRes{Message: fmt.Sprintln("error removing service :", err)})
+			return c.JSON(http.StatusInternalServerError, lib.Res{Message: fmt.Sprintln("error removing service :", err)})
 		}
 	}
 
 	if err := query.DeletePsqlService(h.Ctx, b.ServiceId); err != nil {
-		return c.JSON(http.StatusInternalServerError, ErrRes{Message: "Failed to create service"})
+		return c.JSON(http.StatusInternalServerError, lib.Res{Message: "Failed to create service"})
 	}
 
-	return c.JSON(http.StatusOK, SuccessRes{
+	return c.JSON(http.StatusOK, lib.Res{
 		Message: "Successsfully deleted service",
 	})
 }
