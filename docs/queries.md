@@ -24,3 +24,5 @@
 - [ ] wht is COLESCE in SQL
     - what is COALESCE in SQL
     - how it pairs with GROUP BY
+  
+- [ ] CSRF deep dive
