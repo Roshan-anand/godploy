@@ -64,6 +64,7 @@ const githubManifestFormTmpl = `<!DOCTYPE html>
 </html>`
 
 // initiate github app creation
+// 
 // route: GET /api/provider/github/app/create
 func (h *GitHandler) CreateGithubApp(c *echo.Context) error {
 	q := h.Server.DB.Queries
@@ -116,7 +117,7 @@ func removeSession(query *db.Queries, state string) {
 	}
 }
 
-// initiate github app creation
+// get github app credentials from GitHub 
 //
 // route: GET /api/provider/github/app/callback
 func (h *GitHandler) CreateGithubAppCallback(c *echo.Context) error {

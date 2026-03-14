@@ -28,8 +28,8 @@ Github App Manifest is used to create a Github App which does openrations on beh
     "hook_attributes": {
       "url": "https://example.com/github/events"
     },
-    "redirect_url": "https://example.com/redirect",
-    "callback_urls": ["https://example.com/callback"],
+    "redirect_url": "https://example.com/path/to/redirect",
+		"setup_url": "http://example.com/path/to/setup",
     "public": true,
     "default_permissions": {
       "issues": "write",
@@ -88,3 +88,14 @@ Github App Manifest is used to create a Github App which does openrations on beh
     "pem": "RSA PRIVATE KEY"
   }
   ```
+- store pem, client_id, client_secret, webhook_secret in DB for future use.
+- Redirect user to install the app
+  ```
+  https://github.com/apps/{APP_SLUG}/installations/new
+  ```
+- User approves, GitHub redirects to `setup_url`  
+  ```
+  https://example.com/path/to/setup?installation_id=12345678
+  ```
+- store installation_id in DB for future use.
+- use pem, app_id & installation_id with ghinstallation to create github client to make API openrations.
