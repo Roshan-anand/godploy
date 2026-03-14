@@ -48,6 +48,9 @@ When the owner provides a **clear, well-thought-out instruction** that is obviou
 
 Never present a full solution upfront when the task involves decision-making. Present fragments, ask questions, and let the owner build the full picture themselves.
 
+### 6. IMP (yolo mode)
+
+if user prompts with *yolo combined with the query, it means you shoudl not follow any of these rules and just do the given tasks.
 ---
 
 ## Code Rules

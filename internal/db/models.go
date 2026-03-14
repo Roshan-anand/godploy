@@ -12,6 +12,17 @@ import (
 	"github.com/google/uuid"
 )
 
+type GithubApp struct {
+	ID             uuid.UUID     `json:"id"`
+	OrganizationID uuid.UUID     `json:"organization_id"`
+	AppID          int64         `json:"app_id"`
+	InstallationID sql.NullInt64 `json:"installation_id"`
+	PemKey         string        `json:"pem_key"`
+	WebhookSecret  string        `json:"webhook_secret"`
+	CreatedAt      time.Time     `json:"created_at"`
+	UpdatedAt      time.Time     `json:"updated_at"`
+}
+
 type Organization struct {
 	ID        uuid.UUID `json:"id"`
 	Name      string    `json:"name"`
@@ -40,6 +51,14 @@ type PsqlService struct {
 	CreatedAt   time.Time `json:"created_at"`
 }
 
+type RedirectSession struct {
+	State     string    `json:"state"`
+	UserID    uuid.UUID `json:"user_id"`
+	OrgID     uuid.UUID `json:"org_id"`
+	ExpiresAt time.Time `json:"expires_at"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
 type Session struct {
 	ID        uuid.UUID `json:"id"`
 	UserID    uuid.UUID `json:"user_id"`
@@ -49,12 +68,13 @@ type Session struct {
 }
 
 type User struct {
-	ID        uuid.UUID      `json:"id"`
-	Name      string         `json:"name"`
-	Email     string         `json:"email"`
-	HashPass  string         `json:"hash_pass"`
-	Role      types.UserRole `json:"role"`
-	CreatedAt time.Time      `json:"created_at"`
+	ID           uuid.UUID      `json:"id"`
+	Name         string         `json:"name"`
+	Email        string         `json:"email"`
+	HashPass     string         `json:"hash_pass"`
+	Role         types.UserRole `json:"role"`
+	CurrentOrgID uuid.UUID      `json:"current_org_id"`
+	CreatedAt    time.Time      `json:"created_at"`
 }
 
 type UserOrganization struct {

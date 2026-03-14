@@ -1,6 +1,6 @@
 -- name: CreateUser :one
-INSERT INTO user (id,name, email, hash_pass, role)
-VALUES (?,?, ?, ?, ?)
+INSERT INTO user (id, name, email, hash_pass, role, current_org_id)
+VALUES (?, ?, ?, ?, ?, ?)
 RETURNING id;
 
 -- name: GetUserByEmail :one
@@ -10,6 +10,7 @@ SELECT
    u.email,
    u.hash_pass,
    u.role,
+   u.current_org_id,
    CAST(
     json_group_array(
         json_object('id', o.id, 'name', o.name, 'created_at',  strftime('%Y-%m-%dT%H:%M:%SZ', o.created_at))
@@ -30,3 +31,8 @@ SELECT CAST(EXISTS (
     SELECT 1 FROM user
     WHERE role = 'admin'
 ) AS BOOLEAN);
+
+-- name: UpdateCurrentOrg :exec
+UPDATE user
+SET current_org_id = ?
+WHERE id = ?;

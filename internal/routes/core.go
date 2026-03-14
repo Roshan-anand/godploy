@@ -6,7 +6,8 @@ import (
 	"github.com/Roshan-anand/godploy/internal/lib"
 	"github.com/Roshan-anand/godploy/internal/middleware"
 	authroutes "github.com/Roshan-anand/godploy/internal/routes/auth"
-	// gitroutes "github.com/Roshan-anand/godploy/internal/routes/git"
+	gitroutes "github.com/Roshan-anand/godploy/internal/routes/git"
+
 	projectroutes "github.com/Roshan-anand/godploy/internal/routes/project"
 	serviceroutes "github.com/Roshan-anand/godploy/internal/routes/services"
 	"github.com/labstack/echo/v5"
@@ -16,7 +17,7 @@ import (
 func SetupRoutes(srv *config.Server) (*echo.Echo, error) {
 	authH := authroutes.InitAuthHandlers(srv)
 	serviceH := serviceroutes.InitServiceHandlers(srv)
-	// gitH := gitroutes.InitGitHandlers(srv)
+	gitH := gitroutes.InitGitHandlers(srv)
 	projectH := projectroutes.InitProjectHandlers(srv)
 
 	m := middleware.NewMiddlewares(srv) // initialize middlewares
@@ -60,5 +61,9 @@ func SetupRoutes(srv *config.Server) (*echo.Echo, error) {
 	serviceApi.POST("/psql/deploy", serviceH.DeployPsqlService)
 	serviceApi.POST("/psql/stop", serviceH.StopPsqlService)
 
+	githubApi := api.Group("/provider/github")
+	githubApi.GET("/app/create", gitH.CreateGithubApp)
+	githubApi.GET("/app/callback", gitH.CreateGithubAppCallback)
+	githubApi.GET("/app/setup", gitH.SetupGithubApp)
 	return e, nil
 }

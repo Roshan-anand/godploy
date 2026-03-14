@@ -12,7 +12,6 @@ import (
 func BindAndValidate(b any, c *echo.Context, v *validator.Validate) *lib.Res {
 
 	if err := c.Bind(b); err != nil {
-		fmt.Println("Bind Error:", err)
 		return &lib.Res{Message: "Invalid Data"}
 	}
 

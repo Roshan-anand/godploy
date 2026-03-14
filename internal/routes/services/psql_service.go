@@ -162,9 +162,7 @@ func (h *ServiceHandler) StopPsqlService(c *echo.Context) error {
 		return c.JSON(http.StatusNotFound, lib.Res{Message: "service not found"})
 	}
 
-	fmt.Println("service id :", service.ServiceID)
 	if _, err := docker.ServiceRemove(h.Ctx, service.ServiceID, client.ServiceRemoveOptions{}); err != nil {
-		fmt.Println("error removing service :", err)
 		return c.JSON(http.StatusInternalServerError, lib.Res{Message: "error removing service"})
 	}
 

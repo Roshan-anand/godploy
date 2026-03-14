@@ -12,6 +12,8 @@
 - [x] write documentation
 - [ ] rememberMe functionality for login
 - [ ] setup monorepo
+- [ ] setup hot reloading in development
+- [ ] setup dev env for separate frontend
 
 # enhancements
 - [ ] use dynamic imports in client side

@@ -27,17 +27,18 @@ func (q *Queries) AdminExists(ctx context.Context) (bool, error) {
 }
 
 const createUser = `-- name: CreateUser :one
-INSERT INTO user (id,name, email, hash_pass, role)
-VALUES (?,?, ?, ?, ?)
+INSERT INTO user (id, name, email, hash_pass, role, current_org_id)
+VALUES (?, ?, ?, ?, ?, ?)
 RETURNING id
 `
 
 type CreateUserParams struct {
-	ID       uuid.UUID      `json:"id"`
-	Name     string         `json:"name"`
-	Email    string         `json:"email"`
-	HashPass string         `json:"hash_pass"`
-	Role     types.UserRole `json:"role"`
+	ID           uuid.UUID      `json:"id"`
+	Name         string         `json:"name"`
+	Email        string         `json:"email"`
+	HashPass     string         `json:"hash_pass"`
+	Role         types.UserRole `json:"role"`
+	CurrentOrgID uuid.UUID      `json:"current_org_id"`
 }
 
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (uuid.UUID, error) {
@@ -47,6 +48,7 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (uuid.UU
 		arg.Email,
 		arg.HashPass,
 		arg.Role,
+		arg.CurrentOrgID,
 	)
 	var id uuid.UUID
 	err := row.Scan(&id)
@@ -60,6 +62,7 @@ SELECT
    u.email,
    u.hash_pass,
    u.role,
+   u.current_org_id,
    CAST(
     json_group_array(
         json_object('id', o.id, 'name', o.name, 'created_at',  strftime('%Y-%m-%dT%H:%M:%SZ', o.created_at))
@@ -73,12 +76,13 @@ GROUP BY u.name, u.email, u.hash_pass,u.role
 `
 
 type GetUserByEmailRow struct {
-	ID       uuid.UUID      `json:"id"`
-	Name     string         `json:"name"`
-	Email    string         `json:"email"`
-	HashPass string         `json:"hash_pass"`
-	Role     types.UserRole `json:"role"`
-	Orgs     string         `json:"orgs"`
+	ID           uuid.UUID      `json:"id"`
+	Name         string         `json:"name"`
+	Email        string         `json:"email"`
+	HashPass     string         `json:"hash_pass"`
+	Role         types.UserRole `json:"role"`
+	CurrentOrgID uuid.UUID      `json:"current_org_id"`
+	Orgs         string         `json:"orgs"`
 }
 
 func (q *Queries) GetUserByEmail(ctx context.Context, email string) (GetUserByEmailRow, error) {
@@ -90,6 +94,7 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (GetUserByEm
 		&i.Email,
 		&i.HashPass,
 		&i.Role,
+		&i.CurrentOrgID,
 		&i.Orgs,
 	)
 	return i, err
@@ -102,5 +107,21 @@ WHERE id = ?
 
 func (q *Queries) RemoveUser(ctx context.Context, id uuid.UUID) error {
 	_, err := q.db.ExecContext(ctx, removeUser, id)
+	return err
+}
+
+const updateCurrentOrg = `-- name: UpdateCurrentOrg :exec
+UPDATE user
+SET current_org_id = ?
+WHERE id = ?
+`
+
+type UpdateCurrentOrgParams struct {
+	CurrentOrgID uuid.UUID `json:"current_org_id"`
+	ID           uuid.UUID `json:"id"`
+}
+
+func (q *Queries) UpdateCurrentOrg(ctx context.Context, arg UpdateCurrentOrgParams) error {
+	_, err := q.db.ExecContext(ctx, updateCurrentOrg, arg.CurrentOrgID, arg.ID)
 	return err
 }

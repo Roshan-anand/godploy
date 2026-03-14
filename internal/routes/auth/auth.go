@@ -45,7 +45,6 @@ func (h *AuthHandler) AuthUser(c *echo.Context) error {
 	if !ok {
 		exists, err := h.Server.DB.Queries.AdminExists(h.Ctx)
 		if err != nil {
-			fmt.Println("Admin Exists Error:", err)
 			return c.JSON(http.StatusInternalServerError, lib.Res{Message: "Internal Sever Error"})
 		}
 
@@ -89,26 +88,25 @@ func (h *AuthHandler) AppRegiter(c *echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, lib.Res{Message: "Internal Server Error"})
 	}
 
-	// register new admin user
-	uId, err := query.CreateUser(h.Ctx, db.CreateUserParams{
-		ID:       lib.NewID(),
-		Name:     b.Name,
-		Email:    b.Email,
-		HashPass: hPass,
-		Role:     types.AdminRole,
-	})
-	if err != nil {
-		fmt.Println("Add User Error:", err)
-		return c.JSON(http.StatusInternalServerError, lib.Res{Message: "Internal Server Error"})
-	}
-
-	// create organization
+	// create organization first (user needs orgId at insert time)
 	orgId, err := query.CreateOrg(h.Ctx, db.CreateOrgParams{
 		ID:   lib.NewID(),
 		Name: b.OrgName,
 	})
 	if err != nil {
-		fmt.Println("Insert Org Error:", err)
+		return c.JSON(http.StatusInternalServerError, lib.Res{Message: "Internal Server Error"})
+	}
+
+	// register new admin user
+	uId, err := query.CreateUser(h.Ctx, db.CreateUserParams{
+		ID:           lib.NewID(),
+		Name:         b.Name,
+		Email:        b.Email,
+		HashPass:     hPass,
+		Role:         types.AdminRole,
+		CurrentOrgID: orgId,
+	})
+	if err != nil {
 		return c.JSON(http.StatusInternalServerError, lib.Res{Message: "Internal Server Error"})
 	}
 

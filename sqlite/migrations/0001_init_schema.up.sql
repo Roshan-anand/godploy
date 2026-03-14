@@ -1,17 +1,18 @@
 PRAGMA foreign_keys = ON;
 
+CREATE TABLE organization (
+    id uuid PRIMARY KEY,
+    name TEXT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
 CREATE TABLE user (
     id uuid PRIMARY KEY,
     name TEXT NOT NULL,
     email TEXT UNIQUE NOT NULL,
     hash_pass TEXT NOT NULL,
     role TEXT NOT NULL,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL
-);
-
-CREATE TABLE organization (
-    id uuid PRIMARY KEY,
-    name TEXT NOT NULL,
+    current_org_id uuid NOT NULL REFERENCES organization(id) ON DELETE RESTRICT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 
