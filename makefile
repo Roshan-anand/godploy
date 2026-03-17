@@ -41,7 +41,7 @@ reset:
 restart: reset start
 
 test:
-	cd backend &&
+	cd backend && \
 	go test -v ./...
 
 service-up:

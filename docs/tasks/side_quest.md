@@ -17,6 +17,7 @@
 
 ## application
 - [ ] rememberMe functionality for login
+- [ ] setup rate limiting middleware
 - [ ] tests for project lifecycle
 - [ ] tests for service lifecycle
 
