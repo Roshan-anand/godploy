@@ -36,7 +36,7 @@ start: generate build
 	@./bin/godploy
 
 reset:
-	rm -rf ./backend/data/*
+	rm -rf ./backend/data/* ./data/*
 
 restart: reset start
 
