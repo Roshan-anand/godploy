@@ -67,8 +67,7 @@ func runServer(server *config.Server) error {
 func main() {
 	err := godotenv.Load()
 	if err != nil {
-		log.Fatal("No .env file found, loading environment variables from system")
-		return
+		log.Println("No .env file found, loading environment variables from system")
 	}
 
 	server, err := createServer()

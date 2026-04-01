@@ -13,7 +13,7 @@ dev-web:
 
 dev-server:
 	cd backend && air
-	
+
 check:
 	cd frontend && bun check:all
 
@@ -44,8 +44,8 @@ test:
 	cd backend && \
 	go test -v ./...
 
-service-up:
-	docker compose -f ./dynamic/compose.yaml up -d
+compose-dev-up:
+	docker compose -f ./docker/compose.dev.yaml up -d
 
-service-down:
-	docker compose -f ./dynamic/compose.yaml down
+compose-dev-down:
+	docker compose -f ./docker/compose.dev.yaml down

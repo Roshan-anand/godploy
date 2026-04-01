@@ -1,0 +1,67 @@
+services:
+  frontend:
+    build:
+      context: ..
+      dockerfile: docker/dev/Dockerfile
+      target: frontend-dev
+    image: godploy-frontend-dev
+    container_name: godploy-frontend-dev
+    ports:
+      - "3000:3000"
+    volumes:
+      - ${HOST_PROJECT_ROOT:-..}/frontend:/app/frontend:cached
+      - frontend-node-modules:/app/frontend/node_modules
+      - bun-cache:/root/.bun/install/cache
+    environment:
+      - NODE_ENV=development
+      - DEV_BACKEND_URL=http://backend:8080
+    depends_on:
+      - backend
+    networks:
+      - godploy-dev
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ..
+      dockerfile: docker/dev/Dockerfile
+      target: backend-dev
+    image: godploy-backend-dev
+    container_name: godploy-backend-dev
+    ports:
+      - "8080:8080"
+    volumes:
+      - ${HOST_PROJECT_ROOT:-..}/backend:/app/backend:cached
+      - /var/run/docker.sock:/var/run/docker.sock
+      - godploy-dev-data:/app/backend/data
+      - go-build-cache:/root/.cache/go-build
+      - go-mod-cache:/go/pkg/mod
+    environment:
+      - JWT_SECRET=red_balloon
+      - APP_ENV=dev
+      - WEB_URL=http://localhost:3000
+    working_dir: /app/backend
+    networks:
+      - godploy-dev
+    restart: unless-stopped
+
+networks:
+  godploy-dev:
+    driver: bridge
+    name: godploy-dev-network
+
+volumes:
+  godploy-dev-data:
+    name: godploy-dev-data
+
+  go-build-cache:
+    name: godploy-go-build-cache
+
+  go-mod-cache:
+    name: godploy-go-mod-cache
+
+  bun-cache:
+    name: godploy-bun-cache
+
+  frontend-node-modules:
+    name: godploy-frontend-node-modules
