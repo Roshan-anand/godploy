@@ -26,7 +26,7 @@ func mockConfigServer() (*echo.Echo, *config.Server, error) {
 	}
 
 	// update config to include testing data
-	cfg.AllowedCors = []string{"*"}
+	cfg.WebUrl = "*"
 	cfg.JwtSecret = "test_secret"
 
 	tempDir, err := getTempDir()

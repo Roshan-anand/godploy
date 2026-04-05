@@ -1,40 +1,39 @@
-## setting up traefik
+## prerequisites
+
+- `docker` v29.x
+- `docker-compose`
+- `openssl`
+
+## setting up local env
 
 - create certs for local https support
 
 ```
 mkdir -p ./dynamic/certs
 openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
-  -keyout certs/local.key -out certs/local.crt \
-  -subj "/CN=*.docker.localhost"
+  -keyout ./dynamic/certs/local.key -out ./dynamic/certs/local.crt \
+  -subj "/CN=*.godploy.localhost"
 ```
 
-- generate password for traefik dashboard
+- add `127.0.0.1  *.godploy.localhost` in new line to your `/etc/hosts` file
+- run `make install` to install the dependencies
+- run `make img-build` to build the docker images
 
-  ```
-  htpasswd -nb <admin_name> "<your_passowrd>" | sed -e 's/\$/\$\$/g'
+## running the services
 
-  eg.
-  htpasswd -nb roshan "rustorgo" | sed -e 's/\$/\$\$/g'
-  ```
+- run `make setup` to setup traefik
+- run `make dev` to run dev containers
+- you can access services at
+  - Traefik dashboard : `https://traefik.godploy.localhost:8443/` (to access the dashboard username : `godploy`, password : `godploy`)
+  - Godploy web : `https://web.godploy.localhost`
+  - Godploy server : `https://server.godploy.localhost`
 
-  - copy the output of `htpasswd` and past it in [compose_file](./dynamic/compose.yaml) line 61
-    ```
-    -"traefik.http.middlewares.dashboard-auth.basicauth.users=<your_generated_hash>"
-    ```
+## watch the services
 
-**NOTE : use this credential when entering the trawfik dashbaord**
+- run `make web-logs` to watch the web service logs
+- run `make server-logs` to watch the server service logs
+- run `make traefik-logs` to watch the traefik service logs
 
----
+## stopping the development environment
 
-## running the server
-- install dependency `make install`
-- run all the service `make service-up`
-- run the godploy server `make start`
-
-- urls :
-
-```
-server = http://localhost:8080/
-traefik_dashboard = https://dashboard.docker.localhost/dashboard/
-```
+- run `make services-rm` to stop and remove the services

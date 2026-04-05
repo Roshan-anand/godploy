@@ -37,7 +37,7 @@ export default defineConfig({
 		host: true,
 		proxy: {
 			'/api': {
-				target: process.env.DEV_BACKEND_URL || 'http://localhost:8080',
+				target: process.env.DEV_BACKEND_URL || 'https://server.godploy.localhost',
 				changeOrigin: true
 			}
 		}

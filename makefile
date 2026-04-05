@@ -8,12 +8,6 @@ install-server:
 
 install: install-web install-server
 
-dev-web:
-	cd frontend && bun dev
-
-dev-server:
-	cd backend && air
-
 check:
 	cd frontend && bun check:all
 
@@ -24,7 +18,7 @@ build-web:
 build-bin:
 	cd backend && \
 	go mod tidy && \
-	go build -o ../bin/godploy cmd/main.go
+	go build -o ../bin/godploy cmd/server/main.go
 
 build: build-web build-bin
 
@@ -44,8 +38,25 @@ test:
 	cd backend && \
 	go test -v ./...
 
-compose-dev-up:
-	docker compose -f ./docker/compose.dev.yaml up -d
+img-build:
+	docker compose -f ./docker/compose.dev.yaml build 
 
-compose-dev-down:
-	docker compose -f ./docker/compose.dev.yaml down
+setup:install
+	@cd backend && \
+	go run cmd/setup/main.go setup
+
+dev:install
+	@cd backend && \
+	go run cmd/setup/main.go dev
+
+services-rm:
+	docker service rm godploy_traefik godploy_web godploy_server
+
+web-logs:
+	docker service logs -f godploy_web
+
+server-logs:
+	docker service logs -f godploy_server
+
+traefik-logs:
+	docker service logs -f godploy_traefik

@@ -1,35 +1,39 @@
 services:
-  frontend:
+  web:
     build:
       context: ..
       dockerfile: docker/dev/Dockerfile
       target: frontend-dev
     image: godploy-frontend-dev
     container_name: godploy-frontend-dev
-    ports:
-      - "3000:3000"
     volumes:
       - ${HOST_PROJECT_ROOT:-..}/frontend:/app/frontend:cached
       - frontend-node-modules:/app/frontend/node_modules
       - bun-cache:/root/.bun/install/cache
     environment:
       - NODE_ENV=development
-      - DEV_BACKEND_URL=http://backend:8080
+      - DEV_BACKEND_URL=http://server:8080
     depends_on:
-      - backend
+      - server
+    restart: unless-stopped
     networks:
       - godploy-dev
-    restart: unless-stopped
+      - traefik_proxy
+    deploy:
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.godploy_web.rule=Host(`web.godploy.localhost`)"
+        - "traefik.http.routers.godploy_web.entrypoints=websecure"
+        - "traefik.http.routers.godploy_web.tls=true"
+        - traefik.http.services.godploy_web.loadbalancer.server.port=3000
 
-  backend:
+  server:
     build:
       context: ..
       dockerfile: docker/dev/Dockerfile
       target: backend-dev
     image: godploy-backend-dev
     container_name: godploy-backend-dev
-    ports:
-      - "8080:8080"
     volumes:
       - ${HOST_PROJECT_ROOT:-..}/backend:/app/backend:cached
       - /var/run/docker.sock:/var/run/docker.sock
@@ -39,16 +43,27 @@ services:
     environment:
       - JWT_SECRET=red_balloon
       - APP_ENV=dev
-      - WEB_URL=http://localhost:3000
+      - WEB_URL=https://web.godploy.localhost
     working_dir: /app/backend
+    restart: unless-stopped
     networks:
       - godploy-dev
-    restart: unless-stopped
+      - traefik_proxy
+    deploy:
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.godploy_server.rule=Host(`server.godploy.localhost`)"
+        - "traefik.http.routers.godploy_server.entrypoints=websecure"
+        - "traefik.http.routers.godploy_server.tls=true"
+        - traefik.http.services.godploy_server.loadbalancer.server.port=8080
 
 networks:
   godploy-dev:
-    driver: bridge
-    name: godploy-dev-network
+    driver: overlay
+    attachable: true
+  traefik_proxy:
+    external: true
+    name: godploy_traefik_proxy
 
 volumes:
   godploy-dev-data:

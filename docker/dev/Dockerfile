@@ -1,8 +1,7 @@
 # Stage 1: Frontend development with Bun in a single-package setup.
 FROM --platform=$BUILDPLATFORM oven/bun:1.2.23-slim AS frontend-dev
 
-ENV NODE_ENV=development \
-    CI=true
+ENV NODE_ENV=development
 
 WORKDIR /app/frontend
 
@@ -22,12 +21,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     rm -rf /var/lib/apt/lists/* && \
     go install github.com/air-verse/air@latest
 
-ENV GIN_MODE=debug \
-    PORT=8080 \
-    ENVIRONMENT=development \
-    GOCACHE=/root/.cache/go-build \
-    GOMODCACHE=/go/pkg/mod
-
 WORKDIR /app
 
 # Copy backend module files for dependency caching.
@@ -44,6 +37,8 @@ RUN mkdir -p /app/backend/data /app/backend/bin && \
 
 WORKDIR /app/backend
 
+RUN mkdir -p frontend/dist && if [ ! -f frontend/dist/index.html ]; then printf '<!doctype html><html><body>dev placeholder</body></html>' > frontend/dist/index.html; fi;
+
 EXPOSE 8080
 
-CMD ["sh", "-c", "mkdir -p frontend/dist && if [ ! -f frontend/dist/index.html ]; then printf '<!doctype html><html><body>dev placeholder</body></html>' > frontend/dist/index.html; fi; mkdir -p bin && air -c .air.toml"]
+ENTRYPOINT ["air"]

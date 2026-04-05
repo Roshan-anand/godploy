@@ -202,7 +202,8 @@ func (h *GitHandler) SetupGithubApp(c *echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, lib.Res{Message: "Failed to setup github app"})
 	}
 
-	return c.Redirect(http.StatusFound, "http://localhost:8080/#/")
+	// TODO: update the url to route to git provider page with success message
+	return c.Redirect(http.StatusFound, h.Server.Config.WebUrl)
 }
 
 // get list of repos accessible by the github app

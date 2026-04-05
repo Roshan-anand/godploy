@@ -1,79 +1,95 @@
 services:
   traefik:
-    image: traefik:latest
-    container_name: godploy-traefik
-    restart: unless-stopped
-    security_opt:
-      - no-new-privileges:true
+    image: traefik:v3.6
 
     networks:
-     # Connect to the 'traefik_proxy' overlay network for inter-container communication across nodes
-      - proxy
+      - traefik_proxy
 
     ports:
-      - "80:80"
-      - "443:443"
-      - "8080:8080"
+      - target: 80 
+        published: 80 
+        protocol: tcp
+        # Use Swarm routing mesh in local dev to avoid host-port bind conflicts.
+        mode: ingress
+      - target: 443 
+        published: 443 
+        protocol: tcp
+        mode: ingress
 
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro 
       - ./certs:/certs:ro
-      - ./dynamic:/dynamic:ro
+      - ./:/dynamic:ro
 
+    # Traefik Static configuration via command-line arguments
     command:
-      # EntryPoints
+      # HTTP EntryPoint
       - "--entrypoints.web.address=:80"
+
+      # Configure HTTP to HTTPS Redirection
       - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
       - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
       - "--entrypoints.web.http.redirections.entrypoint.permanent=true"
+
+      # HTTPS EntryPoint
       - "--entrypoints.websecure.address=:443"
       - "--entrypoints.websecure.http.tls=true"
 
-      # Attach the static configuration tls.yaml file that contains the tls configuration settings
+      # Attach dynamic TLS file
       - "--providers.file.filename=/dynamic/tls.yaml"
 
-      # Providers 
-      - "--providers.docker=true"
-      - "--providers.docker.exposedbydefault=false"
-      - "--providers.docker.network=proxy"
+      # Providers
 
-      # API & Dashboard 
-      - "--api.dashboard=true"
-      - "--api.insecure=false"
+      # Enable the Docker Swarm provider (instead of Docker provider)
+      - "--providers.swarm.endpoint=unix:///var/run/docker.sock"
 
-      # Observability 
-      - "--log.level=INFO"
-      - "--accesslog=true"
-      - "--metrics.prometheus=true"
+      # Watch for Swarm service changes (requires socket access)
+      - "--providers.swarm.watch=true"
 
-  # Traefik Dynamic configuration via Docker labels
-    labels:
-      # Enable self‑routing
-      - "traefik.enable=true"
+      # Recommended: Don't expose services by default; require explicit labels
+      - "--providers.swarm.exposedbydefault=false"
 
-      # Dashboard router
-      - "traefik.http.routers.dashboard.rule=Host(`dashboard.docker.localhost`)"
-      - "traefik.http.routers.dashboard.entrypoints=websecure"
-      - "traefik.http.routers.dashboard.service=api@internal"
-      - "traefik.http.routers.dashboard.tls=true"
+      # Specify the default network for Traefik to connect to services
+      - "--providers.swarm.network=godploy_traefik_proxy"
 
-      # Basic‑auth middleware
-      - "traefik.http.middlewares.dashboard-auth.basicauth.users=roshan:$$apr1$$MWnPBx14$$Oqhplsn.yZm5aiATH3mL4/"
-      - "traefik.http.routers.dashboard.middlewares=dashboard-auth@docker"
+      # API & Dashboard
+      - "--api.dashboard=true" # Enable the dashboard
+      - "--api.insecure=false" # Explicitly disable insecure API mod
 
-# Whoami application
-  whoami:
-    image: traefik/whoami
-    container_name: whoami
-    restart: unless-stopped
-    networks:
-      - proxy
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.whoami.rule=Host(`whoami.docker.localhost`)"
-      - "traefik.http.routers.whoami.entrypoints=websecure"
-      - "traefik.http.routers.whoami.tls=true"
+      # Observability
+      - "--log.level=INFO" # Set the Log Level e.g INFO, DEBUG
+      - "--accesslog=true" # Enable Access Logs
+      - "--metrics.prometheus=true" # Enable Prometheus
 
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        # Placement constraints restrict where Traefik tasks can run.
+        # Running on manager nodes is common for accessing the Swarm API via the socket.
+        constraints:
+          - node.role == manager
+
+      # Traefik Dynamic configuration via labels
+      # In Swarm, labels on the service definition configure Traefik routing for that service.
+      labels:
+        - "traefik.enable=true"
+
+        # Dashboard router
+        - "traefik.http.routers.dashboard.rule=Host(`traefik.godploy.localhost`)"
+        - "traefik.http.routers.dashboard.entrypoints=websecure"
+        - "traefik.http.routers.dashboard.service=api@internal"
+        - "traefik.http.routers.dashboard.tls=true"
+
+        # Basic‑auth middleware
+        - "traefik.http.middlewares.dashboard-auth.basicauth.users=godploy:$$apr1$$zyqu2b.x$$ZvVecZIlqLoPDI2MqGWSM0"
+        - "traefik.http.routers.dashboard.middlewares=dashboard-auth@swarm"
+
+        # Service hint
+        - "traefik.http.services.traefik.loadbalancer.server.port=8080"
+
+# Define the overlay network for Swarm
 networks:
-  proxy:
-    name: proxy
+  traefik_proxy:
+    driver: overlay
+    attachable: true

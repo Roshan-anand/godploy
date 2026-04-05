@@ -27,7 +27,7 @@ const config = {
 		},
 		router: {
 			type: 'hash'
-		},
+		}
 	}
 };
 

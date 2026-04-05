@@ -10,7 +10,7 @@ type Config struct {
 	SessionTokenName string
 	EchoCtxUserKey   string
 	JwtSecret        string
-	AllowedCors      []string
+	WebUrl           string
 	DbDir            string
 	AppEnv           string
 }
@@ -27,7 +27,7 @@ func LoadConfig() (*Config, error) {
 		SessionTokenName: "godploy_session_token",
 		EchoCtxUserKey:   "user_email",
 		JwtSecret:        jwtSecrect,
-		AllowedCors:      []string{webUrl},
+		WebUrl:           webUrl,
 		DbDir:            "data",
 		AppEnv:           appEnv,
 	}, nil

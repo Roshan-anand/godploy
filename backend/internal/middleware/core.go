@@ -26,7 +26,7 @@ func NewMiddlewares(s *config.Server) *Middlewares {
 // in dev, AllowCredentials is required so the browser accepts cross-origin responses that set cookies.
 func (m *Middlewares) GlobalMiddlewareCors() echo.MiddlewareFunc {
 	cfg := middleware.CORSConfig{
-		AllowOrigins:     m.Server.Config.AllowedCors,
+		AllowOrigins:     []string{m.Server.Config.WebUrl},
 		AllowCredentials: m.Server.Config.AppEnv == "dev",
 	}
 
