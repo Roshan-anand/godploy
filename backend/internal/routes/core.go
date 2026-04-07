@@ -23,35 +23,40 @@ func SetupRoutes(srv *config.Server) (*echo.Echo, error) {
 
 	e.Use(m.GlobalMiddlewareCors())
 
-	// health check route
-	e.GET("/api/health", h.Health.HealthCheck)
+	api := e.Group("/api")
+	public := api.Group("")
+	protected := api.Group("")
+	protected.Use(m.GlobalMiddlewareUser)
+
+	// public routes
+	public.GET("/health", h.Health.HealthCheck)
+	public.POST("/url", h.Health.SetUrl)
 
 	// initialize auth api routes
-	authApi := e.Group("/api/auth")
-	authApi.GET("/user", h.Auth.AuthUser, m.GlobalMiddlewareUser)
-	authApi.POST("/register", h.Auth.AppRegiter)
-	authApi.POST("/login", h.Auth.AppLogin)
+	auth := public.Group("/auth")
+	auth.GET("/user", h.Auth.AuthUser, m.GlobalMiddlewareUser)
+	auth.POST("/register", h.Auth.AppRegiter)
+	auth.POST("/login", h.Auth.AppLogin)
 
-	// secured routes
-	api := e.Group("/api")
-	api.Use(m.GlobalMiddlewareUser)
+	// initialize project api routes
+	project := protected.Group("/project")
+	project.GET("", h.Project.GetProjects)
+	project.POST("", h.Project.CreateProject)
+	project.DELETE("", h.Project.DeleteProject)
 
-	projectApi := api.Group("/project")
-	projectApi.GET("", h.Project.GetProjects)
-	projectApi.POST("", h.Project.CreateProject)
-	projectApi.DELETE("", h.Project.DeleteProject)
+	// initialize service api routes
+	service := protected.Group("/service")
+	service.POST("/psql", h.Service.CreatePsqlService)
+	service.DELETE("/psql", h.Service.DeletePsqlService)
+	service.POST("/psql/deploy", h.Service.DeployPsqlService)
+	service.POST("/psql/stop", h.Service.StopPsqlService)
 
-	serviceApi := api.Group("/service")
-	serviceApi.POST("/psql", h.Service.CreatePsqlService)
-	serviceApi.DELETE("/psql", h.Service.DeletePsqlService)
-	serviceApi.POST("/psql/deploy", h.Service.DeployPsqlService)
-	serviceApi.POST("/psql/stop", h.Service.StopPsqlService)
-
-	ghApi := api.Group("/provider/github")
-	ghApi.GET("/app/create", h.Git.CreateGithubApp)
-	ghApi.GET("/app/callback", h.Git.CreateGithubAppCallback)
-	ghApi.GET("/app/setup", h.Git.SetupGithubApp)
-	ghApi.GET("/repo/list", h.Git.GetGithubRepoList)
+	gh := protected.Group("/provider/github")
+	ghPublic := public.Group("/provider/github")
+	gh.GET("/app/create", h.Git.CreateGithubApp)
+	ghPublic.GET("/app/callback", h.Git.CreateGithubAppCallback)
+	ghPublic.GET("/app/setup", h.Git.SetupGithubApp)
+	gh.GET("/repo/list", h.Git.GetGithubRepoList)
 
 	return e, nil
 }

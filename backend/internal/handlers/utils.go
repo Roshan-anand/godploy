@@ -8,6 +8,7 @@ import (
 	"github.com/Roshan-anand/godploy/internal/db"
 	"github.com/Roshan-anand/godploy/internal/lib"
 	"github.com/go-playground/validator/v10"
+	"github.com/google/uuid"
 	"github.com/labstack/echo/v5"
 )
 
@@ -32,19 +33,17 @@ func BindAndValidate(b any, c *echo.Context, v *validator.Validate) *lib.Res {
 	return nil
 }
 
-// TODO : replace localhost with config value actual URL
-//
 // get github app manifest data
-func getManifestData() (string, error) {
+func getManifestData(url string, orgId uuid.UUID) (string, error) {
 	manifest := map[string]interface{}{
 		"name": "GODPLOY",
-		"url":  "http://localhost:8080",
+		"url":  url,
 		"hook_attributes": map[string]string{
 			"url": "https://example.com/github/events", // TODO : replace with webhook endpoint URL
 		},
-		"redirect_url": "http://localhost:8080/api/provider/github/app/callback",
+		"redirect_url": url + "/api/provider/github/app/callback",
 		// "callback_urls": []string{"http://localhost:8080/api/provider/github/app/callback"},
-		"setup_url": "http://localhost:8080/api/provider/github/app/setup",
+		"setup_url": fmt.Sprintf("%s/api/provider/github/app/setup?org_id=%s", url, orgId.String()),
 		"public":    true,
 		"default_permissions": map[string]string{
 			"contents": "read",

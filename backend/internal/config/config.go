@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"os"
 )
 
@@ -11,6 +12,7 @@ type Config struct {
 	EchoCtxUserKey   string
 	JwtSecret        string
 	WebUrl           string
+	ServerUrl        string
 	DbDir            string
 	AppEnv           string
 }
@@ -19,6 +21,9 @@ func LoadConfig() (*Config, error) {
 	appEnv := os.Getenv("APP_ENV")
 	jwtSecrect := os.Getenv("JWT_SECRET")
 	webUrl := os.Getenv("WEB_URL")
+	srvUrl := os.Getenv("SERVER_PUBLIC_URL")
+
+	fmt.Println("server url : ", srvUrl)
 
 	// TODO: load from env variable
 	return &Config{
@@ -30,5 +35,6 @@ func LoadConfig() (*Config, error) {
 		WebUrl:           webUrl,
 		DbDir:            "data",
 		AppEnv:           appEnv,
+		ServerUrl:        srvUrl,
 	}, nil
 }

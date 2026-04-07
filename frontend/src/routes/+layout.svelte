@@ -5,8 +5,19 @@
 	import { Toaster } from '@/components/ui/sonner/index';
 	import { QueryClientProvider } from '@tanstack/svelte-query';
 	import { queryClient } from '@/query';
+	import axios from 'axios';
 
 	let { children } = $props();
+
+	if (import.meta.env.APP_ENV === 'production') {
+		axios
+			.post('/api/url', {
+				url: `${window.location.protocol}//${window.location.host}`
+			})
+			.catch((err) => {
+				console.error('Error sending URL to backend:', err);
+			});
+	}
 </script>
 
 <svelte:head>

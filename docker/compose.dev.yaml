@@ -40,10 +40,14 @@ services:
       - godploy-dev-data:/app/backend/data
       - go-build-cache:/root/.cache/go-build
       - go-mod-cache:/go/pkg/mod
+    env_file:
+      - ../.env
     environment:
       - JWT_SECRET=red_balloon
       - APP_ENV=dev
       - WEB_URL=https://web.godploy.localhost
+    ports:
+      - "8080:8080"
     working_dir: /app/backend
     restart: unless-stopped
     networks:

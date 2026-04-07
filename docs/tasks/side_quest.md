@@ -21,6 +21,7 @@
 - [ ] setup rate limiting middleware
 - [ ] tests for project lifecycle
 - [ ] tests for service lifecycle
+- [ ] git provider page.
 
 ## enhancements
 - [ ] use dynamic imports in client side
@@ -29,3 +30,4 @@
 
 - [x] not using enums for column user.role in [sql](../sqlite/migrations/0001_init_schema.up.sql). **[ solved ]**
 - [ ] service data is stored in DB and deployed, but what if user remove the service from terminal. the data still exists.
+- [ ] the github app is stored linked to org_ig, what if user fails on instllation then data still ramins. so retry fails because there is multiple github app store in singe org.

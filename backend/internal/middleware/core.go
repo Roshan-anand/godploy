@@ -45,6 +45,7 @@ func (m *Middlewares) GlobalMiddlewareUser(next echo.HandlerFunc) echo.HandlerFu
 		if err == nil {
 			claims, err := lib.VerifyJWT(jwt.Value, secret)
 			if err != nil {
+				fmt.Println("jwt verify error:", err)
 				return c.JSON(http.StatusUnauthorized, unAuthErr)
 			}
 
@@ -58,6 +59,7 @@ func (m *Middlewares) GlobalMiddlewareUser(next echo.HandlerFunc) echo.HandlerFu
 		if err == nil {
 			sData, err := m.Server.DB.Queries.GetSessionByToken(m.Ctx, token.Value)
 			if err != nil {
+				fmt.Println("get session by token error:", err)
 				return c.JSON(http.StatusUnauthorized, unAuthErr)
 			}
 
@@ -66,6 +68,7 @@ func (m *Middlewares) GlobalMiddlewareUser(next echo.HandlerFunc) echo.HandlerFu
 				if err := m.Server.DB.Queries.RemoveSessionByUID(context.Background(), sData.ID); err != nil {
 					fmt.Println("remove session by uid error:", err)
 				}
+				fmt.Println("session expired for user:", sData.Email)
 				return c.JSON(http.StatusUnauthorized, unAuthErr)
 			}
 
@@ -94,6 +97,7 @@ func (m *Middlewares) GlobalMiddlewareUser(next echo.HandlerFunc) echo.HandlerFu
 			return next(c)
 		}
 
+		fmt.Println("error no cookies", err)
 		// no auth found
 		return c.JSON(http.StatusUnauthorized, unAuthErr)
 	}

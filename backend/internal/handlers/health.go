@@ -2,6 +2,8 @@ package handlers
 
 import (
 	"context"
+	"fmt"
+	"net/http"
 
 	"github.com/Roshan-anand/godploy/internal/config"
 	"github.com/Roshan-anand/godploy/internal/lib"
@@ -13,6 +15,10 @@ type HealthHandler struct {
 	Server   *config.Server
 	Validate *validator.Validate
 	qCtx     context.Context
+}
+
+type UrlReq struct {
+	Url string `json:"url" validate:"required"`
 }
 
 func InitHealthHandlers(s *config.Server) *HealthHandler {
@@ -31,4 +37,17 @@ func (h *HealthHandler) HealthCheck(c *echo.Context) error {
 		return c.JSON(500, lib.Res{Message: "database not initialized"})
 	}
 	return c.JSON(200, lib.Res{Message: "ok"})
+}
+
+func (h *HealthHandler) SetUrl(c *echo.Context) error {
+	b := new(UrlReq)
+
+	if Res := BindAndValidate(b, c, h.Validate); Res != nil {
+		return c.JSON(http.StatusBadRequest, Res)
+	}
+
+	fmt.Println("public url :", b.Url)
+	h.Server.Config.ServerUrl = b.Url
+
+	return c.JSON(http.StatusOK, nil)
 }

@@ -69,7 +69,7 @@ func (h *GitHandler) CreateGithubApp(c *echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, lib.Res{Message: "Failed to create github app"})
 	}
 
-	manifest, err := getManifestData()
+	manifest, err := getManifestData(h.Server.Config.ServerUrl, user.CurrentOrgID)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, lib.Res{Message: "Failed to create github app"})
 	}
@@ -162,25 +162,25 @@ func (h *GitHandler) CreateGithubAppCallback(c *echo.Context) error {
 // route: GET /api/provider/github/app/setup
 func (h *GitHandler) SetupGithubApp(c *echo.Context) error {
 	query := h.Server.DB.Queries
-	u := c.Get(h.Server.Config.EchoCtxUserKey).(lib.AuthUser)
+
+	orgId, err := uuid.Parse(c.QueryParam("org_id"))
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, lib.Res{Message: "Invalid organization ID"})
+	}
 
 	instllation_id, err := strconv.ParseInt(c.QueryParam("installation_id"), 10, 64)
 	if err != nil {
+		fmt.Println("Error parsing installation ID:", err)
 		return c.JSON(http.StatusBadRequest, lib.Res{Message: "Invalid installation ID"})
 	}
 
-	user, err := query.GetUserByEmail(h.qCtx, u.Email)
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError, lib.Res{Message: "Failed to setup github app"})
-	}
-
 	// varify installation ID
-	ghApp, err := query.GetGithubApp(h.qCtx, user.CurrentOrgID)
+	ghApp, err := query.GetGithubApp(h.qCtx, orgId)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, lib.Res{Message: "Failed to setup github app"})
 	}
 
-	// use app-level client (JWT auth) — GetInstallation requires JWT, not installation token
+	// get app client
 	appClient, err := lib.CreateAppClient(ghApp.AppID, ghApp.PemKey)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, lib.Res{Message: "Failed to setup github app"})
@@ -189,6 +189,7 @@ func (h *GitHandler) SetupGithubApp(c *echo.Context) error {
 	// verify installation ID by making an authenticated request to GitHub API
 	_, _, err = appClient.Apps.GetInstallation(context.Background(), instllation_id)
 	if err != nil {
+		fmt.Println("Error verifying installation ID:", err)
 		return c.JSON(http.StatusBadRequest, lib.Res{Message: "Invalid installation ID"})
 	}
 
@@ -197,11 +198,11 @@ func (h *GitHandler) SetupGithubApp(c *echo.Context) error {
 			Int64: instllation_id,
 			Valid: true,
 		},
-		OrganizationID: user.CurrentOrgID,
+		OrganizationID: orgId,
 	}); err != nil {
 		return c.JSON(http.StatusInternalServerError, lib.Res{Message: "Failed to setup github app"})
 	}
-
+	
 	// TODO: update the url to route to git provider page with success message
 	return c.Redirect(http.StatusFound, h.Server.Config.WebUrl)
 }

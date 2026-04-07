@@ -39,7 +39,7 @@ test:
 	go test -v ./...
 
 img-build:
-	docker compose -f ./docker/compose.dev.yaml build 
+	docker compose -f ./docker/compose.dev.yaml build
 
 setup:install
 	@cd backend && \
@@ -60,3 +60,9 @@ server-logs:
 
 traefik-logs:
 	docker service logs -f godploy_traefik
+
+cloud-tunnel:
+	docker run --rm -it \
+        --network host \
+        cloudflare/cloudflared:latest \
+        tunnel --no-autoupdate --url http://localhost:8080
