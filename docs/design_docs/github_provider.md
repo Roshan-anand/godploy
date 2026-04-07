@@ -29,7 +29,7 @@ Github App Manifest is used to create a Github App which does openrations on beh
       "url": "https://app.com/github/events"
     },
     "redirect_url": "https://app.com/path/to/redirect",
-		"setup_url": "http://app.com/path/to/setup",
+		"setup_url": "http://app.com/path/to/setup?org_id=<xyz>",
     "public": true,
     "default_permissions": {
       "issues": "write",

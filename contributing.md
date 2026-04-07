@@ -21,6 +21,10 @@ openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
 
 ## running the services
 
+- run `cp .env.example .env` 
+- run `make cloud-tunnel` to start cloudflared tunnel for local https support
+  - copy the https://<xyz>.trycloudflare.com url
+  - paste it in `.env` file in the root folder in `SERVER_PUBLIC_URL` var
 - run `make setup` to setup traefik
 - run `make dev` to run dev containers
 - you can access services at
