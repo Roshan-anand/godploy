@@ -4,7 +4,7 @@
 
 - [ ] setup openAPI
 - [ ] Setup logger
-- [ ] setup health check route
+- [x] setup health check route
 - [x] setup tests
 - [ ] integration test for main func
 - [ ] setup CI/CD
@@ -13,7 +13,7 @@
 - [ ] setup monorepo
 - [x] setup hot reloading in development
 - [x] setup dev env for separate frontend
-- [ ] setup containerized dev env
+- [x] setup containerized dev env
 - [x] migrate UI from vue to svelte
 
 ## application

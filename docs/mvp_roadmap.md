@@ -22,13 +22,13 @@
 - **Setup**
   - [ ] Install script (.sh) to setup Godploy and Traefik.
   - [ ] Uninstall script (.sh) to remove Godploy and Traefik.
-  - [ ] Setup localtunnel for local webhook testing.
-  - [ ] Setup Traefik for domain routing and ssl management.
-  - [ ] Setup docker swarm mode.
+  - [x] Setup cloudflare tunnel for local webhook testing.
+  - [x] Setup Traefik for domain routing and ssl management.
+  - [x] Setup docker swarm mode.
 
 - **Authentication**
-  - [ ] User Registration and Login (email/password).
-  - [ ] JWT-based authentication for API access.
+  - [x] User Registration and Login (email/password).
+  - [x] JWT-based authentication for API access.
   - [ ] Password reset functionality.
   - [ ] invite team members via email.
   - [ ] RBAC

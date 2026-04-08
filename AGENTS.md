@@ -3,16 +3,25 @@
 ## Project Context
 
 **Godploy** is a lightweight, single-binary, self-hosted PaaS (Platform as a Service) — an alternative to Dokploy and Coolify.
-more information available in ./docs/prd.md (only read if you are nto aware of the project context)
+more information available in ./docs/prd.md (only read if you are not aware of the project context)
 **Stack:** Go (Echo) · sveltekit SPA (embedded in binary) · SQLite (via sqlc) · Docker · Traefik
 
 **Structure:**
 
-- `cmd/` — entrypoint
-- `internal/` — server config, routes, middleware, DB queries, lib utilities
-- `frontend/` — sveltekit (embedded at build time)
-- `sqlite/` — migrations and SQL queries (used by sqlc to generate Go code)
-- `dynamic/` — Traefik configuration
+- `backend/` — production-grade Go backend following clean architecture
+  - `cmd/` — entrypoints (server main, setup CLI)
+  - `internal/` — app logic organized by concern
+    - `config/` — configuration loaders (db, docker, http, core)
+    - `handlers/` — HTTP handlers (auth, project, service, github, health)
+    - `middleware/` — HTTP middleware (auth, cors, rate limiting)
+    - `lib/` — utilities (session, password, csrf, docker, github install)
+    - `db/` — sqlc-generated database layer (models, queries per entity)
+    - `types/` — shared type definitions
+    - `routes/` — route registration
+  - `sqlite/` — migrations and raw SQL queries (sqlc input)
+  - `frontend/` — embedded SvelteKit SPA (built dist)
+  - `integration_tests/` — integration test suites
+- `dynamic/` — Traefik dynamic configuration
 - `docs/` — project documentation
 
 ---
@@ -48,9 +57,10 @@ When the owner provides a **clear, well-thought-out instruction** that is obviou
 
 Never present a full solution upfront when the task involves decision-making. Present fragments, ask questions, and let the owner build the full picture themselves.
 
-### 6. IMP (yolo mode)
+### 6. TDS Mode (Direct Implementation)
 
-if user prompts with *yolo combined with the query, it means you shoudl not follow any of these rules and just do the given tasks.
+If the owner prompts with `*tds` followed by a task, do not follow rules 1-5. Instead, directly implement the given task without any socratic guidance or teaching — just execute cleanly.
+
 ---
 
 ## Code Rules
