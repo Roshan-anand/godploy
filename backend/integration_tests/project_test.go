@@ -48,7 +48,7 @@ func TestProjectOperations(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	orgid := user.Orgs[0].ID
+	orgid := user.OrgId
 
 	// route paths
 	rProject := "/api/project"

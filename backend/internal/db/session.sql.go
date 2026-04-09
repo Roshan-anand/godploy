@@ -36,9 +36,10 @@ func (q *Queries) CreateSession(ctx context.Context, arg CreateSessionParams) er
 }
 
 const getSessionByToken = `-- name: GetSessionByToken :one
-SELECT u.id,u.email,u.name,u.role,s.expires_at,s.created_at
+SELECT u.id,u.email,u.name,u.role,o.id AS org_id,o.name AS org_name,s.expires_at,s.created_at
 FROM session s
 JOIN user u ON s.user_id = u.id
+JOIN organization o ON o.id = u.current_org_id
 WHERE s.token = ?
 `
 
@@ -47,6 +48,8 @@ type GetSessionByTokenRow struct {
 	Email     string         `json:"email"`
 	Name      string         `json:"name"`
 	Role      types.UserRole `json:"role"`
+	OrgID     uuid.UUID      `json:"org_id"`
+	OrgName   string         `json:"org_name"`
 	ExpiresAt time.Time      `json:"expires_at"`
 	CreatedAt time.Time      `json:"created_at"`
 }
@@ -59,6 +62,8 @@ func (q *Queries) GetSessionByToken(ctx context.Context, token string) (GetSessi
 		&i.Email,
 		&i.Name,
 		&i.Role,
+		&i.OrgID,
+		&i.OrgName,
 		&i.ExpiresAt,
 		&i.CreatedAt,
 	)

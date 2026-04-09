@@ -1,7 +1,9 @@
-.PHONY: start reset restart build
+.PHONY: start reset restart build install-web install-server install check build-web build-bin generate test img-build setup dev services-rm web-logs server-logs traefik-logs cloud-tunnel clean clean-web clean-server clean-cache clean-all
 
 install-web:
-	cd frontend && bun install
+	cd frontend && \
+	bun install && \
+	bun run prepare
 
 install-server:
 	cd backend && go mod tidy
@@ -9,7 +11,7 @@ install-server:
 install: install-web install-server
 
 check:
-	cd frontend && bun check:all
+	cd frontend && bun check
 
 build-web:
 	cd frontend && \
@@ -38,14 +40,14 @@ test:
 	cd backend && \
 	go test -v ./...
 
-img-build:
+img-build: install build-web
 	docker compose -f ./docker/compose.dev.yaml build
 
-setup:install
+setup:
 	@cd backend && \
 	go run cmd/setup/main.go setup
 
-dev:install
+dev:
 	@cd backend && \
 	go run cmd/setup/main.go dev
 
@@ -66,3 +68,11 @@ cloud-tunnel:
         --network host \
         cloudflare/cloudflared:latest \
         tunnel --no-autoupdate --url http://localhost:8080
+
+clean-web:
+	rm -rf ./frontend/node_modules ./frontend/.svelte-kit ./frontend/build
+
+clean-server:
+	rm -rf ./backend/bin ./backend/frontend/dist ./bin/godploy
+
+clean: clean-web clean-server

@@ -62,14 +62,14 @@ func (h *GitHandler) CreateGithubApp(c *echo.Context) error {
 
 	if err := q.CreateRedirectSession(h.qCtx, db.CreateRedirectSessionParams{
 		State:     state,
-		OrgID:     user.CurrentOrgID,
+		OrgID:     user.OrgID,
 		UserID:    user.ID,
 		ExpiresAt: time.Now().Add(1 * time.Hour),
 	}); err != nil {
 		return c.JSON(http.StatusInternalServerError, lib.Res{Message: "Failed to create github app"})
 	}
 
-	manifest, err := getManifestData(h.Server.Config.ServerUrl, user.CurrentOrgID)
+	manifest, err := getManifestData(h.Server.Config.ServerUrl, user.OrgID)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, lib.Res{Message: "Failed to create github app"})
 	}
@@ -202,7 +202,7 @@ func (h *GitHandler) SetupGithubApp(c *echo.Context) error {
 	}); err != nil {
 		return c.JSON(http.StatusInternalServerError, lib.Res{Message: "Failed to setup github app"})
 	}
-	
+
 	// TODO: update the url to route to git provider page with success message
 	return c.Redirect(http.StatusFound, h.Server.Config.WebUrl)
 }

@@ -2,12 +2,13 @@
 FROM --platform=$BUILDPLATFORM oven/bun:1.2.23-slim AS frontend-dev
 
 ENV NODE_ENV=development
+ENV VITE_APP_ENV=development
 
 WORKDIR /app/frontend
 
 EXPOSE 3000
 
-CMD ["sh", "-c", "bun install --frozen-lockfile && bun run prepare && bun run dev --host 0.0.0.0 --port 3000"]
+CMD ["sh", "-c", "bun install --frozen-lockfile && bun run dev --host 0.0.0.0 --port 3000"]
 
 # Stage 2: Backend development image for the single backend module.
 FROM --platform=$BUILDPLATFORM golang:1.26-trixie AS backend-dev

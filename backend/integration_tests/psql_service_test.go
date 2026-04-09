@@ -36,7 +36,7 @@ func TestPsqlOperation(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	orgid := user.Orgs[0].ID
+	orgid := user.OrgId
 
 	// route req body
 	p := new(db.CreateProjectRow)

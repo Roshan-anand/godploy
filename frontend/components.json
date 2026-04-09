@@ -9,7 +9,7 @@
 		"utils": "@/utils",
 		"ui": "@/components/ui",
 		"hooks": "@/hooks",
-		"lib": "@"
+		"lib": "@/lib"
 	},
 	"typescript": true,
 	"registry": "https://shadcn-svelte.com/registry",

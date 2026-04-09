@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
 
@@ -11,6 +10,7 @@ import (
 	"github.com/Roshan-anand/godploy/internal/lib"
 	"github.com/Roshan-anand/godploy/internal/types"
 	"github.com/go-playground/validator/v10"
+	"github.com/google/uuid"
 	"github.com/labstack/echo/v5"
 )
 
@@ -38,10 +38,11 @@ type LoginReq struct {
 }
 
 type AuthRes struct {
-	Message string            `json:"message"`
-	Name    string            `json:"name"`
-	Email   string            `json:"email"`
-	Orgs    []db.Organization `json:"orgs"`
+	Message string    `json:"message"`
+	Name    string    `json:"name"`
+	Email   string    `json:"email"`
+	OrgId   uuid.UUID `json:"org_id"`
+	OrgName string    `json:"org_name"`
 }
 
 func InitAuthHandlers(s *config.Server) *AuthHandler {
@@ -74,7 +75,8 @@ func (h *AuthHandler) AuthUser(c *echo.Context) error {
 		Message: "User Authenticated",
 		Name:    u.Name,
 		Email:   u.Email,
-		Orgs:    []db.Organization{},
+		OrgId:   u.OrgId,
+		OrgName: u.OrgName,
 	})
 }
 
@@ -143,7 +145,8 @@ func (h *AuthHandler) AppRegiter(c *echo.Context) error {
 		Message: "Registration Successful",
 		Name:    b.Name,
 		Email:   b.Email,
-		Orgs:    []db.Organization{{ID: orgId, Name: b.OrgName}},
+		OrgId:   orgId,
+		OrgName: b.OrgName,
 	}
 	return c.JSON(http.StatusOK, r)
 }
@@ -163,10 +166,6 @@ func (h *AuthHandler) AppLogin(c *echo.Context) error {
 	if err != nil {
 		return c.JSON(http.StatusUnauthorized, lib.Res{Message: "user not found"})
 	}
-	var orgs []db.Organization
-	if err := json.Unmarshal([]byte(u.Orgs), &orgs); err != nil {
-		return c.JSON(http.StatusInternalServerError, lib.Res{Message: "Internal Server Error"})
-	}
 
 	// check password
 	if !lib.CheckPasswordHash(b.Password, u.HashPass) {
@@ -181,7 +180,8 @@ func (h *AuthHandler) AppLogin(c *echo.Context) error {
 		Message: "Login Successful",
 		Name:    u.Name,
 		Email:   u.Email,
-		Orgs:    orgs,
+		OrgId:   u.OrgID,
+		OrgName: u.OrgName,
 	}
 	return c.JSON(http.StatusOK, r)
 }

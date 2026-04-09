@@ -62,27 +62,21 @@ SELECT
    u.email,
    u.hash_pass,
    u.role,
-   u.current_org_id,
-   CAST(
-    json_group_array(
-        json_object('id', o.id, 'name', o.name, 'created_at',  strftime('%Y-%m-%dT%H:%M:%SZ', o.created_at))
-    ) AS TEXT
-   ) AS orgs
+   o.id AS org_id,
+   o.name AS org_name
 FROM user u
-JOIN user_organization uo ON u.email = uo.user_email
-JOIN organization o ON uo.organization_id = o.id
+JOIN organization o ON o.id = u.current_org_id
 WHERE u.email = ?
-GROUP BY u.name, u.email, u.hash_pass,u.role
 `
 
 type GetUserByEmailRow struct {
-	ID           uuid.UUID      `json:"id"`
-	Name         string         `json:"name"`
-	Email        string         `json:"email"`
-	HashPass     string         `json:"hash_pass"`
-	Role         types.UserRole `json:"role"`
-	CurrentOrgID uuid.UUID      `json:"current_org_id"`
-	Orgs         string         `json:"orgs"`
+	ID       uuid.UUID      `json:"id"`
+	Name     string         `json:"name"`
+	Email    string         `json:"email"`
+	HashPass string         `json:"hash_pass"`
+	Role     types.UserRole `json:"role"`
+	OrgID    uuid.UUID      `json:"org_id"`
+	OrgName  string         `json:"org_name"`
 }
 
 func (q *Queries) GetUserByEmail(ctx context.Context, email string) (GetUserByEmailRow, error) {
@@ -94,8 +88,8 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (GetUserByEm
 		&i.Email,
 		&i.HashPass,
 		&i.Role,
-		&i.CurrentOrgID,
-		&i.Orgs,
+		&i.OrgID,
+		&i.OrgName,
 	)
 	return i, err
 }

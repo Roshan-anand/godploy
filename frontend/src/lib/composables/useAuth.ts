@@ -25,7 +25,8 @@ export interface AuthResponse {
 	message: string;
 	name: string;
 	email: string;
-	orgs: Organization[];
+	org_id: string;
+	org_name: string;
 }
 
 export function useLoginMutation() {

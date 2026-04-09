@@ -9,7 +9,7 @@
 
 	let { children } = $props();
 
-	if (import.meta.env.APP_ENV === 'production') {
+	if (import.meta.env.VITE_APP_ENV === 'production') {
 		axios
 			.post('/api/url', {
 				url: `${window.location.protocol}//${window.location.host}`

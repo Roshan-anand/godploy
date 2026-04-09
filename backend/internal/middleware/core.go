@@ -79,9 +79,11 @@ func (m *Middlewares) GlobalMiddlewareUser(next echo.HandlerFunc) echo.HandlerFu
 			}
 
 			u := lib.AuthUser{
-				Email: sData.Email,
-				Name:  sData.Name,
-				Role:  sData.Role,
+				Email:   sData.Email,
+				Name:    sData.Name,
+				Role:    sData.Role,
+				OrgId:   sData.OrgID,
+				OrgName: sData.OrgName,
 			}
 
 			// set new jwt cookie
