@@ -63,7 +63,6 @@ services:
 
 networks:
   godploy-dev:
-    driver: overlay
     attachable: true
   traefik_proxy:
     external: true

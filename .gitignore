@@ -4,3 +4,4 @@
 /data
 certs
 node_modules
+.agents

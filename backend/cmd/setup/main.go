@@ -33,9 +33,33 @@ func main() {
 			fmt.Println("failed to setup traefik stack :", err)
 			return
 		}
-	case "dev":
-		if err := runCommand("docker", "stack", "deploy", "-c", "../docker/compose.dev.yaml", "godploy"); err != nil {
+		if err := runCommand("docker", "compose", "-f", "../docker/compose.dev.yaml", "build"); err != nil {
+			fmt.Println("failed to build godploy backend image :", err)
+			return
+		}
+	case "dev-start":
+		if err := runCommand("docker", "compose", "-p", "godploy", "-f", "../docker/compose.dev.yaml", "up", "-d"); err != nil {
 			fmt.Println("failed to setup godploy stack :", err)
+			return
+		}
+	case "dev-stop":
+		if err := runCommand("docker", "compose", "-p", "godploy", "-f", "../docker/compose.dev.yaml", "down"); err != nil {
+			fmt.Println("failed to stop godploy stack :", err)
+			return
+		}
+	case "server-logs":
+		if err := runCommand("docker", "compose", "-p", "godploy", "-f", "../docker/compose.dev.yaml", "logs", "-f", "server"); err != nil {
+			fmt.Println("failed to fetch godploy backend logs :", err)
+			return
+		}
+	case "web-logs":
+		if err := runCommand("docker", "compose", "-p", "godploy", "-f", "../docker/compose.dev.yaml", "logs", "-f", "web"); err != nil {
+			fmt.Println("failed to fetch godploy frontend logs :", err)
+			return
+		}
+	case "traefik-logs":
+		if err := runCommand("docker", "service", "logs", "-f", "godploy_traefik"); err != nil {
+			fmt.Println("failed to fetch traefik logs :", err)
 			return
 		}
 	default:

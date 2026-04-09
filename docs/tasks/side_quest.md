@@ -17,13 +17,16 @@
 - [x] migrate UI from vue to svelte
 
 ## application
-- [ ] rememberMe functionality for login
-- [ ] setup rate limiting middleware
+
+- [ ] setup rate limiting middleware [medium, backend]
+- [ ] delete project btn sould show popup to confirm deletion. [easy, ui]
+- [ ] git provider page. [easy, ui]
 - [ ] tests for project lifecycle
 - [ ] tests for service lifecycle
-- [ ] git provider page.
+- [ ] rememberMe functionality for login
 
 ## enhancements
+
 - [ ] use dynamic imports in client side
 
 ## Potential bugs

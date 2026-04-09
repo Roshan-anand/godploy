@@ -40,29 +40,33 @@ test:
 	cd backend && \
 	go test -v ./...
 
-img-build: install build-web
-	docker compose -f ./docker/compose.dev.yaml build
-
-setup:
+setup: install build-web
 	@cd backend && \
 	go run cmd/setup/main.go setup
 
-dev:
+dev-start:
 	@cd backend && \
-	go run cmd/setup/main.go dev
+	go run cmd/setup/main.go dev-start
+
+dev-stop:
+	@cd backend && \
+	go run cmd/setup/main.go dev-stop
 
 services-rm:
-	docker service rm godploy_traefik godploy_web godploy_server
+	docker service rm godploy_traefik
 
 web-logs:
-	docker service logs -f godploy_web
-
+	@cd backend && \
+	go run cmd/setup/main.go web-logs
+	
 server-logs:
-	docker service logs -f godploy_server
-
+	@cd backend && \
+	go run cmd/setup/main.go server-logs
+	
 traefik-logs:
-	docker service logs -f godploy_traefik
-
+	@cd backend && \
+	go run cmd/setup/main.go traefik-logs
+	
 cloud-tunnel:
 	docker run --rm -it \
         --network host \

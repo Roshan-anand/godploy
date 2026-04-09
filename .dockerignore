@@ -7,4 +7,4 @@ backend/.env.*
 !backend/.env.example
 backend/bin
 backend/data
-backend/dist
+backend/frontend/dist

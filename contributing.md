@@ -16,21 +16,19 @@ openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
 ```
 
 - add `127.0.0.1  *.godploy.localhost` in new line to your `/etc/hosts` file
-- run `make install` to install the dependencies
-- run `make img-build` to build the docker images
 
 ## running the services
 
 - run `cp .env.example .env` 
 - run `make cloud-tunnel` to start cloudflared tunnel for local https support
-  - copy the https://<xyz>.trycloudflare.com url
+  - copy the `https://<custom_generated>.trycloudflare.com` url
   - paste it in `.env` file in the root folder in `SERVER_PUBLIC_URL` var
 - run `make setup` to setup traefik
-- run `make dev` to run dev containers
+- run `make dev-start` to start dev services
 - you can access services at
-  - Traefik dashboard : `https://traefik.godploy.localhost:8443/` (to access the dashboard username : `godploy`, password : `godploy`)
+  - Traefik dashboard : `https://traefik.godploy.localhost` (to access the dashboard username : `godploy`, password : `godploy`)
   - Godploy web : `https://web.godploy.localhost`
-  - Godploy server : `https://server.godploy.localhost`
+  - Godploy server : `https://localhost:8000` || `https://<custom_generated>.trycloudflare.com`
 
 ## watch the services
 
@@ -40,4 +38,5 @@ openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
 
 ## stopping the development environment
 
-- run `make services-rm` to stop and remove the services
+- run `make services-rm` to stop and remove the traefik
+- run `make dev-stop` to stop dev services
