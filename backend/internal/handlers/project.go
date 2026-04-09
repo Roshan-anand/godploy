@@ -20,8 +20,9 @@ type ProjectHandler struct {
 }
 
 type CreateProjectReq struct {
-	Name  string    `json:"name" validate:"required,min=3"`
-	OrgID uuid.UUID `json:"org_id" validate:"required"`
+	Name        string    `json:"project_name" validate:"required,min=3"`
+	Description string    `json:"description"`
+	OrgID       uuid.UUID `json:"org_id" validate:"required"`
 }
 
 type DeleteProjectReq struct {
@@ -55,7 +56,7 @@ func CheckUserExistsInOrg(q *db.Queries, email string, orgId uuid.UUID) (int, *l
 		UserEmail:      email,
 		OrganizationID: orgId,
 	}); err != nil {
-		return http.StatusInternalServerError, &lib.Res{Message: "Failed to create project"}
+		return http.StatusInternalServerError, &lib.Res{Message: "internal server error"}
 	} else if !exists {
 		return http.StatusForbidden, &lib.Res{Message: "User does not have access to the organization"}
 	}
@@ -92,9 +93,10 @@ func (h *ProjectHandler) CreateProject(c *echo.Context) error {
 	}
 
 	p, err := q.CreateProject(h.qCtx, db.CreateProjectParams{
-		ID:    lib.NewID(),
-		Name:  b.Name,
-		OrgID: b.OrgID,
+		ID:          lib.NewID(),
+		Name:        b.Name,
+		Description: b.Description,
+		OrgID:       b.OrgID,
 	})
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, lib.Res{Message: "Failed to create project"})
@@ -105,7 +107,7 @@ func (h *ProjectHandler) CreateProject(c *echo.Context) error {
 
 // get all the  projects of the organization
 //
-// route: GET /api/project?org_id
+// route: GET /api/project/all?org_id
 func (h *ProjectHandler) GetProjects(c *echo.Context) error {
 	u := c.Get(h.Server.Config.EchoCtxUserKey).(lib.AuthUser)
 
@@ -126,7 +128,6 @@ func (h *ProjectHandler) GetProjects(c *echo.Context) error {
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, lib.Res{Message: "Failed to get project"})
 	}
-
 	return c.JSON(http.StatusOK, p)
 }
 

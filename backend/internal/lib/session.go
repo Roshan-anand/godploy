@@ -20,8 +20,6 @@ type AuthUser struct {
 	Name    string
 	Email   string
 	Role    types.UserRole
-	OrgId   uuid.UUID
-	OrgName string
 }
 
 type CustomClaims struct {

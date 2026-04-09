@@ -82,8 +82,6 @@ func (m *Middlewares) GlobalMiddlewareUser(next echo.HandlerFunc) echo.HandlerFu
 				Email:   sData.Email,
 				Name:    sData.Name,
 				Role:    sData.Role,
-				OrgId:   sData.OrgID,
-				OrgName: sData.OrgName,
 			}
 
 			// set new jwt cookie

@@ -21,15 +21,15 @@ SELECT CAST(EXISTS(
 ) AS BOOLEAN );
 
 -- name: GetAllProjects :many
-SELECT p.id,p.name
+SELECT p.id,p.name,p.description
 FROM organization o
 JOIN project p ON o.id = p.organization_id
 WHERE o.id = @org_id;
 
 -- name: CreateProject :one
-INSERT INTO project (id,name,organization_id)
-VALUES (?,?,@org_id)
-RETURNING id,name;
+INSERT INTO project (id,name,description,organization_id)
+VALUES (?,?,?,@org_id)
+RETURNING id,name,description;
 
 -- name: DeleteProject :exec
 DELETE FROM project

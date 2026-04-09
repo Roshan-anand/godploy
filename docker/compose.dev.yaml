@@ -13,19 +13,13 @@ services:
     environment:
       - NODE_ENV=development
       - DEV_BACKEND_URL=http://server:8080
+    ports:
+        - "3000:3000"
     depends_on:
       - server
     restart: unless-stopped
     networks:
       - godploy-dev
-      - traefik_proxy
-    deploy:
-      labels:
-        - "traefik.enable=true"
-        - "traefik.http.routers.godploy_web.rule=Host(`web.godploy.localhost`)"
-        - "traefik.http.routers.godploy_web.entrypoints=websecure"
-        - "traefik.http.routers.godploy_web.tls=true"
-        - traefik.http.services.godploy_web.loadbalancer.server.port=3000
 
   server:
     build:
@@ -45,28 +39,17 @@ services:
     environment:
       - JWT_SECRET=red_balloon
       - APP_ENV=dev
-      - WEB_URL=https://web.godploy.localhost
+      - WEB_URL=http://localhost:3000
     ports:
       - "8080:8080"
     working_dir: /app/backend
     restart: unless-stopped
     networks:
       - godploy-dev
-      - traefik_proxy
-    deploy:
-      labels:
-        - "traefik.enable=true"
-        - "traefik.http.routers.godploy_server.rule=Host(`server.godploy.localhost`)"
-        - "traefik.http.routers.godploy_server.entrypoints=websecure"
-        - "traefik.http.routers.godploy_server.tls=true"
-        - traefik.http.services.godploy_server.loadbalancer.server.port=8080
 
 networks:
   godploy-dev:
     attachable: true
-  traefik_proxy:
-    external: true
-    name: godploy_traefik_proxy
 
 volumes:
   godploy-dev-data:

@@ -40,7 +40,7 @@ func SetupRoutes(srv *config.Server) (*echo.Echo, error) {
 
 	// initialize project api routes
 	project := protected.Group("/project")
-	project.GET("", h.Project.GetProjects)
+	project.GET("/all", h.Project.GetProjects)
 	project.POST("", h.Project.CreateProject)
 	project.DELETE("", h.Project.DeleteProject)
 

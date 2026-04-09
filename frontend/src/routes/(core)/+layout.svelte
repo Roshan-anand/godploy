@@ -13,7 +13,7 @@
 			<Sidebar.Trigger />
 			<ModeToggle />
 		</header>
-		<main class="p-2">
+		<main class="p-2 flex-1 flex flex-col">
 			{@render children()}
 		</main>
 	</Sidebar.Inset>

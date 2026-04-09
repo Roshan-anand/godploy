@@ -58,9 +58,10 @@ func InitAuthHandlers(s *config.Server) *AuthHandler {
 // route: GET /api/auth/user
 func (h *AuthHandler) AuthUser(c *echo.Context) error {
 	u, ok := c.Get(h.Server.Config.EchoCtxUserKey).(lib.AuthUser)
+	query := h.Server.DB.Queries
 
 	if !ok {
-		exists, err := h.Server.DB.Queries.AdminExists(h.qCtx)
+		exists, err := query.AdminExists(h.qCtx)
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, lib.Res{Message: "Internal Sever Error"})
 		}
@@ -71,12 +72,17 @@ func (h *AuthHandler) AuthUser(c *echo.Context) error {
 		return c.JSON(http.StatusUnauthorized, lib.Res{Message: "Unauthorized"})
 	}
 
+	org, err := query.GetCurrentOrg(h.qCtx, u.Email)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, lib.Res{Message: "Internal Sever Error"})
+	}
+
 	return c.JSON(http.StatusOK, AuthRes{
 		Message: "User Authenticated",
 		Name:    u.Name,
 		Email:   u.Email,
-		OrgId:   u.OrgId,
-		OrgName: u.OrgName,
+		OrgId:   org.ID,
+		OrgName: org.Name,
 	})
 }
 

@@ -9,11 +9,12 @@ type UserState = {
 };
 
 export const userState = $state<UserState>({
-	name: $state(''),
-	email: $state(''),
-	currentOrg: $state({ id: '', name: '' }),
-	orgs: $state([]),
-	isAuth: $state(false),
+	name: '',
+	email: '',
+	currentOrg: { id: '', name: '' },
+	orgs: [],
+	isAuth: false,
+
 	setUser(data) {
 		this.name = data.name;
 		this.email = data.email;

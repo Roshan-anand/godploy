@@ -34,6 +34,7 @@ CREATE TABLE session (
 CREATE TABLE project (
     id uuid PRIMARY KEY,
     name TEXT NOT NULL,
+    description TEXT NOT NULL,
     organization_id uuid NOT NULL REFERENCES organization(id) ON DELETE CASCADE,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL
 );

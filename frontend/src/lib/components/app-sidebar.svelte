@@ -1,17 +1,19 @@
 <script lang="ts">
+	import { goto } from '$app/navigation';
+	import { resolve } from '$app/paths';
 	import {
 		Sidebar,
 		SidebarContent,
 		SidebarFooter,
 		SidebarGroup,
 		SidebarGroupContent,
-		SidebarGroupLabel,
 		SidebarHeader,
 		SidebarMenu,
 		SidebarMenuButton,
 		SidebarMenuItem,
 		SidebarRail
 	} from '@/components/ui/sidebar';
+	import { Blocks, Users, GitBranch } from '@lucide/svelte';
 </script>
 
 <Sidebar>
@@ -35,14 +37,24 @@
 	</SidebarHeader>
 	<SidebarContent>
 		<SidebarGroup>
-			<SidebarGroupLabel>Platform</SidebarGroupLabel>
 			<SidebarGroupContent>
 				<SidebarMenu>
 					<SidebarMenuItem>
-						<SidebarMenuButton>
-							<!-- Replace with your icon component -->
-							<span>⌂</span>
-							<span>Home</span>
+						<SidebarMenuButton onclick={() => goto(resolve('/'))}>
+							<Blocks />
+							<span>Projects</span>
+						</SidebarMenuButton>
+					</SidebarMenuItem>
+					<SidebarMenuItem>
+						<SidebarMenuButton onclick={() => goto(resolve('/members'))}>
+							<Users />
+							<span>Members</span>
+						</SidebarMenuButton>
+					</SidebarMenuItem>
+					<SidebarMenuItem>
+						<SidebarMenuButton onclick={() => goto(resolve('/git'))}>
+							<GitBranch />
+							<span>Git</span>
 						</SidebarMenuButton>
 					</SidebarMenuItem>
 				</SidebarMenu>

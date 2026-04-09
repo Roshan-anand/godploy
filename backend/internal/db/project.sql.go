@@ -65,26 +65,33 @@ func (q *Queries) CreateOrg(ctx context.Context, arg CreateOrgParams) (uuid.UUID
 }
 
 const createProject = `-- name: CreateProject :one
-INSERT INTO project (id,name,organization_id)
-VALUES (?,?,?)
-RETURNING id,name
+INSERT INTO project (id,name,description,organization_id)
+VALUES (?,?,?,?)
+RETURNING id,name,description
 `
 
 type CreateProjectParams struct {
-	ID    uuid.UUID `json:"id"`
-	Name  string    `json:"name"`
-	OrgID uuid.UUID `json:"org_id"`
+	ID          uuid.UUID `json:"id"`
+	Name        string    `json:"name"`
+	Description string    `json:"description"`
+	OrgID       uuid.UUID `json:"org_id"`
 }
 
 type CreateProjectRow struct {
-	ID   uuid.UUID `json:"id"`
-	Name string    `json:"name"`
+	ID          uuid.UUID `json:"id"`
+	Name        string    `json:"name"`
+	Description string    `json:"description"`
 }
 
 func (q *Queries) CreateProject(ctx context.Context, arg CreateProjectParams) (CreateProjectRow, error) {
-	row := q.db.QueryRowContext(ctx, createProject, arg.ID, arg.Name, arg.OrgID)
+	row := q.db.QueryRowContext(ctx, createProject,
+		arg.ID,
+		arg.Name,
+		arg.Description,
+		arg.OrgID,
+	)
 	var i CreateProjectRow
-	err := row.Scan(&i.ID, &i.Name)
+	err := row.Scan(&i.ID, &i.Name, &i.Description)
 	return i, err
 }
 
@@ -144,15 +151,16 @@ func (q *Queries) GetAllOrg(ctx context.Context, userEmail string) ([]GetAllOrgR
 }
 
 const getAllProjects = `-- name: GetAllProjects :many
-SELECT p.id,p.name
+SELECT p.id,p.name,p.description
 FROM organization o
 JOIN project p ON o.id = p.organization_id
 WHERE o.id = ?1
 `
 
 type GetAllProjectsRow struct {
-	ID   uuid.UUID `json:"id"`
-	Name string    `json:"name"`
+	ID          uuid.UUID `json:"id"`
+	Name        string    `json:"name"`
+	Description string    `json:"description"`
 }
 
 func (q *Queries) GetAllProjects(ctx context.Context, orgID uuid.UUID) ([]GetAllProjectsRow, error) {
@@ -164,7 +172,7 @@ func (q *Queries) GetAllProjects(ctx context.Context, orgID uuid.UUID) ([]GetAll
 	var items []GetAllProjectsRow
 	for rows.Next() {
 		var i GetAllProjectsRow
-		if err := rows.Scan(&i.ID, &i.Name); err != nil {
+		if err := rows.Scan(&i.ID, &i.Name, &i.Description); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
