@@ -113,7 +113,7 @@ func (h *AuthHandler) AppRegiter(c *echo.Context) error {
 	}
 
 	// create organization first (user needs orgId at insert time)
-	orgId, err := query.CreateOrg(h.qCtx, db.CreateOrgParams{
+	org, err := query.CreateOrg(h.qCtx, db.CreateOrgParams{
 		ID:   lib.NewID(),
 		Name: b.OrgName,
 	})
@@ -128,7 +128,7 @@ func (h *AuthHandler) AppRegiter(c *echo.Context) error {
 		Email:        b.Email,
 		HashPass:     hPass,
 		Role:         types.AdminRole,
-		CurrentOrgID: orgId,
+		CurrentOrgID: org.ID,
 	})
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, lib.Res{Message: "Internal Server Error"})
@@ -137,7 +137,7 @@ func (h *AuthHandler) AppRegiter(c *echo.Context) error {
 	// link user with organization
 	if err := query.LinkUserNOrg(h.qCtx, db.LinkUserNOrgParams{
 		UserEmail:      b.Email,
-		OrganizationID: orgId,
+		OrganizationID: org.ID,
 	}); err != nil {
 		fmt.Println("Link User N Org Error:", err)
 		return c.JSON(http.StatusInternalServerError, lib.Res{Message: "Internal Server Error"})
@@ -151,7 +151,7 @@ func (h *AuthHandler) AppRegiter(c *echo.Context) error {
 		Message: "Registration Successful",
 		Name:    b.Name,
 		Email:   b.Email,
-		OrgId:   orgId,
+		OrgId:   org.ID,
 		OrgName: b.OrgName,
 	}
 	return c.JSON(http.StatusOK, r)

@@ -16,6 +16,16 @@ FROM user u
 JOIN organization o ON o.id = u.current_org_id
 WHERE u.email = ?;
 
+-- name: IsUserAdmin :one
+SELECT CAST(EXISTS (
+    SELECT 1 FROM user
+    WHERE email = ? AND role = 'admin'
+) AS BOOLEAN);
+
+-- name: GetUsersByCurrentOrg :many
+SELECT email FROM user
+WHERE current_org_id = ?;
+
 -- name: RemoveUser :exec
 DELETE FROM user
 WHERE id = ?;

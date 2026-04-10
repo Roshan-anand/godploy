@@ -50,20 +50,6 @@ func (h *ProjectHandler) GetOrg(c *echo.Context) error {
 	return c.JSON(http.StatusOK, orgs)
 }
 
-// check if user in part of the organization
-func CheckUserExistsInOrg(q *db.Queries, email string, orgId uuid.UUID) (int, *lib.Res) {
-	if exists, err := q.CheckUserOrgExists(context.Background(), db.CheckUserOrgExistsParams{
-		UserEmail:      email,
-		OrganizationID: orgId,
-	}); err != nil {
-		return http.StatusInternalServerError, &lib.Res{Message: "internal server error"}
-	} else if !exists {
-		return http.StatusForbidden, &lib.Res{Message: "User does not have access to the organization"}
-	}
-
-	return http.StatusOK, nil
-}
-
 // create a new project
 //
 // route: POST /api/project

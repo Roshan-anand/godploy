@@ -46,24 +46,6 @@ func (q *Queries) CheckProjectHasServices(ctx context.Context, id uuid.UUID) (bo
 	return column_1, err
 }
 
-const createOrg = `-- name: CreateOrg :one
-INSERT INTO organization (id, name)
-VALUES (?, ?)
-RETURNING id
-`
-
-type CreateOrgParams struct {
-	ID   uuid.UUID `json:"id"`
-	Name string    `json:"name"`
-}
-
-func (q *Queries) CreateOrg(ctx context.Context, arg CreateOrgParams) (uuid.UUID, error) {
-	row := q.db.QueryRowContext(ctx, createOrg, arg.ID, arg.Name)
-	var id uuid.UUID
-	err := row.Scan(&id)
-	return id, err
-}
-
 const createProject = `-- name: CreateProject :one
 INSERT INTO project (id,name,description,organization_id)
 VALUES (?,?,?,?)
@@ -95,16 +77,6 @@ func (q *Queries) CreateProject(ctx context.Context, arg CreateProjectParams) (C
 	return i, err
 }
 
-const deleteOrg = `-- name: DeleteOrg :exec
-DELETE FROM organization
-WHERE id = ?
-`
-
-func (q *Queries) DeleteOrg(ctx context.Context, id uuid.UUID) error {
-	_, err := q.db.ExecContext(ctx, deleteOrg, id)
-	return err
-}
-
 const deleteProject = `-- name: DeleteProject :exec
 DELETE FROM project
 WHERE id = ?
@@ -113,41 +85,6 @@ WHERE id = ?
 func (q *Queries) DeleteProject(ctx context.Context, id uuid.UUID) error {
 	_, err := q.db.ExecContext(ctx, deleteProject, id)
 	return err
-}
-
-const getAllOrg = `-- name: GetAllOrg :many
-SELECT o.id,o.name
-FROM organization o
-JOIN user_organization uo ON o.id = uo.organization_id
-WHERE uo.user_email = ?
-`
-
-type GetAllOrgRow struct {
-	ID   uuid.UUID `json:"id"`
-	Name string    `json:"name"`
-}
-
-func (q *Queries) GetAllOrg(ctx context.Context, userEmail string) ([]GetAllOrgRow, error) {
-	rows, err := q.db.QueryContext(ctx, getAllOrg, userEmail)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []GetAllOrgRow
-	for rows.Next() {
-		var i GetAllOrgRow
-		if err := rows.Scan(&i.ID, &i.Name); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
 }
 
 const getAllProjects = `-- name: GetAllProjects :many

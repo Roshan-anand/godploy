@@ -8,6 +8,7 @@ type Handler struct {
 	Service *ServiceHandler
 	Git     *GitHandler
 	Project *ProjectHandler
+	Org     *OrgHandler
 }
 
 func NewHandeler(srv *config.Server) *Handler {
@@ -17,5 +18,6 @@ func NewHandeler(srv *config.Server) *Handler {
 		Service: InitServiceHandlers(srv),
 		Git:     InitGitHandlers(srv),
 		Project: InitProjectHandlers(srv),
+		Org:     InitOrgHandlers(srv),
 	}
 }

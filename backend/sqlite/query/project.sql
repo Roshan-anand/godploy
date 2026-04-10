@@ -1,18 +1,3 @@
--- name: CreateOrg :one
-INSERT INTO organization (id, name)
-VALUES (?, ?)
-RETURNING id;
-
--- name: DeleteOrg :exec
-DELETE FROM organization
-WHERE id = ?;
-
--- name: GetAllOrg :many
-SELECT o.id,o.name
-FROM organization o
-JOIN user_organization uo ON o.id = uo.organization_id
-WHERE uo.user_email = ?;
-
 -- name: CheckProjectExist :one
 SELECT CAST(EXISTS(
     SELECT 1 FROM project p

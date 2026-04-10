@@ -38,8 +38,16 @@ func SetupRoutes(srv *config.Server) (*echo.Echo, error) {
 	auth.POST("/register", h.Auth.AppRegiter)
 	auth.POST("/login", h.Auth.AppLogin)
 
+	// initialize org api routes
+	org := protected.Group("/org")
+	org.GET("", h.Org.GetAllOrgs)
+	org.POST("", h.Org.CreateOrg)
+	org.DELETE("", h.Org.DeleteOrg)
+	org.POST("/switch", h.Org.SwitchOrg)
+
 	// initialize project api routes
 	project := protected.Group("/project")
+	project.GET("", h.Project.GetProjects)
 	project.GET("/all", h.Project.GetProjects)
 	project.POST("", h.Project.CreateProject)
 	project.DELETE("", h.Project.DeleteProject)

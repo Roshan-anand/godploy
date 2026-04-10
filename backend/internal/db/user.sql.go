@@ -94,6 +94,48 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (GetUserByEm
 	return i, err
 }
 
+const getUsersByCurrentOrg = `-- name: GetUsersByCurrentOrg :many
+SELECT email FROM user
+WHERE current_org_id = ?
+`
+
+func (q *Queries) GetUsersByCurrentOrg(ctx context.Context, currentOrgID uuid.UUID) ([]string, error) {
+	rows, err := q.db.QueryContext(ctx, getUsersByCurrentOrg, currentOrgID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []string
+	for rows.Next() {
+		var email string
+		if err := rows.Scan(&email); err != nil {
+			return nil, err
+		}
+		items = append(items, email)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const isUserAdmin = `-- name: IsUserAdmin :one
+SELECT CAST(EXISTS (
+    SELECT 1 FROM user
+    WHERE email = ? AND role = 'admin'
+) AS BOOLEAN)
+`
+
+func (q *Queries) IsUserAdmin(ctx context.Context, email string) (bool, error) {
+	row := q.db.QueryRowContext(ctx, isUserAdmin, email)
+	var column_1 bool
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
 const removeUser = `-- name: RemoveUser :exec
 DELETE FROM user
 WHERE id = ?

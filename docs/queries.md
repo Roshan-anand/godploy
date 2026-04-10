@@ -25,3 +25,7 @@
 - [ ] AES encryption
     - what is AES encryption
     - what is AES-256-GCM
+
+- [ ] org role checks
+    - how to gate create/delete org actions by admin role
+    - how to split delete vs leave semantics for organization membership
