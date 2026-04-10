@@ -14,12 +14,13 @@ import (
 )
 
 const createGithubApp = `-- name: CreateGithubApp :exec
-INSERT INTO github_app (id, organization_id,app_id, pem_key, webhook_secret)
-VALUES (?, ?, ?, ?, ?)
+INSERT INTO github_app (id, name, organization_id,app_id, pem_key, webhook_secret)
+VALUES (?, ?, ?, ?, ?, ?)
 `
 
 type CreateGithubAppParams struct {
 	ID             uuid.UUID `json:"id"`
+	Name           string    `json:"name"`
 	OrganizationID uuid.UUID `json:"organization_id"`
 	AppID          int64     `json:"app_id"`
 	PemKey         string    `json:"pem_key"`
@@ -29,6 +30,7 @@ type CreateGithubAppParams struct {
 func (q *Queries) CreateGithubApp(ctx context.Context, arg CreateGithubAppParams) error {
 	_, err := q.db.ExecContext(ctx, createGithubApp,
 		arg.ID,
+		arg.Name,
 		arg.OrganizationID,
 		arg.AppID,
 		arg.PemKey,
@@ -59,6 +61,16 @@ func (q *Queries) CreateRedirectSession(ctx context.Context, arg CreateRedirectS
 	return err
 }
 
+const deleteGithubApp = `-- name: DeleteGithubApp :exec
+DELETE FROM github_app
+WHERE organization_id = ?
+`
+
+func (q *Queries) DeleteGithubApp(ctx context.Context, organizationID uuid.UUID) error {
+	_, err := q.db.ExecContext(ctx, deleteGithubApp, organizationID)
+	return err
+}
+
 const deleteRedirectSession = `-- name: DeleteRedirectSession :exec
 DELETE FROM redirect_session
 WHERE state = ?
@@ -70,7 +82,7 @@ func (q *Queries) DeleteRedirectSession(ctx context.Context, state string) error
 }
 
 const getGithubApp = `-- name: GetGithubApp :one
-SELECT id, organization_id, app_id, installation_id, pem_key, webhook_secret, created_at, updated_at FROM github_app
+SELECT id, name, organization_id, app_id, installation_id, pem_key, webhook_secret, created_at, updated_at FROM github_app
 WHERE organization_id = ?
 `
 
@@ -79,6 +91,7 @@ func (q *Queries) GetGithubApp(ctx context.Context, organizationID uuid.UUID) (G
 	var i GithubApp
 	err := row.Scan(
 		&i.ID,
+		&i.Name,
 		&i.OrganizationID,
 		&i.AppID,
 		&i.InstallationID,

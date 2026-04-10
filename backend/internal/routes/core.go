@@ -62,6 +62,8 @@ func SetupRoutes(srv *config.Server) (*echo.Echo, error) {
 	gh := protected.Group("/provider/github")
 	ghPublic := public.Group("/provider/github")
 	gh.GET("/app/create", h.Git.CreateGithubApp)
+	gh.GET("/app", h.Git.GetGithubApp)
+	gh.DELETE("/app", h.Git.DeleteGithubApp)
 	ghPublic.GET("/app/callback", h.Git.CreateGithubAppCallback)
 	ghPublic.GET("/app/setup", h.Git.SetupGithubApp)
 	gh.GET("/repo/list", h.Git.GetGithubRepoList)

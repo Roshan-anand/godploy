@@ -12,8 +12,8 @@ DELETE FROM redirect_session
 WHERE state = ?;
 
 -- name: CreateGithubApp :exec
-INSERT INTO github_app (id, organization_id,app_id, pem_key, webhook_secret)
-VALUES (?, ?, ?, ?, ?);
+INSERT INTO github_app (id, name, organization_id,app_id, pem_key, webhook_secret)
+VALUES (?, ?, ?, ?, ?, ?);
 
 -- name: GetGithubApp :one
 SELECT * FROM github_app
@@ -22,4 +22,8 @@ WHERE organization_id = ?;
 -- name: InsertInstallationID :exec
 UPDATE github_app
 SET installation_id = ?, updated_at = CURRENT_TIMESTAMP
+WHERE organization_id = ?;
+
+-- name: DeleteGithubApp :exec
+DELETE FROM github_app
 WHERE organization_id = ?;

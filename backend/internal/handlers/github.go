@@ -32,6 +32,21 @@ type GitHubCreateAppRes struct {
 	Slug          string `json:"slug"`
 	WebhookSecret string `json:"webhook_secret"`
 	PEM           string `json:"pem"`
+	Name          string `json:"name"`
+}
+
+type GetGithubAppReq struct {
+	OrgID uuid.UUID `query:"org_id" validate:"required"`
+}
+
+type GetGithubAppRes struct {
+	Name        string    `json:"name"`
+	CreatedAt   string    `json:"created_at"`
+	GithubAppID uuid.UUID `json:"github_app_id"`
+}
+
+type DeleteGithubAppReq struct {
+	OrgID uuid.UUID `json:"org_id" validate:"required"`
 }
 
 func InitGitHandlers(s *config.Server) *GitHandler {
@@ -143,6 +158,7 @@ func (h *GitHandler) CreateGithubAppCallback(c *echo.Context) error {
 	// store the app credentials in db
 	if err := query.CreateGithubApp(h.qCtx, db.CreateGithubAppParams{
 		ID:             lib.NewID(),
+		Name:           convRes.Name,
 		AppID:          convRes.ID,
 		OrganizationID: sData.OrgID,
 		WebhookSecret:  convRes.WebhookSecret,
@@ -205,6 +221,64 @@ func (h *GitHandler) SetupGithubApp(c *echo.Context) error {
 
 	// TODO: update the url to route to git provider page with success message
 	return c.Redirect(http.StatusFound, h.Server.Config.WebUrl)
+}
+
+// get the github app info
+//
+// route: GET /api/provider/github/app
+func (h *GitHandler) GetGithubApp(c *echo.Context) error {
+	u := c.Get(h.Server.Config.EchoCtxUserKey).(lib.AuthUser)
+	q := h.Server.DB.Queries
+	b := new(GetGithubAppReq)
+
+	if Res := BindAndValidate(b, c, h.Validate); Res != nil {
+		return c.JSON(http.StatusBadRequest, Res)
+	}
+
+	status, Res := CheckUserExistsInOrg(q, u.Email, b.OrgID)
+	if Res != nil {
+		return c.JSON(status, Res)
+	}
+
+	ghApp, err := q.GetGithubApp(h.qCtx, b.OrgID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return c.JSON(http.StatusOK, nil)
+		}
+		fmt.Println("Error fetching github app:", err)
+		return c.JSON(http.StatusInternalServerError, lib.Res{Message: "Failed to get github app"})
+	}
+
+	return c.JSON(http.StatusOK, GetGithubAppRes{
+		Name:        ghApp.Name,
+		CreatedAt:   ghApp.CreatedAt.String(),
+		GithubAppID: ghApp.ID,
+	})
+}
+
+// delete github app for admin users
+//
+// route: DELETE /api/provider/github/app
+func (h *GitHandler) DeleteGithubApp(c *echo.Context) error {
+	u := c.Get(h.Server.Config.EchoCtxUserKey).(lib.AuthUser)
+	b := new(DeleteGithubAppReq)
+
+	if Res := BindAndValidate(b, c, h.Validate); Res != nil {
+		return c.JSON(http.StatusBadRequest, Res)
+	}
+
+	q := h.Server.DB.Queries
+	if isAdmin, err := q.IsUserAdmin(h.qCtx, u.Email); err != nil {
+		return c.JSON(http.StatusInternalServerError, lib.Res{Message: "internal server error"})
+	} else if !isAdmin {
+		return c.JSON(http.StatusForbidden, lib.Res{Message: "admin access required"})
+	}
+
+	if err := q.DeleteGithubApp(h.qCtx, b.OrgID); err != nil {
+		return c.JSON(http.StatusInternalServerError, lib.Res{Message: "Failed to delete github app"})
+	}
+
+	return c.JSON(http.StatusOK, lib.Res{Message: "Github app deleted successfully"})
 }
 
 // get list of repos accessible by the github app

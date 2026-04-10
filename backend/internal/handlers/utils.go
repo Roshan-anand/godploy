@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"crypto/rand"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -12,6 +13,23 @@ import (
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v5"
 )
+
+// Generates a unique GitHub App name per manifest to avoid collisions across setup attempts.
+func generateGitHubManifestAppName() (string, error) {
+	const chars = "abcdefghijklmnopqrstuvwxyz0123456789"
+	randomBytes := make([]byte, 6)
+	suffix := make([]byte, 6)
+
+	if _, err := rand.Read(randomBytes); err != nil {
+		return "", err
+	}
+
+	for i, b := range randomBytes {
+		suffix[i] = chars[int(b)%len(chars)]
+	}
+
+	return "godploy-" + string(suffix), nil
+}
 
 // remove the session data
 func removeSession(query *db.Queries, state string) {
@@ -50,8 +68,13 @@ func CheckUserExistsInOrg(q *db.Queries, email string, orgId uuid.UUID) (int, *l
 
 // get github app manifest data
 func getManifestData(url string, orgId uuid.UUID) (string, error) {
+	appName, err := generateGitHubManifestAppName()
+	if err != nil {
+		return "", err
+	}
+
 	manifest := map[string]interface{}{
-		"name": "GODPLOY",
+		"name": appName,
 		"url":  url,
 		"hook_attributes": map[string]string{
 			"url": "https://example.com/github/events", // TODO : replace with webhook endpoint URL

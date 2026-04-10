@@ -14,6 +14,7 @@ import (
 
 type GithubApp struct {
 	ID             uuid.UUID     `json:"id"`
+	Name           string        `json:"name"`
 	OrganizationID uuid.UUID     `json:"organization_id"`
 	AppID          int64         `json:"app_id"`
 	InstallationID sql.NullInt64 `json:"installation_id"`

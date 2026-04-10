@@ -49,6 +49,7 @@
 		"vitest-browser-svelte": "^2.0.2"
 	},
 	"dependencies": {
+		"@iconify/svelte": "^5.2.1",
 		"@tailwindcss/vite": "^4.2.2",
 		"@tanstack/svelte-form": "^1.28.6",
 		"@tanstack/svelte-query": "^6.1.10",

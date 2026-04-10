@@ -8,6 +8,7 @@ CREATE TABLE redirect_session (
 
 CREATE TABLE github_app (
     id uuid PRIMARY KEY,
+    name TEXT NOT NULL,
     organization_id uuid NOT NULL REFERENCES organization(id) ON DELETE CASCADE,
     app_id INTEGER NOT NULL,
     installation_id INTEGER,
