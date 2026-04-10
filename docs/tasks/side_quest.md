@@ -8,7 +8,8 @@
 - [x] setup tests
 - [ ] integration test for main func
 - [ ] setup CI/CD
-- [ ] setup linting and formatting
+- [ ] setup linting and formatting for backend
+- [ ] setup precommit hooks
 - [x] write documentation
 - [ ] setup monorepo
 - [x] setup hot reloading in development

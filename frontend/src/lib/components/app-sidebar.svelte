@@ -14,6 +14,7 @@
 		SidebarRail
 	} from '@/components/ui/sidebar';
 	import { Blocks, Users, GitBranch } from '@lucide/svelte';
+	import Organisation from './Organisation.svelte';
 </script>
 
 <Sidebar>
@@ -21,16 +22,7 @@
 		<SidebarMenu>
 			<SidebarMenuItem>
 				<SidebarMenuButton size="lg">
-					<div
-						class="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground"
-					>
-						<!-- Replace with your icon component -->
-						<span class="size-4">◆</span>
-					</div>
-					<div class="grid flex-1 text-left text-sm leading-tight">
-						<span class="truncate font-semibold">Acme Inc</span>
-						<span class="truncate text-xs">Enterprise</span>
-					</div>
+					<Organisation />
 				</SidebarMenuButton>
 			</SidebarMenuItem>
 		</SidebarMenu>

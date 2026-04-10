@@ -8,9 +8,9 @@
 	import { userState } from '@/store/user-state.svelte';
 	import { createMutation, createQuery } from '@tanstack/svelte-query';
 	import { Search, Trash2 } from '@lucide/svelte';
-	import AddProject from './AddProject.svelte';
 	import * as Dialog from '@/components/ui/dialog';
 	import { toast } from 'svelte-sonner';
+	import CreateBtn from '@/components/CreateBtn.svelte';
 
 	let searchQuery = $state('');
 	let createDialogOpen = $state(false);
@@ -38,12 +38,13 @@
 		message: string;
 	}
 
-	const getProjectsQueryKey = () => ['projects', userState.currentOrg.id] as const;
+	const getProjectsQueryKey = () => ['projects', userState.currentOrg];
 
 	// Fetches projects for the currently selected organization.
 	const query = createQuery(() => ({
 		queryKey: getProjectsQueryKey(),
 		queryFn: async () => {
+			console.log('Fetching projects for org:', userState.currentOrg.id);
 			return api
 				.get<Project[]>('/project/all', { params: { org_id: userState.currentOrg.id } })
 				.then((res) => res.data);
@@ -127,8 +128,8 @@
 	let projects = $state<Project[]>([]);
 
 	$effect(() => {
-		if (!query.data) return;
-		if (!searchQuery) projects = query.data;
+		if (!query.data) projects = [];
+		else if (!searchQuery) projects = query.data;
 		else
 			projects = query.data.filter((p) => p.name.toLowerCase().includes(searchQuery.toLowerCase()));
 	});
@@ -146,7 +147,7 @@
 		/>
 		<Label class="absolute top-0 right-0 m-1 opacity-75" for="project-srch"><Search /></Label>
 	</div>
-	<AddProject onclick={openCreateProjectDialog} disabled={userState.currentOrg.id === ''} />
+	<CreateBtn onclick={openCreateProjectDialog} disabled={userState.currentOrg.id === ''} />
 </nav>
 
 <Dialog.Root bind:open={createDialogOpen}>
@@ -254,7 +255,7 @@
 	{:else}
 		<h3 class="text-muted-foreground size-full flex flex-col justify-center items-center gap-2">
 			<span>start a new project</span>
-			<AddProject onclick={openCreateProjectDialog} disabled={userState.currentOrg.id === ''} />
+			<CreateBtn onclick={openCreateProjectDialog} disabled={userState.currentOrg.id === ''} />
 		</h3>
 	{/if}
 </section>

@@ -29,3 +29,7 @@
 - [ ] org role checks
     - how to gate create/delete org actions by admin role
     - how to split delete vs leave semantics for organization membership
+
+- [ ] tanstack query lazy fetch for org switcher
+    - how `enabled: false` + `refetch()` works for click-to-load dropdown data
+    - when to update local store from query cache vs mutation response
