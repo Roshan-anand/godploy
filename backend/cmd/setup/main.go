@@ -38,7 +38,7 @@ func main() {
 			return
 		}
 	case "dev-start":
-		if err := runCommand("docker", "compose", "-p", "godploy", "-f", "../docker/compose.dev.yaml", "up", "-d"); err != nil {
+		if err := runCommand("docker", "compose", "-p", "godploy", "-f", "../docker/compose.dev.yaml", "up", "--watch"); err != nil {
 			fmt.Println("failed to setup godploy stack :", err)
 			return
 		}

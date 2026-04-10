@@ -6,15 +6,25 @@ services:
       target: frontend-dev
     image: godploy-frontend-dev
     container_name: godploy-frontend-dev
-    volumes:
-      - ${HOST_PROJECT_ROOT:-..}/frontend:/app/frontend:cached
-      - frontend-node-modules:/app/frontend/node_modules
-      - bun-cache:/root/.bun/install/cache
+    develop:
+      watch:
+        - action: sync
+          path: ../frontend
+          target: /app/frontend
+          initial_sync: true
+          ignore:
+            - node_modules/
+            - .svelte-kit/
+            - build/
+        - action: rebuild
+          path: ../frontend/package.json
+        - action: rebuild
+          path: ../frontend/bun.lock
     environment:
       - NODE_ENV=development
       - DEV_BACKEND_URL=http://server:8080
     ports:
-        - "3000:3000"
+      - "3000:3000"
     depends_on:
       - server
     restart: unless-stopped
@@ -28,12 +38,23 @@ services:
       target: backend-dev
     image: godploy-backend-dev
     container_name: godploy-backend-dev
+    develop:
+      watch:
+        - action: sync
+          path: ../backend
+          target: /app/backend
+          initial_sync: true
+          ignore:
+            - bin/
+            - data/
+            - frontend/dist/
+        - action: rebuild
+          path: ../backend/go.mod
+        - action: rebuild
+          path: ../backend/go.sum
     volumes:
-      - ${HOST_PROJECT_ROOT:-..}/backend:/app/backend:cached
       - /var/run/docker.sock:/var/run/docker.sock
       - godploy-dev-data:/app/backend/data
-      - go-build-cache:/root/.cache/go-build
-      - go-mod-cache:/go/pkg/mod
     env_file:
       - ../.env
     environment:
@@ -54,15 +75,3 @@ networks:
 volumes:
   godploy-dev-data:
     name: godploy-dev-data
-
-  go-build-cache:
-    name: godploy-go-build-cache
-
-  go-mod-cache:
-    name: godploy-go-mod-cache
-
-  bun-cache:
-    name: godploy-bun-cache
-
-  frontend-node-modules:
-    name: godploy-frontend-node-modules
