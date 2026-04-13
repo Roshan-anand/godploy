@@ -125,11 +125,7 @@
 						})}
 					>
 						{#snippet children(state)}
-							<Button
-								type="submit"
-								class="w-full"
-								disabled={!state.canSubmit || login.isPending}
-							>
+							<Button type="submit" class="w-full" disabled={!state.canSubmit || login.isPending}>
 								{state.isSubmitting || login.isPending ? 'Logging in...' : 'Log in'}
 							</Button>
 						{/snippet}

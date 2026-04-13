@@ -38,3 +38,60 @@ CREATE TABLE project (
     organization_id uuid NOT NULL REFERENCES organization(id) ON DELETE CASCADE,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
+
+-- CREATE TABLE service (
+--     id uuid PRIMARY KEY,
+--     project_id uuid NOT NULL REFERENCES project(id) ON DELETE CASCADE,
+--     name TEXT NOT NULL,
+--     description TEXT NOT NULL,
+--     type TEXT NOT NULL,
+--     info_id uuid NOT NULL,
+--     created_at DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL
+-- )
+
+CREATE TABLE psql_service (
+    id uuid PRIMARY KEY,
+    project_id uuid NOT NULL REFERENCES project(id) ON DELETE CASCADE,
+    type TEXT NOT NULL,
+    service_id TEXT NOT NULL REFERENCES service(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    app_name TEXT NOT NULL UNIQUE,
+    description TEXT NOT NULL,
+    db_name TEXT NOT NULL,
+    db_user TEXT NOT NULL,
+    db_password TEXT NOT NULL,
+    image TEXT NOT NULL,
+    internal_url TEXT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+CREATE TABLE app_service (
+    id uuid PRIMARY KEY,
+    project_id uuid NOT NULL REFERENCES project(id) ON DELETE CASCADE,
+    type TEXT NOT NULL,
+    service_id TEXT NOT NULL REFERENCES service(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    app_name TEXT NOT NULL UNIQUE,
+    description TEXT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+CREATE TABLE redirect_session (
+    state TEXT PRIMARY KEY,
+    user_id uuid NOT NULL REFERENCES user(id) ON DELETE CASCADE,
+    org_id uuid NOT NULL REFERENCES organization(id) ON DELETE CASCADE,
+    expires_at DATETIME NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+CREATE TABLE github_app (
+    id uuid PRIMARY KEY,
+    name TEXT NOT NULL,
+    organization_id uuid NOT NULL REFERENCES organization(id) ON DELETE CASCADE,
+    app_id INTEGER NOT NULL,
+    installation_id INTEGER,
+    pem_key TEXT NOT NULL,
+    webhook_secret TEXT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL
+);

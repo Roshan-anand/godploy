@@ -33,3 +33,7 @@
 - [ ] provider setup lifecycle cleanup
     - how to model provider status as nullable query response (`null` means not connected)
     - admin-only cleanup endpoint design for deleting provider credentials safely
+
+- [ ] discriminated unions for mixed service APIs
+    - how frontend uses `type` (`psql | app`) to safely render one details page with different fields
+    - how to pass route context (query params vs path params) when list items share one UI but call different endpoints

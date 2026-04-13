@@ -11,6 +11,7 @@
 	import * as Dialog from '@/components/ui/dialog';
 	import { toast } from 'svelte-sonner';
 	import CreateBtn from '@/components/CreateBtn.svelte';
+	import { resolve } from '$app/paths';
 
 	let searchQuery = $state('');
 	let createDialogOpen = $state(false);
@@ -226,10 +227,15 @@
 		<p class="text-red-500">Failed to load projects</p>
 	{:else if projects.length > 0}
 		<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-			{#each projects as project (project.id)}
+			{#each projects as project ((project.id, project.name))}
 				<div
-					class="rounded-lg border bg-card text-card-foreground shadow-sm p-4 hover:shadow-md transition-shadow cursor-pointer"
+					class="rounded-lg border bg-card text-card-foreground shadow-sm p-4 hover:shadow-md transition-shadow cursor-pointer relative"
 				>
+					<a
+						href={resolve(`/project/${project.id}`)}
+						class="absolute z-10 size-full inset-0 text-transparent"
+						title="a"
+					></a>
 					<div class="flex items-start justify-between gap-2">
 						<h3 class="font-semibold text-lg">{project.name}</h3>
 						<Button
@@ -237,6 +243,7 @@
 							size="sm"
 							onclick={() => deleteProject(project.id)}
 							disabled={deleteProjectMutation.isPending}
+							class="z-20"
 						>
 							{#if deleteProjectMutation.isPending && deletingProjectId === project.id}
 								Deleting...

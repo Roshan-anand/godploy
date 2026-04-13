@@ -54,10 +54,20 @@ func SetupRoutes(srv *config.Server) (*echo.Echo, error) {
 
 	// initialize service api routes
 	service := protected.Group("/service")
-	service.POST("/psql", h.Service.CreatePsqlService)
-	service.DELETE("/psql", h.Service.DeletePsqlService)
-	service.POST("/psql/deploy", h.Service.DeployPsqlService)
-	service.POST("/psql/stop", h.Service.StopPsqlService)
+	service.GET("/project", h.Service.GetAllProjectServices)
+	service.GET("/org", h.Service.GetAllOrganizationServices)
+
+	psql := service.Group("/psql")
+	psql.GET("/:id", h.Service.GetPsqlServiceById)
+	psql.POST("", h.Service.CreatePsqlService)
+	psql.DELETE("", h.Service.DeletePsqlService)
+	psql.POST("/deploy", h.Service.DeployPsqlService)
+	psql.POST("/stop", h.Service.StopPsqlService)
+
+	app := service.Group("/app")
+	app.GET("/:id", h.Service.GetAppServiceById)
+	app.POST("", h.Service.CreateAppService)
+	app.DELETE("", h.Service.DeleteAppService)
 
 	gh := protected.Group("/provider/github")
 	ghPublic := public.Group("/provider/github")

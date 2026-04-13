@@ -13,6 +13,14 @@ sql:
             go_type:
               import: "github.com/Roshan-anand/godploy/internal/types"
               type: "UserRole"
+          - column: "psql_service.type"
+            go_type:
+              import: "github.com/Roshan-anand/godploy/internal/types"
+              type: "ServiceType"
+          - column: "app_service.type"
+            go_type:
+              import: "github.com/Roshan-anand/godploy/internal/types"
+              type: "ServiceType"
           - db_type: "uuid"
             go_type:
               import: "github.com/google/uuid"

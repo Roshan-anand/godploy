@@ -1,5 +1,6 @@
 <script lang="ts" module>
-	import { resolve } from '$app/paths';
+	/* eslint-disable svelte/no-navigation-without-resolve */
+	import type { ResolvedPathname } from '$app/types';
 	import { cn, type WithElementRef } from '@/utils.js';
 	import type { HTMLAnchorAttributes, HTMLButtonAttributes } from 'svelte/elements';
 	import { type VariantProps, tv } from 'tailwind-variants';
@@ -46,7 +47,7 @@
 		WithElementRef<HTMLAnchorAttributes> & {
 			variant?: ButtonVariant;
 			size?: ButtonSize;
-			href?: Parameters<typeof resolve>[0];
+			href?: ResolvedPathname;
 		};
 </script>
 
@@ -69,7 +70,7 @@
 		bind:this={ref}
 		data-slot="button"
 		class={cn(buttonVariants({ variant, size }), className)}
-		href={resolve(href)}
+		{href}
 		aria-disabled={disabled}
 		role={disabled ? 'link' : undefined}
 		tabindex={disabled ? -1 : undefined}

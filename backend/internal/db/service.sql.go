@@ -7,34 +7,78 @@ package db
 
 import (
 	"context"
+	"time"
 
+	"github.com/Roshan-anand/godploy/internal/types"
 	"github.com/google/uuid"
 )
 
+const createAppService = `-- name: CreateAppService :one
+INSERT INTO app_service (id, project_id, type, service_id, name, app_name, description)
+VALUES (?, ?, ?, ?, ?, ?, ?)
+RETURNING id, project_id, type, service_id, name, app_name, description, created_at
+`
+
+type CreateAppServiceParams struct {
+	ID          uuid.UUID         `json:"id"`
+	ProjectID   uuid.UUID         `json:"project_id"`
+	Type        types.ServiceType `json:"type"`
+	ServiceID   string            `json:"service_id"`
+	Name        string            `json:"name"`
+	AppName     string            `json:"app_name"`
+	Description string            `json:"description"`
+}
+
+func (q *Queries) CreateAppService(ctx context.Context, arg CreateAppServiceParams) (AppService, error) {
+	row := q.db.QueryRowContext(ctx, createAppService,
+		arg.ID,
+		arg.ProjectID,
+		arg.Type,
+		arg.ServiceID,
+		arg.Name,
+		arg.AppName,
+		arg.Description,
+	)
+	var i AppService
+	err := row.Scan(
+		&i.ID,
+		&i.ProjectID,
+		&i.Type,
+		&i.ServiceID,
+		&i.Name,
+		&i.AppName,
+		&i.Description,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
 const createPsqlService = `-- name: CreatePsqlService :one
-INSERT INTO psql_service (id,project_id,service_id, name, app_name, description, db_name, db_user, db_password, image, internal_url)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-RETURNING id, project_id, service_id, name, app_name, description, db_name, db_user, db_password, image, internal_url, created_at
+INSERT INTO psql_service (id, project_id, type, service_id, name, app_name, description, db_name, db_user, db_password, image, internal_url)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+RETURNING id, project_id, type, service_id, name, app_name, description, db_name, db_user, db_password, image, internal_url, created_at
 `
 
 type CreatePsqlServiceParams struct {
-	ID          uuid.UUID `json:"id"`
-	ProjectID   uuid.UUID `json:"project_id"`
-	ServiceID   string    `json:"service_id"`
-	Name        string    `json:"name"`
-	AppName     string    `json:"app_name"`
-	Description string    `json:"description"`
-	DbName      string    `json:"db_name"`
-	DbUser      string    `json:"db_user"`
-	DbPassword  string    `json:"db_password"`
-	Image       string    `json:"image"`
-	InternalUrl string    `json:"internal_url"`
+	ID          uuid.UUID         `json:"id"`
+	ProjectID   uuid.UUID         `json:"project_id"`
+	Type        types.ServiceType `json:"type"`
+	ServiceID   string            `json:"service_id"`
+	Name        string            `json:"name"`
+	AppName     string            `json:"app_name"`
+	Description string            `json:"description"`
+	DbName      string            `json:"db_name"`
+	DbUser      string            `json:"db_user"`
+	DbPassword  string            `json:"db_password"`
+	Image       string            `json:"image"`
+	InternalUrl string            `json:"internal_url"`
 }
 
 func (q *Queries) CreatePsqlService(ctx context.Context, arg CreatePsqlServiceParams) (PsqlService, error) {
 	row := q.db.QueryRowContext(ctx, createPsqlService,
 		arg.ID,
 		arg.ProjectID,
+		arg.Type,
 		arg.ServiceID,
 		arg.Name,
 		arg.AppName,
@@ -49,6 +93,7 @@ func (q *Queries) CreatePsqlService(ctx context.Context, arg CreatePsqlServicePa
 	err := row.Scan(
 		&i.ID,
 		&i.ProjectID,
+		&i.Type,
 		&i.ServiceID,
 		&i.Name,
 		&i.AppName,
@@ -63,6 +108,16 @@ func (q *Queries) CreatePsqlService(ctx context.Context, arg CreatePsqlServicePa
 	return i, err
 }
 
+const deleteAppService = `-- name: DeleteAppService :exec
+DELETE FROM app_service
+WHERE id = ?
+`
+
+func (q *Queries) DeleteAppService(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.ExecContext(ctx, deleteAppService, id)
+	return err
+}
+
 const deletePsqlService = `-- name: DeletePsqlService :exec
 DELETE FROM psql_service
 WHERE id = ?
@@ -73,8 +128,169 @@ func (q *Queries) DeletePsqlService(ctx context.Context, id uuid.UUID) error {
 	return err
 }
 
+const getAllPsqlServicesByProjectId = `-- name: GetAllPsqlServicesByProjectId :many
+SELECT id, project_id, type, service_id, name, app_name, description, db_name, db_user, db_password, image, internal_url, created_at
+FROM psql_service
+WHERE project_id = ?
+`
+
+func (q *Queries) GetAllPsqlServicesByProjectId(ctx context.Context, projectID uuid.UUID) ([]PsqlService, error) {
+	rows, err := q.db.QueryContext(ctx, getAllPsqlServicesByProjectId, projectID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []PsqlService
+	for rows.Next() {
+		var i PsqlService
+		if err := rows.Scan(
+			&i.ID,
+			&i.ProjectID,
+			&i.Type,
+			&i.ServiceID,
+			&i.Name,
+			&i.AppName,
+			&i.Description,
+			&i.DbName,
+			&i.DbUser,
+			&i.DbPassword,
+			&i.Image,
+			&i.InternalUrl,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getAllServicesByOrgId = `-- name: GetAllServicesByOrgId :many
+SELECT ps.id, ps.type, ps.name, ps.description, ps.created_at
+FROM psql_service ps
+JOIN project p ON p.id = ps.project_id
+WHERE p.organization_id = ?1
+UNION ALL
+SELECT aps.id, aps.type, aps.name, aps.description, aps.created_at
+FROM app_service aps
+JOIN project p ON p.id = aps.project_id
+WHERE p.organization_id = ?1
+`
+
+type GetAllServicesByOrgIdRow struct {
+	ID          uuid.UUID         `json:"id"`
+	Type        types.ServiceType `json:"type"`
+	Name        string            `json:"name"`
+	Description string            `json:"description"`
+	CreatedAt   time.Time         `json:"created_at"`
+}
+
+func (q *Queries) GetAllServicesByOrgId(ctx context.Context, orgID uuid.UUID) ([]GetAllServicesByOrgIdRow, error) {
+	rows, err := q.db.QueryContext(ctx, getAllServicesByOrgId, orgID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetAllServicesByOrgIdRow
+	for rows.Next() {
+		var i GetAllServicesByOrgIdRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Type,
+			&i.Name,
+			&i.Description,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getAllServicesByProjectId = `-- name: GetAllServicesByProjectId :many
+SELECT id, type, name, description, created_at
+FROM psql_service ps
+WHERE ps.project_id = ?1
+UNION ALL
+SELECT id, type, name, description, created_at
+FROM app_service aps
+WHERE aps.project_id = ?1
+`
+
+type GetAllServicesByProjectIdRow struct {
+	ID          uuid.UUID         `json:"id"`
+	Type        types.ServiceType `json:"type"`
+	Name        string            `json:"name"`
+	Description string            `json:"description"`
+	CreatedAt   time.Time         `json:"created_at"`
+}
+
+func (q *Queries) GetAllServicesByProjectId(ctx context.Context, projectid uuid.UUID) ([]GetAllServicesByProjectIdRow, error) {
+	rows, err := q.db.QueryContext(ctx, getAllServicesByProjectId, projectid)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetAllServicesByProjectIdRow
+	for rows.Next() {
+		var i GetAllServicesByProjectIdRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Type,
+			&i.Name,
+			&i.Description,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getAppServiceById = `-- name: GetAppServiceById :one
+SELECT id, project_id, type, service_id, name, app_name, description, created_at
+FROM app_service
+WHERE id = ?
+`
+
+func (q *Queries) GetAppServiceById(ctx context.Context, id uuid.UUID) (AppService, error) {
+	row := q.db.QueryRowContext(ctx, getAppServiceById, id)
+	var i AppService
+	err := row.Scan(
+		&i.ID,
+		&i.ProjectID,
+		&i.Type,
+		&i.ServiceID,
+		&i.Name,
+		&i.AppName,
+		&i.Description,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
 const getPsqlServiceById = `-- name: GetPsqlServiceById :one
-SELECT id, project_id, service_id, name, app_name, description, db_name, db_user, db_password, image, internal_url, created_at
+SELECT id, project_id, type, service_id, name, app_name, description, db_name, db_user, db_password, image, internal_url, created_at
 FROM psql_service
 WHERE id = ?
 `
@@ -85,6 +301,7 @@ func (q *Queries) GetPsqlServiceById(ctx context.Context, id uuid.UUID) (PsqlSer
 	err := row.Scan(
 		&i.ID,
 		&i.ProjectID,
+		&i.Type,
 		&i.ServiceID,
 		&i.Name,
 		&i.AppName,

@@ -20,6 +20,8 @@ services:
           path: ../frontend/package.json
         - action: rebuild
           path: ../frontend/bun.lock
+    volumes:
+      - ../frontend/.svelte-kit:/app/frontend/.svelte-kit
     environment:
       - NODE_ENV=development
       - DEV_BACKEND_URL=http://server:8080

@@ -8,6 +8,7 @@ import (
 	"github.com/Roshan-anand/godploy/internal/config"
 	"github.com/Roshan-anand/godploy/internal/db"
 	"github.com/Roshan-anand/godploy/internal/lib"
+	"github.com/Roshan-anand/godploy/internal/types"
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v5"
@@ -20,7 +21,7 @@ type ServiceReq struct {
 	ServiceId uuid.UUID `json:"service_id" validate:"required"`
 }
 
-type ServiceHandler struct {
+type PsqlServiceHandler struct {
 	Server   *config.Server
 	Validate *validator.Validate
 	qCtx     context.Context
@@ -37,8 +38,8 @@ type CreatePsqlServiceReq struct {
 	Image       string    `json:"image" validate:"required"`
 }
 
-func InitServiceHandlers(s *config.Server) *ServiceHandler {
-	return &ServiceHandler{
+func InitPsqlServiceHandlers(s *config.Server) *PsqlServiceHandler {
+	return &PsqlServiceHandler{
 		Server:   s,
 		Validate: validator.New(),
 		qCtx:     context.Background(),
@@ -62,6 +63,7 @@ func (h *ServiceHandler) CreatePsqlService(c *echo.Context) error {
 	service, err := h.Server.DB.Queries.CreatePsqlService(h.qCtx, db.CreatePsqlServiceParams{
 		ID:          lib.NewID(),
 		ProjectID:   b.ProjectID,
+		Type:        types.PsqlServiceType,
 		ServiceID:   "",
 		Name:        b.Name,
 		AppName:     b.AppName,
@@ -74,6 +76,23 @@ func (h *ServiceHandler) CreatePsqlService(c *echo.Context) error {
 	})
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, lib.Res{Message: "Failed to create service"})
+	}
+
+	return c.JSON(http.StatusOK, service)
+}
+
+// get psql service details by id
+//
+// route: GET /api/service/psql/:id
+func (h *ServiceHandler) GetPsqlServiceById(c *echo.Context) error {
+	serviceID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, lib.Res{Message: "invalid service id"})
+	}
+
+	service, err := h.Server.DB.Queries.GetPsqlServiceById(h.qCtx, serviceID)
+	if err != nil {
+		return c.JSON(http.StatusNotFound, lib.Res{Message: "service not found"})
 	}
 
 	return c.JSON(http.StatusOK, service)

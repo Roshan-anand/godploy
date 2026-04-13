@@ -13,14 +13,6 @@
 		github_app_id: string;
 	}
 
-	interface DeleteGithubAppPayload {
-		org_id: string;
-	}
-
-	interface ApiRes {
-		message: string;
-	}
-
 	const providers = [
 		{
 			name: 'Github',
@@ -53,11 +45,11 @@
 	}));
 
 	const deleteGithubAppMutation = createMutation(() => ({
-		mutationFn: (payload: DeleteGithubAppPayload) =>
-			api.delete<ApiRes>('/provider/github/app', { data: payload }).then((res) => res.data),
-		onSuccess: (res) => {
+		mutationFn: (payload: { org_id: string }) =>
+			api.delete('/provider/github/app', { data: payload }).then((res) => res.data),
+		onSuccess: () => {
 			queryClient.setQueryData(getGithubAppQueryKey(), null);
-			toast.success(res.message || 'Github app deleted successfully');
+			toast.success('Github app deleted successfully');
 		},
 		onError: (error) => axiosErr(error, 'Failed to delete github app')
 	}));

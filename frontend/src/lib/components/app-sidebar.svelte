@@ -13,7 +13,7 @@
 		SidebarMenuItem,
 		SidebarRail
 	} from '@/components/ui/sidebar';
-	import { Blocks, Users, GitBranch } from '@lucide/svelte';
+	import { Blocks, Users, GitBranch, Package } from '@lucide/svelte';
 	import Organisation from './Organisation.svelte';
 </script>
 
@@ -35,6 +35,11 @@
 						<SidebarMenuButton onclick={() => goto(resolve('/'))}>
 							<Blocks />
 							<span>Projects</span>
+						</SidebarMenuButton>
+					</SidebarMenuItem>
+					<SidebarMenuItem>
+						<SidebarMenuButton onclick={() => goto(resolve('/project'))}>
+							<Package /> <span>services</span>
 						</SidebarMenuButton>
 					</SidebarMenuItem>
 					<SidebarMenuItem>

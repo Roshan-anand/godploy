@@ -37,19 +37,6 @@ func InitProjectHandlers(s *config.Server) *ProjectHandler {
 	}
 }
 
-func (h *ProjectHandler) GetOrg(c *echo.Context) error {
-	u := c.Get(h.Server.Config.EchoCtxUserKey).(lib.AuthUser)
-
-	orgs, err := h.Server.DB.Queries.GetAllOrg(h.qCtx, u.Email)
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError, lib.Res{
-			Message: "internal server error",
-		})
-	}
-
-	return c.JSON(http.StatusOK, orgs)
-}
-
 // create a new project
 //
 // route: POST /api/project

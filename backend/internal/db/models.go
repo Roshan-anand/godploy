@@ -12,6 +12,17 @@ import (
 	"github.com/google/uuid"
 )
 
+type AppService struct {
+	ID          uuid.UUID         `json:"id"`
+	ProjectID   uuid.UUID         `json:"project_id"`
+	Type        types.ServiceType `json:"type"`
+	ServiceID   string            `json:"service_id"`
+	Name        string            `json:"name"`
+	AppName     string            `json:"app_name"`
+	Description string            `json:"description"`
+	CreatedAt   time.Time         `json:"created_at"`
+}
+
 type GithubApp struct {
 	ID             uuid.UUID     `json:"id"`
 	Name           string        `json:"name"`
@@ -39,18 +50,19 @@ type Project struct {
 }
 
 type PsqlService struct {
-	ID          uuid.UUID `json:"id"`
-	ProjectID   uuid.UUID `json:"project_id"`
-	ServiceID   string    `json:"service_id"`
-	Name        string    `json:"name"`
-	AppName     string    `json:"app_name"`
-	Description string    `json:"description"`
-	DbName      string    `json:"db_name"`
-	DbUser      string    `json:"db_user"`
-	DbPassword  string    `json:"db_password"`
-	Image       string    `json:"image"`
-	InternalUrl string    `json:"internal_url"`
-	CreatedAt   time.Time `json:"created_at"`
+	ID          uuid.UUID         `json:"id"`
+	ProjectID   uuid.UUID         `json:"project_id"`
+	Type        types.ServiceType `json:"type"`
+	ServiceID   string            `json:"service_id"`
+	Name        string            `json:"name"`
+	AppName     string            `json:"app_name"`
+	Description string            `json:"description"`
+	DbName      string            `json:"db_name"`
+	DbUser      string            `json:"db_user"`
+	DbPassword  string            `json:"db_password"`
+	Image       string            `json:"image"`
+	InternalUrl string            `json:"internal_url"`
+	CreatedAt   time.Time         `json:"created_at"`
 }
 
 type RedirectSession struct {

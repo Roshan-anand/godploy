@@ -1,11 +1,41 @@
+-- name: GetAllServicesByProjectId :many
+SELECT id, type, name, description, created_at
+FROM psql_service ps
+WHERE ps.project_id = @projectId
+UNION ALL
+SELECT id, type, name, description, created_at
+FROM app_service aps
+WHERE aps.project_id = @projectId;
+
+-- name: GetAllServicesByOrgId :many
+SELECT ps.id, ps.type, ps.name, ps.description, ps.created_at
+FROM psql_service ps
+JOIN project p ON p.id = ps.project_id
+WHERE p.organization_id = @org_id
+UNION ALL
+SELECT aps.id, aps.type, aps.name, aps.description, aps.created_at
+FROM app_service aps
+JOIN project p ON p.id = aps.project_id
+WHERE p.organization_id = @org_id;
+
 -- name: CreatePsqlService :one
-INSERT INTO psql_service (id,project_id,service_id, name, app_name, description, db_name, db_user, db_password, image, internal_url)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+INSERT INTO psql_service (id, project_id, type, service_id, name, app_name, description, db_name, db_user, db_password, image, internal_url)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 RETURNING *;
 
 -- name: GetPsqlServiceById :one
 SELECT *
 FROM psql_service
+WHERE id = ?;
+
+-- name: CreateAppService :one
+INSERT INTO app_service (id, project_id, type, service_id, name, app_name, description)
+VALUES (?, ?, ?, ?, ?, ?, ?)
+RETURNING *;
+
+-- name: GetAppServiceById :one
+SELECT *
+FROM app_service
 WHERE id = ?;
 
 -- name: SetPsqlServiceId :exec
@@ -15,4 +45,13 @@ WHERE id = ?;
 
 -- name: DeletePsqlService :exec
 DELETE FROM psql_service
-WHERE id = ?
+WHERE id = ?;
+
+-- name: DeleteAppService :exec
+DELETE FROM app_service
+WHERE id = ?;
+
+-- name: GetAllPsqlServicesByProjectId :many
+SELECT *
+FROM psql_service
+WHERE project_id = ?;

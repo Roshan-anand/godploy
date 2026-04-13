@@ -1,0 +1,137 @@
+<script lang="ts">
+	import { api, axiosErr } from '@/axios';
+	import { Button } from '@/components/ui/button';
+	import { Skeleton } from '@/components/ui/skeleton';
+	import { queryClient } from '@/query';
+	import { createMutation, createQuery } from '@tanstack/svelte-query';
+	import { resolve } from '$app/paths';
+	import { Trash2 } from '@lucide/svelte';
+	import { toast } from 'svelte-sonner';
+
+	type ServiceType = 'psql' | 'app';
+	type ScopeType = 'project' | 'org';
+
+	interface ServiceRow {
+		id: string;
+		type: ServiceType;
+		name: string;
+		description: string;
+		created_at: string;
+	}
+
+	interface ServiceListResponse {
+		services: ServiceRow[];
+	}
+
+	interface DeleteServicePayload {
+		service_id: string;
+		type: ServiceType;
+	}
+
+	interface DeleteResponse {
+		message: string;
+	}
+
+	let { scopeId, scopeType } = $props<{
+		scopeId: string;
+		scopeType: ScopeType;
+	}>();
+
+	let deletingServiceId = $state('');
+
+	const getServiceListQueryKey = () => ['services', scopeType, scopeId] as const;
+
+	// Shared service-list query/mutation keeps project-level and org-level pages in one UI component.
+	const servicesQuery = createQuery(() => ({
+		queryKey: getServiceListQueryKey(),
+		queryFn: () => {
+			const params = scopeType === 'project' ? { project_id: scopeId } : { org_id: scopeId };
+			const url = scopeType === 'project' ? '/service/project' : '/service/org';
+
+			return api.get<ServiceListResponse>(url, { params }).then((res) => res.data.services);
+		},
+		enabled: scopeId !== ''
+	}));
+
+	const deleteServiceMutation = createMutation(() => ({
+		mutationFn: ({ service_id, type }: DeleteServicePayload) => {
+			const url = type === 'psql' ? '/service/psql' : '/service/app';
+			return api.delete<DeleteResponse>(url, { data: { service_id } }).then((res) => res.data);
+		},
+		onMutate: ({ service_id }) => {
+			deletingServiceId = service_id;
+		},
+		onSuccess: (res, payload) => {
+			queryClient.setQueryData(getServiceListQueryKey(), (cachedRows: ServiceRow[] | undefined) => {
+				if (!cachedRows) return [];
+				return cachedRows.filter((row) => row.id !== payload.service_id);
+			});
+			toast.success(res.message || 'Service deleted successfully');
+		},
+		onError: (error) => axiosErr(error, 'Failed to delete service'),
+		onSettled: () => {
+			deletingServiceId = '';
+		}
+	}));
+
+	function deleteService(serviceId: string, type: ServiceType) {
+		if (deleteServiceMutation.isPending) return;
+		deleteServiceMutation.mutate({ service_id: serviceId, type });
+	}
+
+	const tempItem = Array.from({ length: 6 });
+</script>
+
+<section class="flex-1 p-2">
+	{#if servicesQuery.isPending}
+		<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+			{#each tempItem as _, i (i)}
+				<div class="rounded-lg border bg-card text-card-foreground shadow-sm p-4 space-y-3">
+					<Skeleton class="h-6 w-3/4" />
+					<Skeleton class="h-4 w-1/2" />
+				</div>
+			{/each}
+		</div>
+	{:else if servicesQuery.isError}
+		<p class="text-red-500">Failed to load services</p>
+	{:else if servicesQuery.data && servicesQuery.data.length > 0}
+		<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+			{#each servicesQuery.data as service (service.id)}
+				<div
+					class="rounded-lg border bg-card text-card-foreground shadow-sm p-4 hover:shadow-md transition-shadow cursor-pointer relative"
+				>
+					<a
+						href={resolve(`/services/${service.id}?type=${service.type}`)}
+						class="absolute z-10 size-full inset-0 text-transparent"
+						title="open service"
+					></a>
+					<div class="flex items-start justify-between gap-2">
+						<div>
+							<h3 class="font-semibold text-lg">{service.name}</h3>
+							<p class="text-xs uppercase text-muted-foreground">{service.type}</p>
+						</div>
+						<Button
+							variant="destructive"
+							size="sm"
+							onclick={() => deleteService(service.id, service.type)}
+							disabled={deleteServiceMutation.isPending}
+							class="z-20"
+						>
+							{#if deleteServiceMutation.isPending && deletingServiceId === service.id}
+								Deleting...
+							{:else}
+								<Trash2 />
+								Delete
+							{/if}
+						</Button>
+					</div>
+					<p class="text-muted-foreground text-sm line-clamp-2">
+						{service.description || 'No description'}
+					</p>
+				</div>
+			{/each}
+		</div>
+	{:else}
+		<h3 class="text-muted-foreground size-full flex items-center justify-center">No services found</h3>
+	{/if}
+</section>

@@ -15,7 +15,7 @@ COPY ./frontend ./
 
 EXPOSE 3000
 
-CMD ["bun", "run", "dev", "--host", "0.0.0.0", "--port", "3000"]
+CMD ["bun", "dev", "--host", "0.0.0.0", "--port", "3000"]
 
 # Stage 2: Backend development with go.
 FROM --platform=$BUILDPLATFORM golang:1.26-trixie AS backend-dev
