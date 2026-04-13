@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { api, axiosErr } from '@/axios';
+	import CreateBtn from '@/components/CreateBtn.svelte';
 	import { Button } from '@/components/ui/button';
 	import { Skeleton } from '@/components/ui/skeleton';
 	import { queryClient } from '@/query';
@@ -7,6 +8,7 @@
 	import { resolve } from '$app/paths';
 	import { Trash2 } from '@lucide/svelte';
 	import { toast } from 'svelte-sonner';
+	import { useServicePageUiState } from './context.svelte';
 
 	type ServiceType = 'psql' | 'app';
 	type ScopeType = 'project' | 'org';
@@ -38,6 +40,7 @@
 	}>();
 
 	let deletingServiceId = $state('');
+	const pageUi = useServicePageUiState();
 
 	const getServiceListQueryKey = () => ['services', scopeType, scopeId] as const;
 
@@ -79,6 +82,15 @@
 		deleteServiceMutation.mutate({ service_id: serviceId, type });
 	}
 
+	const filteredServices = $derived.by(() => {
+		if (!servicesQuery.data) return [];
+
+		const keyword = pageUi.searchQuery.trim().toLowerCase();
+		if (keyword === '') return servicesQuery.data;
+
+		return servicesQuery.data.filter((service) => service.name.toLowerCase().includes(keyword));
+	});
+
 	const tempItem = Array.from({ length: 6 });
 </script>
 
@@ -94,14 +106,16 @@
 		</div>
 	{:else if servicesQuery.isError}
 		<p class="text-red-500">Failed to load services</p>
-	{:else if servicesQuery.data && servicesQuery.data.length > 0}
+	{:else if filteredServices.length > 0}
 		<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-			{#each servicesQuery.data as service (service.id)}
+			{#each filteredServices as service (service.id)}
 				<div
 					class="rounded-lg border bg-card text-card-foreground shadow-sm p-4 hover:shadow-md transition-shadow cursor-pointer relative"
 				>
 					<a
-						href={resolve(`/services/${service.id}?type=${service.type}`)}
+						href={resolve(`/(core)/service/[service]?id=${service.id}`, {
+							service: service.type
+						})}
 						class="absolute z-10 size-full inset-0 text-transparent"
 						title="open service"
 					></a>
@@ -132,6 +146,9 @@
 			{/each}
 		</div>
 	{:else}
-		<h3 class="text-muted-foreground size-full flex items-center justify-center">No services found</h3>
+		<h3 class="text-muted-foreground size-full flex flex-col items-center justify-center gap-2">
+			<span>No services found</span>
+			<CreateBtn onclick={pageUi.openCreateDialog} />
+		</h3>
 	{/if}
 </section>

@@ -21,7 +21,7 @@ WHERE p.organization_id = @org_id;
 -- name: CreatePsqlService :one
 INSERT INTO psql_service (id, project_id, type, service_id, name, app_name, description, db_name, db_user, db_password, image, internal_url)
 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-RETURNING *;
+RETURNING id, type;
 
 -- name: GetPsqlServiceById :one
 SELECT *
@@ -31,7 +31,7 @@ WHERE id = ?;
 -- name: CreateAppService :one
 INSERT INTO app_service (id, project_id, type, service_id, name, app_name, description)
 VALUES (?, ?, ?, ?, ?, ?, ?)
-RETURNING *;
+RETURNING id, type;
 
 -- name: GetAppServiceById :one
 SELECT *

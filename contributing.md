@@ -40,3 +40,7 @@ openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
 
 - run `make services-rm` to stop and remove the traefik
 - run `make dev-stop` to stop dev services
+
+## errors
+
+- while running `make check` or `bun check` in frontend, if you get permission error, then run `make permission` and now its fixed.

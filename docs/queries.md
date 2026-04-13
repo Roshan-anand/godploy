@@ -37,3 +37,7 @@
 - [ ] discriminated unions for mixed service APIs
     - how frontend uses `type` (`psql | app`) to safely render one details page with different fields
     - how to pass route context (query params vs path params) when list items share one UI but call different endpoints
+
+- [ ] tanstack form dynamic conditional sections
+    - how to keep one form schema for multiple service types and render extra fields only for selected type
+    - how route params (project scoped) and user selection (org scoped) can feed one submit payload path

@@ -16,7 +16,7 @@ import (
 const createAppService = `-- name: CreateAppService :one
 INSERT INTO app_service (id, project_id, type, service_id, name, app_name, description)
 VALUES (?, ?, ?, ?, ?, ?, ?)
-RETURNING id, project_id, type, service_id, name, app_name, description, created_at
+RETURNING id, type
 `
 
 type CreateAppServiceParams struct {
@@ -29,7 +29,12 @@ type CreateAppServiceParams struct {
 	Description string            `json:"description"`
 }
 
-func (q *Queries) CreateAppService(ctx context.Context, arg CreateAppServiceParams) (AppService, error) {
+type CreateAppServiceRow struct {
+	ID   uuid.UUID         `json:"id"`
+	Type types.ServiceType `json:"type"`
+}
+
+func (q *Queries) CreateAppService(ctx context.Context, arg CreateAppServiceParams) (CreateAppServiceRow, error) {
 	row := q.db.QueryRowContext(ctx, createAppService,
 		arg.ID,
 		arg.ProjectID,
@@ -39,24 +44,15 @@ func (q *Queries) CreateAppService(ctx context.Context, arg CreateAppServicePara
 		arg.AppName,
 		arg.Description,
 	)
-	var i AppService
-	err := row.Scan(
-		&i.ID,
-		&i.ProjectID,
-		&i.Type,
-		&i.ServiceID,
-		&i.Name,
-		&i.AppName,
-		&i.Description,
-		&i.CreatedAt,
-	)
+	var i CreateAppServiceRow
+	err := row.Scan(&i.ID, &i.Type)
 	return i, err
 }
 
 const createPsqlService = `-- name: CreatePsqlService :one
 INSERT INTO psql_service (id, project_id, type, service_id, name, app_name, description, db_name, db_user, db_password, image, internal_url)
 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-RETURNING id, project_id, type, service_id, name, app_name, description, db_name, db_user, db_password, image, internal_url, created_at
+RETURNING id, type
 `
 
 type CreatePsqlServiceParams struct {
@@ -74,7 +70,12 @@ type CreatePsqlServiceParams struct {
 	InternalUrl string            `json:"internal_url"`
 }
 
-func (q *Queries) CreatePsqlService(ctx context.Context, arg CreatePsqlServiceParams) (PsqlService, error) {
+type CreatePsqlServiceRow struct {
+	ID   uuid.UUID         `json:"id"`
+	Type types.ServiceType `json:"type"`
+}
+
+func (q *Queries) CreatePsqlService(ctx context.Context, arg CreatePsqlServiceParams) (CreatePsqlServiceRow, error) {
 	row := q.db.QueryRowContext(ctx, createPsqlService,
 		arg.ID,
 		arg.ProjectID,
@@ -89,22 +90,8 @@ func (q *Queries) CreatePsqlService(ctx context.Context, arg CreatePsqlServicePa
 		arg.Image,
 		arg.InternalUrl,
 	)
-	var i PsqlService
-	err := row.Scan(
-		&i.ID,
-		&i.ProjectID,
-		&i.Type,
-		&i.ServiceID,
-		&i.Name,
-		&i.AppName,
-		&i.Description,
-		&i.DbName,
-		&i.DbUser,
-		&i.DbPassword,
-		&i.Image,
-		&i.InternalUrl,
-		&i.CreatedAt,
-	)
+	var i CreatePsqlServiceRow
+	err := row.Scan(&i.ID, &i.Type)
 	return i, err
 }
 

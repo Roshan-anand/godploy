@@ -45,7 +45,6 @@
 	const query = createQuery(() => ({
 		queryKey: getProjectsQueryKey(),
 		queryFn: async () => {
-			console.log('Fetching projects for org:', userState.currentOrg.id);
 			return api
 				.get<Project[]>('/project/all', { params: { org_id: userState.currentOrg.id } })
 				.then((res) => res.data);
@@ -232,7 +231,9 @@
 					class="rounded-lg border bg-card text-card-foreground shadow-sm p-4 hover:shadow-md transition-shadow cursor-pointer relative"
 				>
 					<a
-						href={resolve(`/project/${project.id}`)}
+						href={resolve('/(core)/project/[id]', {
+							id: project.id
+						})}
 						class="absolute z-10 size-full inset-0 text-transparent"
 						title="a"
 					></a>

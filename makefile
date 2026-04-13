@@ -1,5 +1,8 @@
 .PHONY: start reset restart build install-web install-server install check build-web build-bin generate test img-build setup dev services-rm web-logs server-logs traefik-logs cloud-tunnel clean clean-web clean-server clean-cache clean-all
 
+permission:
+	@sudo chown -R $(id -u):$(id -g) ./frontend/.svelte-kit
+
 install-web:
 	cd frontend && \
 	bun install && \
@@ -58,15 +61,15 @@ services-rm:
 web-logs:
 	@cd backend && \
 	go run cmd/setup/main.go web-logs
-	
+
 server-logs:
 	@cd backend && \
 	go run cmd/setup/main.go server-logs
-	
+
 traefik-logs:
 	@cd backend && \
 	go run cmd/setup/main.go traefik-logs
-	
+
 cloud-tunnel:
 	docker run --rm -it \
         --network host \
