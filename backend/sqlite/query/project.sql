@@ -21,8 +21,12 @@ DELETE FROM project
 WHERE id = ?;
 
 -- name: CheckProjectHasServices :one
-SELECT CAST(EXISTS (
-    SELECT 1 FROM project p
-    JOIN psql_service psql ON psql.project_id = p.id
-    WHERE p.id = ?
+SELECT CAST(EXISTS(
+    SELECT 1
+    FROM psql_service ps
+    WHERE ps.project_id = @project_id
+    UNION
+    SELECT 1
+    FROM app_service aps
+    WHERE aps.project_id = @project_id
 ) AS BOOLEAN);

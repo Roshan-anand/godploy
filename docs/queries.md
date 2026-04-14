@@ -30,14 +30,4 @@
     - how `enabled: false` + `refetch()` works for click-to-load dropdown data
     - when to update local store from query cache vs mutation response
 
-- [ ] provider setup lifecycle cleanup
-    - how to model provider status as nullable query response (`null` means not connected)
-    - admin-only cleanup endpoint design for deleting provider credentials safely
-
-- [ ] discriminated unions for mixed service APIs
-    - how frontend uses `type` (`psql | app`) to safely render one details page with different fields
-    - how to pass route context (query params vs path params) when list items share one UI but call different endpoints
-
-- [ ] tanstack form dynamic conditional sections
-    - how to keep one form schema for multiple service types and render extra fields only for selected type
-    - how route params (project scoped) and user selection (org scoped) can feed one submit payload path
+- [ ] svelte class based global context [context.svelte.ts](../frontend/src/lib/components/services/context.svelte.ts)

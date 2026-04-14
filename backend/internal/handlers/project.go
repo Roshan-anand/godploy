@@ -114,6 +114,7 @@ func (h *ProjectHandler) DeleteProject(c *echo.Context) error {
 		return c.JSON(http.StatusBadRequest, Res)
 	}
 
+	// TODO : update the query to check other service also when added
 	// check if other service exists
 	if has, err := h.Server.DB.Queries.CheckProjectHasServices(h.qCtx, b.ID); err != nil {
 		return c.JSON(http.StatusInternalServerError, lib.Res{Message: "Failed to delete project"})

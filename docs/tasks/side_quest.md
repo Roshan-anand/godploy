@@ -21,7 +21,7 @@
 
 - [ ] setup rate limiting middleware [medium, backend]
 - [ ] delete project btn sould show popup to confirm deletion. [easy, ui]
-- [ ] git provider page. [easy, ui]
+- [x] git provider page. [easy, ui]
 - [ ] tests for project lifecycle
 - [ ] tests for service lifecycle
 - [ ] rememberMe functionality for login
@@ -29,7 +29,7 @@
 ## enhancements
 
 - [ ] use dynamic imports in client side
-- [ ] at [CheckUserExistsInOrg](../../backend/internal/handlers/utils.go) func return org details insted of just bool. 
+- [ ] at [CheckUserExistsInOrg](../../backend/internal/handlers/utils.go) func return org details instead of just bool. 
 
 ## Potential bugs
 

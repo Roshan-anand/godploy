@@ -32,15 +32,19 @@ func (q *Queries) CheckProjectExist(ctx context.Context, arg CheckProjectExistPa
 }
 
 const checkProjectHasServices = `-- name: CheckProjectHasServices :one
-SELECT CAST(EXISTS (
-    SELECT 1 FROM project p
-    JOIN psql_service psql ON psql.project_id = p.id
-    WHERE p.id = ?
+SELECT CAST(EXISTS(
+    SELECT 1
+    FROM psql_service ps
+    WHERE ps.project_id = ?1
+    UNION
+    SELECT 1
+    FROM app_service aps
+    WHERE aps.project_id = ?1
 ) AS BOOLEAN)
 `
 
-func (q *Queries) CheckProjectHasServices(ctx context.Context, id uuid.UUID) (bool, error) {
-	row := q.db.QueryRowContext(ctx, checkProjectHasServices, id)
+func (q *Queries) CheckProjectHasServices(ctx context.Context, projectID uuid.UUID) (bool, error) {
+	row := q.db.QueryRowContext(ctx, checkProjectHasServices, projectID)
 	var column_1 bool
 	err := row.Scan(&column_1)
 	return column_1, err

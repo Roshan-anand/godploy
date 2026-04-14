@@ -1,6 +1,6 @@
 import { getContext, setContext } from 'svelte';
 
-class ServicePageUiState {
+export class ServicePageUiState {
 	searchQuery = $state('');
 	createDialogOpen = $state(false);
 
