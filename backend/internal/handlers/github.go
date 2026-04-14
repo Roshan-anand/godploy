@@ -49,6 +49,15 @@ type DeleteGithubAppReq struct {
 	OrgID uuid.UUID `json:"org_id" validate:"required"`
 }
 
+type GetGithubRepoListRes struct {
+	ID            int64  `json:"id"`
+	Name          string `json:"name"`
+	FullName      string `json:"full_name"`
+	Private       bool   `json:"private"`
+	DefaultBranch string `json:"default_branch"`
+	HtmlURL       string `json:"html_url"`
+}
+
 func InitGitHandlers(s *config.Server) *GitHandler {
 	return &GitHandler{
 		Server:   s,
@@ -220,7 +229,7 @@ func (h *GitHandler) SetupGithubApp(c *echo.Context) error {
 	}
 
 	// TODO: update the url to route to git provider page with success message
-	return c.Redirect(http.StatusFound, h.Server.Config.WebUrl)
+	return c.Redirect(http.StatusFound, h.Server.Config.WebUrl+"/#/git")
 }
 
 // get the github app info
@@ -285,16 +294,29 @@ func (h *GitHandler) DeleteGithubApp(c *echo.Context) error {
 //
 // route: GET /api/provider/github/repo/list?org_id=
 func (h *GitHandler) GetGithubRepoList(c *echo.Context) error {
+	u := c.Get(h.Server.Config.EchoCtxUserKey).(lib.AuthUser)
 	query := h.Server.DB.Queries
+	b := new(GetGithubAppReq)
 
-	org_id, err := uuid.Parse(c.QueryParam("org_id"))
-	if err != nil {
-		return c.JSON(http.StatusBadRequest, lib.Res{Message: "Invalid organization ID"})
+	if Res := BindAndValidate(b, c, h.Validate); Res != nil {
+		return c.JSON(http.StatusBadRequest, Res)
 	}
 
-	ghApp, err := query.GetGithubApp(h.qCtx, org_id)
+	status, Res := CheckUserExistsInOrg(query, u.Email, b.OrgID)
+	if Res != nil {
+		return c.JSON(status, Res)
+	}
+
+	ghApp, err := query.GetGithubApp(h.qCtx, b.OrgID)
 	if err != nil {
+		if err == sql.ErrNoRows {
+			return c.JSON(http.StatusConflict, lib.Res{Message: "No github connected"})
+		}
 		return c.JSON(http.StatusInternalServerError, lib.Res{Message: "Failed to get github repos"})
+	}
+
+	if !ghApp.InstallationID.Valid || ghApp.InstallationID.Int64 == 0 {
+		return c.JSON(http.StatusConflict, lib.Res{Message: "No github connected"})
 	}
 
 	ghClient, err := lib.CreateGithubClient(context.Background(), ghApp.AppID, ghApp.InstallationID.Int64, ghApp.PemKey)
@@ -302,11 +324,38 @@ func (h *GitHandler) GetGithubRepoList(c *echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, lib.Res{Message: "Failed to get github repos"})
 	}
 
-	repos, _, err := ghClient.Apps.ListRepos(h.ghCtx, &github.ListOptions{
-		Page: 1,
-	})
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError, lib.Res{Message: "Failed to get github repos"})
+	opts := &github.ListOptions{
+		PerPage: 100,
+		Page:    1,
+	}
+
+	repos := make([]GetGithubRepoListRes, 0)
+
+	for {
+		pageRepos, resp, err := ghClient.Apps.ListRepos(h.ghCtx, opts)
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, lib.Res{Message: "Failed to get github repos"})
+		}
+
+		for _, repo := range pageRepos.Repositories {
+			repos = append(repos, GetGithubRepoListRes{
+				ID:            repo.GetID(),
+				Name:          repo.GetName(),
+				FullName:      repo.GetFullName(),
+				Private:       repo.GetPrivate(),
+				DefaultBranch: repo.GetDefaultBranch(),
+				HtmlURL:       repo.GetHTMLURL(),
+			})
+		}
+
+		if resp.NextPage == 0 {
+			break
+		}
+		opts.Page = resp.NextPage
+	}
+
+	if len(repos) == 0 {
+		return c.NoContent(http.StatusNoContent)
 	}
 
 	return c.JSON(http.StatusOK, repos)

@@ -9,6 +9,7 @@
 	import { queryClient } from '@/query';
 	import { createForm } from '@tanstack/svelte-form';
 	import { createMutation, createQuery } from '@tanstack/svelte-query';
+	import Icon from '@iconify/svelte';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
@@ -34,6 +35,37 @@
 		type: ServiceType;
 	}
 
+	type GitProviderKey = 'github' | 'gitlab' | 'bitbucket';
+	type GitRepoFetchStatus =
+		| 'idle'
+		| 'loading'
+		| 'provider_not_connected'
+		| 'no_repo_authorized'
+		| 'loaded'
+		| 'error';
+
+	interface GitProviderOption {
+		key: GitProviderKey;
+		name: string;
+		icon: string;
+		api: string;
+	}
+
+	interface GithubRepo {
+		id: number;
+		name: string;
+		full_name: string;
+		html_url: string;
+		private: boolean;
+		default_branch: string;
+	}
+
+	interface GetRepoResult {
+		status: number;
+		repos: GithubRepo[];
+		provider: GitProviderKey;
+	}
+
 	const projectIdFromPath = $derived(page.params.id ?? '');
 	const isProjectScoped = $derived(projectIdFromPath !== '');
 
@@ -42,26 +74,99 @@
 		{ value: 'psql' as const, label: 'PostgreSQL Service' }
 	];
 
+	const gitProviders: GitProviderOption[] = [
+		{
+			key: 'github',
+			name: 'Github',
+			icon: 'meteor-icons:github',
+			api: '/provider/github/repo/list'
+		},
+		{
+			key: 'gitlab',
+			name: 'GitLab',
+			icon: 'material-icon-theme:gitlab',
+			api: ''
+		},
+		{
+			key: 'bitbucket',
+			name: 'BitBucket',
+			icon: 'material-icon-theme:bitbucket',
+			api: ''
+		}
+	];
+
 	const getProjectsQueryKey = () =>
 		['projects', userState.currentOrg.id, 'service-create'] as const;
 
 	const projectsQuery = createQuery(() => ({
 		queryKey: getProjectsQueryKey(),
-		queryFn: () =>
-			api
+		queryFn: async () => {
+			return api
 				.get<Project[]>('/project/all', { params: { org_id: userState.currentOrg.id } })
-				.then((res) => res.data),
+				.then((res) => res.data);
+		},
 		enabled: !isProjectScoped && userState.currentOrg.id !== ''
 	}));
 
+	// Git selection is status-driven by backend response codes: 409 (provider missing), 204 (no repos), 200 (repo list).
+	let selectedGitProvider = $state<GitProviderKey | ''>('');
+	let selectedGitRepoId = $state('');
+	let selectedGitRepoName = $state('');
+	let gitRepoFetchStatus = $state<GitRepoFetchStatus>('idle');
+	let gitRepoList = $state<GithubRepo[]>([]);
+
+	const selectedGitProviderName = $derived(
+		gitProviders.find((provider) => provider.key === selectedGitProvider)?.name ?? 'provider'
+	);
+
+	const getReposMutation = createMutation(() => ({
+		mutationFn: async (provider: GitProviderOption): Promise<GetRepoResult> => {
+			const response = await api.get<GithubRepo[]>(provider.api, {
+				params: { org_id: userState.currentOrg.id },
+				validateStatus: (status) => status === 200 || status === 204 || status === 409
+			});
+
+			return {
+				status: response.status,
+				repos: response.status === 200 ? response.data : [],
+				provider: provider.key
+			};
+		},
+		onSuccess: (result) => {
+			if (result.status === 200 && result.repos.length > 0) {
+				gitRepoList = result.repos;
+				gitRepoFetchStatus = 'loaded';
+				return;
+			}
+
+			gitRepoList = [];
+			selectedGitRepoId = '';
+			selectedGitRepoName = '';
+			gitRepoFetchStatus =
+				result.status === 409
+					? 'provider_not_connected'
+					: result.status === 204 || result.status === 200
+						? 'no_repo_authorized'
+						: 'error';
+		},
+		onError: (error) => {
+			gitRepoList = [];
+			selectedGitRepoId = '';
+			selectedGitRepoName = '';
+			gitRepoFetchStatus = 'error';
+			axiosErr(error, 'Failed to fetch repositories');
+		}
+	}));
+
 	const createServiceMutation = createMutation(() => ({
-		mutationFn: (payload: { type: ServiceType; body: Record<string, string> }) => {
+		mutationFn: async (payload: { type: ServiceType; body: Record<string, string> }) => {
 			const url = payload.type === 'app' ? '/service/app' : '/service/psql';
 			return api.post<CreateServiceResponse>(url, payload.body).then((res) => res.data);
 		},
 		onSuccess: async (createdService) => {
 			await queryClient.invalidateQueries({ queryKey: ['services'] });
 			pageUi.closeCreateDialog();
+			resetGitRepoSelection();
 			form.reset();
 
 			toast.success('Service created successfully');
@@ -95,13 +200,26 @@
 			}
 
 			if (value.type === 'app') {
+				if (selectedGitProvider === '') {
+					toast.error('Please select a git provider');
+					return;
+				}
+
+				if (selectedGitRepoId === '' || selectedGitRepoName === '') {
+					toast.error('Please select a repository');
+					return;
+				}
+
 				createServiceMutation.mutate({
 					type: 'app',
 					body: {
 						project_id: projectId,
 						name: value.name.trim(),
 						description: value.description.trim(),
-						app_name: value.app_name.trim()
+						app_name: value.app_name.trim(),
+						git_provider: selectedGitProvider,
+						git_repo_id: selectedGitRepoId,
+						git_repo_name: selectedGitRepoName
 					}
 				});
 				return;
@@ -126,6 +244,33 @@
 	function closeDialog() {
 		if (createServiceMutation.isPending) return;
 		pageUi.closeCreateDialog();
+	}
+
+	function resetGitRepoSelection() {
+		selectedGitProvider = '';
+		selectedGitRepoId = '';
+		selectedGitRepoName = '';
+		gitRepoFetchStatus = 'idle';
+		gitRepoList = [];
+	}
+
+	function fetchGitRepos(provider: GitProviderOption) {
+		if (provider.api === '' || userState.currentOrg.id === '' || createServiceMutation.isPending) return;
+
+		selectedGitProvider = provider.key;
+		selectedGitRepoId = '';
+		selectedGitRepoName = '';
+		gitRepoFetchStatus = 'loading';
+		gitRepoList = [];
+		getReposMutation.mutate(provider);
+	}
+
+	function onRepoSelect(repoId: string) {
+		const repo = gitRepoList.find((r) => r.id.toString() === repoId);
+		if (!repo) return;
+
+		selectedGitRepoId = repoId;
+		selectedGitRepoName = repo.full_name;
 	}
 </script>
 
@@ -277,6 +422,57 @@
 
 				<form.Subscribe selector={(state) => state.values.type}>
 					{#snippet children(currentType)}
+						{#if currentType === 'app'}
+							<div class="space-y-2">
+								<Label>Git</Label>
+								<div class="flex items-center gap-3 w-full">
+									{#each gitProviders as provider (provider.key)}
+										<Button
+											type="button"
+											variant="outline"
+											disabled={provider.api === '' ||
+												userState.currentOrg.id === '' ||
+												getReposMutation.isPending ||
+												createServiceMutation.isPending}
+											onclick={() => fetchGitRepos(provider)}
+											class="flex-1"
+										>
+											<Icon icon={provider.icon} width="20" height="20" />
+											<p>{provider.name}</p>
+										</Button>
+									{/each}
+								</div>
+
+								{#if gitRepoFetchStatus === 'loading'}
+									<p class="text-sm text-muted-foreground">Loading repositories...</p>
+								{:else if gitRepoFetchStatus === 'provider_not_connected'}
+									<p class="text-sm text-muted-foreground">No {selectedGitProviderName} connected</p>
+								{:else if gitRepoFetchStatus === 'no_repo_authorized'}
+									<p class="text-sm text-muted-foreground">No repo authorized.</p>
+								{:else if gitRepoFetchStatus === 'loaded'}
+									<div class="space-y-1.5">
+										<Label for="git-repo-select">Repository</Label>
+										<Select.Root
+											type="single"
+											value={selectedGitRepoId}
+											onValueChange={onRepoSelect}
+										>
+											<Select.Trigger class="w-full" id="git-repo-select">
+												{selectedGitRepoName || 'Select repository'}
+											</Select.Trigger>
+											<Select.Content>
+												{#each gitRepoList as repo (repo.id)}
+													<Select.Item value={repo.id.toString()} label={repo.full_name} />
+												{/each}
+											</Select.Content>
+										</Select.Root>
+									</div>
+								{:else if gitRepoFetchStatus === 'error'}
+									<p class="text-sm text-destructive">Failed to fetch repositories.</p>
+								{/if}
+							</div>
+						{/if}
+
 						{#if currentType === 'psql'}
 							<form.Field
 								name="db_name"

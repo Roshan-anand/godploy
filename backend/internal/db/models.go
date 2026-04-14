@@ -21,6 +21,9 @@ type AppService struct {
 	AppName     string            `json:"app_name"`
 	Description string            `json:"description"`
 	CreatedAt   time.Time         `json:"created_at"`
+	GitProvider string            `json:"git_provider"`
+	GitRepoID   string            `json:"git_repo_id"`
+	GitRepoName string            `json:"git_repo_name"`
 }
 
 type GithubApp struct {

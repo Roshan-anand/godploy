@@ -14,8 +14,8 @@ import (
 )
 
 const createAppService = `-- name: CreateAppService :one
-INSERT INTO app_service (id, project_id, type, service_id, name, app_name, description)
-VALUES (?, ?, ?, ?, ?, ?, ?)
+INSERT INTO app_service (id, project_id, type, service_id, name, app_name, description, git_provider, git_repo_id, git_repo_name)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 RETURNING id, type
 `
 
@@ -27,6 +27,9 @@ type CreateAppServiceParams struct {
 	Name        string            `json:"name"`
 	AppName     string            `json:"app_name"`
 	Description string            `json:"description"`
+	GitProvider string            `json:"git_provider"`
+	GitRepoID   string            `json:"git_repo_id"`
+	GitRepoName string            `json:"git_repo_name"`
 }
 
 type CreateAppServiceRow struct {
@@ -43,6 +46,9 @@ func (q *Queries) CreateAppService(ctx context.Context, arg CreateAppServicePara
 		arg.Name,
 		arg.AppName,
 		arg.Description,
+		arg.GitProvider,
+		arg.GitRepoID,
+		arg.GitRepoName,
 	)
 	var i CreateAppServiceRow
 	err := row.Scan(&i.ID, &i.Type)
@@ -255,7 +261,7 @@ func (q *Queries) GetAllServicesByProjectId(ctx context.Context, projectid uuid.
 }
 
 const getAppServiceById = `-- name: GetAppServiceById :one
-SELECT id, project_id, type, service_id, name, app_name, description, created_at
+SELECT id, project_id, type, service_id, name, app_name, description, created_at, git_provider, git_repo_id, git_repo_name
 FROM app_service
 WHERE id = ?
 `
@@ -272,6 +278,9 @@ func (q *Queries) GetAppServiceById(ctx context.Context, id uuid.UUID) (AppServi
 		&i.AppName,
 		&i.Description,
 		&i.CreatedAt,
+		&i.GitProvider,
+		&i.GitRepoID,
+		&i.GitRepoName,
 	)
 	return i, err
 }

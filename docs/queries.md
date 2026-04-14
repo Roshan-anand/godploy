@@ -31,3 +31,7 @@
     - when to update local store from query cache vs mutation response
 
 - [ ] svelte class based global context [context.svelte.ts](../frontend/src/lib/components/services/context.svelte.ts)
+
+- [ ] provider integration state via HTTP status codes
+    - when to use `409 Conflict` vs `204 No Content` for integration-driven UI
+    - how status-code contracts simplify frontend state branches

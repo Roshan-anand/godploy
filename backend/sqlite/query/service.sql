@@ -29,8 +29,8 @@ FROM psql_service
 WHERE id = ?;
 
 -- name: CreateAppService :one
-INSERT INTO app_service (id, project_id, type, service_id, name, app_name, description)
-VALUES (?, ?, ?, ?, ?, ?, ?)
+INSERT INTO app_service (id, project_id, type, service_id, name, app_name, description, git_provider, git_repo_id, git_repo_name)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 RETURNING id, type;
 
 -- name: GetAppServiceById :one

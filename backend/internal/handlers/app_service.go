@@ -15,6 +15,9 @@ type CreateAppServiceReq struct {
 	Name        string    `json:"name" validate:"required"`
 	AppName     string    `json:"app_name" validate:"required"`
 	Description string    `json:"description"`
+	GitProvider string    `json:"git_provider" validate:"required"`
+	GitRepoID   string    `json:"git_repo_id" validate:"required"`
+	GitRepoName string    `json:"git_repo_name" validate:"required"`
 }
 
 // create a new app service
@@ -37,6 +40,9 @@ func (h *ServiceHandler) CreateAppService(c *echo.Context) error {
 		Name:        b.Name,
 		AppName:     b.AppName,
 		Description: b.Description,
+		GitProvider: b.GitProvider,
+		GitRepoID:   b.GitRepoID,
+		GitRepoName: b.GitRepoName,
 	})
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, lib.Res{Message: "Failed to create service"})
