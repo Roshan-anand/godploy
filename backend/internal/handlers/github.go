@@ -36,7 +36,7 @@ type GitHubCreateAppRes struct {
 }
 
 type GetGithubAppReq struct {
-	OrgID uuid.UUID `query:"org_id" validate:"required"`
+	AppID int64 `json:"app_id" validate:"required"`
 }
 
 type GetGithubAppRes struct {
@@ -46,7 +46,7 @@ type GetGithubAppRes struct {
 }
 
 type DeleteGithubAppReq struct {
-	OrgID uuid.UUID `json:"org_id" validate:"required"`
+	AppID int64 `json:"app_id" validate:"required"`
 }
 
 type GetGithubRepoListRes struct {
@@ -93,7 +93,10 @@ func (h *GitHandler) CreateGithubApp(c *echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, lib.Res{Message: "Failed to create github app"})
 	}
 
-	manifest, err := getManifestData(h.Server.Config.ServerUrl, user.OrgID)
+	// TODO : start a worker which waits for 1hr and check if github app is not filled else remove it.
+	// modify the removeSession
+
+	manifest, err := getManifestData(h.Server.Config.ServerUrl, state)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, lib.Res{Message: "Failed to create github app"})
 	}
@@ -118,20 +121,20 @@ func (h *GitHandler) CreateGithubApp(c *echo.Context) error {
 //
 // route: GET /api/provider/github/app/callback
 func (h *GitHandler) CreateGithubAppCallback(c *echo.Context) error {
-	query := h.Server.DB.Queries
+	q := h.Server.DB.Queries
 	// u := c.Get(h.Server.Config.EchoCtxUserKey).(lib.AuthUser)
 
 	code := c.QueryParam("code")
 	state := c.QueryParam("state")
 
 	// validate the state
-	sData, err := query.GetRedirectSession(h.qCtx, state)
+	sData, err := q.GetRedirectSession(h.qCtx, state)
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, lib.Res{Message: "Invalid state"})
 	}
 
 	if time.Now().After(sData.ExpiresAt) {
-		go removeSession(query, state)
+		go removeSession(q, state)
 		return c.JSON(http.StatusBadRequest, lib.Res{Message: "State has expired"})
 	}
 
@@ -165,18 +168,27 @@ func (h *GitHandler) CreateGithubAppCallback(c *echo.Context) error {
 	}
 
 	// store the app credentials in db
-	if err := query.CreateGithubApp(h.qCtx, db.CreateGithubAppParams{
+	ghAppId, err := q.CreateGithubApp(h.qCtx, db.CreateGithubAppParams{
 		ID:             lib.NewID(),
 		Name:           convRes.Name,
 		AppID:          convRes.ID,
 		OrganizationID: sData.OrgID,
 		WebhookSecret:  convRes.WebhookSecret,
 		PemKey:         encryptedPem,
-	}); err != nil {
+	})
+	if err != nil {
 		return c.Redirect(http.StatusFound, "/?github_error=internal")
 	}
 
-	go removeSession(query, state)
+	// update the session with github app id
+	q.UpdateRedirectSession(h.qCtx, db.UpdateRedirectSessionParams{
+		GhAppID: sql.NullInt64{
+			Int64: ghAppId,
+			Valid: true,
+		},
+		State: state,
+	})
+	// go removeSession(query, state)
 
 	installUrl := fmt.Sprintf("https://github.com/apps/%s/installations/new", convRes.Slug)
 	return c.Redirect(http.StatusFound, installUrl)
@@ -186,12 +198,15 @@ func (h *GitHandler) CreateGithubAppCallback(c *echo.Context) error {
 //
 // route: GET /api/provider/github/app/setup
 func (h *GitHandler) SetupGithubApp(c *echo.Context) error {
-	query := h.Server.DB.Queries
+	q := h.Server.DB.Queries
 
-	orgId, err := uuid.Parse(c.QueryParam("org_id"))
-	if err != nil {
-		return c.JSON(http.StatusBadRequest, lib.Res{Message: "Invalid organization ID"})
+	state := c.QueryParam("state")
+	ghAppId, err := q.GetRedirectSessionGhAppID(h.qCtx, state)
+	if err != nil || !ghAppId.Valid {
+		fmt.Println("Error fetching redirect session:", err)
+		return c.JSON(http.StatusBadRequest, lib.Res{Message: "Invalid state"})
 	}
+	go removeSession(q, state)
 
 	instllation_id, err := strconv.ParseInt(c.QueryParam("installation_id"), 10, 64)
 	if err != nil {
@@ -200,7 +215,7 @@ func (h *GitHandler) SetupGithubApp(c *echo.Context) error {
 	}
 
 	// varify installation ID
-	ghApp, err := query.GetGithubApp(h.qCtx, orgId)
+	ghApp, err := q.GetGhAppByAppId(h.qCtx, ghAppId.Int64)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, lib.Res{Message: "Failed to setup github app"})
 	}
@@ -218,12 +233,12 @@ func (h *GitHandler) SetupGithubApp(c *echo.Context) error {
 		return c.JSON(http.StatusBadRequest, lib.Res{Message: "Invalid installation ID"})
 	}
 
-	if err := query.InsertInstallationID(h.qCtx, db.InsertInstallationIDParams{
+	if err := q.InsertInstallationID(h.qCtx, db.InsertInstallationIDParams{
 		InstallationID: sql.NullInt64{
 			Int64: instllation_id,
 			Valid: true,
 		},
-		OrganizationID: orgId,
+		AppID: ghApp.AppID,
 	}); err != nil {
 		return c.JSON(http.StatusInternalServerError, lib.Res{Message: "Failed to setup github app"})
 	}
@@ -232,24 +247,14 @@ func (h *GitHandler) SetupGithubApp(c *echo.Context) error {
 	return c.Redirect(http.StatusFound, h.Server.Config.WebUrl+"/#/git")
 }
 
-// get the github app info
+// get all the github app info
 //
-// route: GET /api/provider/github/app
-func (h *GitHandler) GetGithubApp(c *echo.Context) error {
+// route: GET /api/provider/github/app/list
+func (h *GitHandler) GetAllGithubApps(c *echo.Context) error {
 	u := c.Get(h.Server.Config.EchoCtxUserKey).(lib.AuthUser)
 	q := h.Server.DB.Queries
-	b := new(GetGithubAppReq)
 
-	if Res := BindAndValidate(b, c, h.Validate); Res != nil {
-		return c.JSON(http.StatusBadRequest, Res)
-	}
-
-	status, Res := CheckUserExistsInOrg(q, u.Email, b.OrgID)
-	if Res != nil {
-		return c.JSON(status, Res)
-	}
-
-	ghApp, err := q.GetGithubApp(h.qCtx, b.OrgID)
+	ghApps, err := q.GetAllGhAppsByEmail(h.qCtx, u.Email)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return c.JSON(http.StatusOK, nil)
@@ -258,11 +263,7 @@ func (h *GitHandler) GetGithubApp(c *echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, lib.Res{Message: "Failed to get github app"})
 	}
 
-	return c.JSON(http.StatusOK, GetGithubAppRes{
-		Name:        ghApp.Name,
-		CreatedAt:   ghApp.CreatedAt.String(),
-		GithubAppID: ghApp.ID,
-	})
+	return c.JSON(http.StatusOK, ghApps)
 }
 
 // delete github app for admin users
@@ -283,7 +284,7 @@ func (h *GitHandler) DeleteGithubApp(c *echo.Context) error {
 		return c.JSON(http.StatusForbidden, lib.Res{Message: "admin access required"})
 	}
 
-	if err := q.DeleteGithubApp(h.qCtx, b.OrgID); err != nil {
+	if err := q.DeleteGithubApp(h.qCtx, b.AppID); err != nil {
 		return c.JSON(http.StatusInternalServerError, lib.Res{Message: "Failed to delete github app"})
 	}
 
@@ -292,22 +293,13 @@ func (h *GitHandler) DeleteGithubApp(c *echo.Context) error {
 
 // get list of repos accessible by the github app
 //
-// route: GET /api/provider/github/repo/list?org_id=
+// route: GET /api/provider/github/repo/list?app_id=
 func (h *GitHandler) GetGithubRepoList(c *echo.Context) error {
-	u := c.Get(h.Server.Config.EchoCtxUserKey).(lib.AuthUser)
-	query := h.Server.DB.Queries
-	b := new(GetGithubAppReq)
+	q := h.Server.DB.Queries
 
-	if Res := BindAndValidate(b, c, h.Validate); Res != nil {
-		return c.JSON(http.StatusBadRequest, Res)
-	}
+	appID, err := strconv.ParseInt(c.QueryParam("app_id"), 10, 64)
 
-	status, Res := CheckUserExistsInOrg(query, u.Email, b.OrgID)
-	if Res != nil {
-		return c.JSON(status, Res)
-	}
-
-	ghApp, err := query.GetGithubApp(h.qCtx, b.OrgID)
+	ghApp, err := q.GetGhAppByAppId(h.qCtx, appID)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return c.JSON(http.StatusConflict, lib.Res{Message: "No github connected"})

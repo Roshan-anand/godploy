@@ -67,7 +67,7 @@ func CheckUserExistsInOrg(q *db.Queries, email string, orgId uuid.UUID) (int, *l
 }
 
 // get github app manifest data
-func getManifestData(url string, orgId uuid.UUID) (string, error) {
+func getManifestData(url string, state string) (string, error) {
 	appName, err := generateGitHubManifestAppName()
 	if err != nil {
 		return "", err
@@ -81,7 +81,7 @@ func getManifestData(url string, orgId uuid.UUID) (string, error) {
 		},
 		"redirect_url": url + "/api/provider/github/app/callback",
 		// "callback_urls": []string{"http://localhost:8080/api/provider/github/app/callback"},
-		"setup_url": fmt.Sprintf("%s/api/provider/github/app/setup?org_id=%s", url, orgId.String()),
+		"setup_url": fmt.Sprintf("%s/api/provider/github/app/setup?state=%s", url, state),
 		"public":    true,
 		"default_permissions": map[string]string{
 			"contents": "read",

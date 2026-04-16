@@ -261,7 +261,7 @@ func (q *Queries) GetAllServicesByProjectId(ctx context.Context, projectid uuid.
 }
 
 const getAppServiceById = `-- name: GetAppServiceById :one
-SELECT id, project_id, type, service_id, name, app_name, description, created_at, git_provider, git_repo_id, git_repo_name
+SELECT id, project_id, type, service_id, name, app_name, description, git_provider, git_repo_id, git_repo_name, created_at
 FROM app_service
 WHERE id = ?
 `
@@ -277,10 +277,10 @@ func (q *Queries) GetAppServiceById(ctx context.Context, id uuid.UUID) (AppServi
 		&i.Name,
 		&i.AppName,
 		&i.Description,
-		&i.CreatedAt,
 		&i.GitProvider,
 		&i.GitRepoID,
 		&i.GitRepoName,
+		&i.CreatedAt,
 	)
 	return i, err
 }

@@ -5,16 +5,18 @@ ENV NODE_ENV=development
 ENV VITE_APP_ENV=development
 
 WORKDIR /app/frontend
+RUN chown -R bun:bun /app/frontend
 
-COPY frontend/package.json frontend/bun.lock ./
+USER bun
+
+COPY --chown=bun:bun frontend/package.json frontend/bun.lock ./
 
 RUN bun install --frozen-lockfile
 RUN bun prepare
 
-COPY ./frontend ./
+COPY --chown=bun:bun ./frontend ./
 
 EXPOSE 3000
-
 CMD ["bun", "dev", "--host", "0.0.0.0", "--port", "3000"]
 
 # Stage 2: Backend development with go.

@@ -103,7 +103,7 @@ func (h *ServiceHandler) GetPsqlServiceById(c *echo.Context) error {
 // route: POST /api/service/psql/deploy
 func (h *ServiceHandler) DeployPsqlService(c *echo.Context) error {
 	docker := h.Server.Docker
-	query := h.Server.DB.Queries
+	q := h.Server.DB.Queries
 
 	b := new(ServiceReq)
 
@@ -111,7 +111,7 @@ func (h *ServiceHandler) DeployPsqlService(c *echo.Context) error {
 		return c.JSON(http.StatusBadRequest, Res)
 	}
 
-	service, err := query.GetPsqlServiceById(h.qCtx, b.ServiceId)
+	service, err := q.GetPsqlServiceById(h.qCtx, b.ServiceId)
 	if err != nil {
 		return c.JSON(http.StatusNotFound, lib.Res{Message: "service not found"})
 	}
@@ -171,7 +171,7 @@ func (h *ServiceHandler) DeployPsqlService(c *echo.Context) error {
 	}
 
 	// update the service ID
-	if err := query.SetPsqlServiceId(h.qCtx, db.SetPsqlServiceIdParams{
+	if err := q.SetPsqlServiceId(h.qCtx, db.SetPsqlServiceIdParams{
 		ServiceID: sRes.ID,
 	}); err != nil {
 		docker.ServiceRemove(h.qCtx, sRes.ID, client.ServiceRemoveOptions{})
@@ -188,7 +188,7 @@ func (h *ServiceHandler) DeployPsqlService(c *echo.Context) error {
 // route: POST /api/service/psql/stop
 func (h *ServiceHandler) StopPsqlService(c *echo.Context) error {
 	docker := h.Server.Docker
-	query := h.Server.DB.Queries
+	q := h.Server.DB.Queries
 
 	b := new(ServiceReq)
 
@@ -196,7 +196,7 @@ func (h *ServiceHandler) StopPsqlService(c *echo.Context) error {
 		return c.JSON(http.StatusBadRequest, Res)
 	}
 
-	service, err := query.GetPsqlServiceById(h.qCtx, b.ServiceId)
+	service, err := q.GetPsqlServiceById(h.qCtx, b.ServiceId)
 	if err != nil {
 		return c.JSON(http.StatusNotFound, lib.Res{Message: "service not found"})
 	}
@@ -213,7 +213,7 @@ func (h *ServiceHandler) StopPsqlService(c *echo.Context) error {
 // route: DELETE /api/service/psql
 func (h *ServiceHandler) DeletePsqlService(c *echo.Context) error {
 	docker := h.Server.Docker
-	query := h.Server.DB.Queries
+	q := h.Server.DB.Queries
 
 	b := new(ServiceReq)
 
@@ -221,7 +221,7 @@ func (h *ServiceHandler) DeletePsqlService(c *echo.Context) error {
 		return c.JSON(http.StatusBadRequest, Res)
 	}
 
-	service, err := query.GetPsqlServiceById(h.qCtx, b.ServiceId)
+	service, err := q.GetPsqlServiceById(h.qCtx, b.ServiceId)
 	if err != nil {
 		return c.JSON(http.StatusConflict, lib.Res{Message: "Failed to fetch service details"})
 	}
@@ -233,7 +233,7 @@ func (h *ServiceHandler) DeletePsqlService(c *echo.Context) error {
 		}
 	}
 
-	if err := query.DeletePsqlService(h.qCtx, b.ServiceId); err != nil {
+	if err := q.DeletePsqlService(h.qCtx, b.ServiceId); err != nil {
 		return c.JSON(http.StatusInternalServerError, lib.Res{Message: "Failed to create service"})
 	}
 

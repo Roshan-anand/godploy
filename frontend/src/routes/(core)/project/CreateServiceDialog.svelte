@@ -7,7 +7,7 @@
 	import * as Select from '@/components/ui/select';
 	import { Textarea } from '@/components/ui/textarea';
 	import { queryClient } from '@/query';
-	import { createForm } from '@tanstack/svelte-form';
+	import { createForm, revalidateLogic } from '@tanstack/svelte-form';
 	import { createMutation, createQuery } from '@tanstack/svelte-query';
 	import Icon from '@iconify/svelte';
 	import { goto } from '$app/navigation';
@@ -36,19 +36,21 @@
 	}
 
 	type GitProviderKey = 'github' | 'gitlab' | 'bitbucket';
-	type GitRepoFetchStatus =
-		| 'idle'
-		| 'loading'
-		| 'provider_not_connected'
-		| 'no_repo_authorized'
-		| 'loaded'
-		| 'error';
-
 	interface GitProviderOption {
 		key: GitProviderKey;
 		name: string;
 		icon: string;
 		api: string;
+	}
+
+	interface ApiMessageRes {
+		message: string;
+	}
+
+	interface GithubApp {
+		name: string;
+		app_id: number;
+		created_at: string;
 	}
 
 	interface GithubRepo {
@@ -63,6 +65,7 @@
 	interface GetRepoResult {
 		status: number;
 		repos: GithubRepo[];
+		message: string;
 		provider: GitProviderKey;
 	}
 
@@ -108,52 +111,58 @@
 		enabled: !isProjectScoped && userState.currentOrg.id !== ''
 	}));
 
-	// Git selection is status-driven by backend response codes: 409 (provider missing), 204 (no repos), 200 (repo list).
-	let selectedGitProvider = $state<GitProviderKey | ''>('');
-	let selectedGitRepoId = $state('');
-	let selectedGitRepoName = $state('');
-	let gitRepoFetchStatus = $state<GitRepoFetchStatus>('idle');
-	let gitRepoList = $state<GithubRepo[]>([]);
+	const getGithubAppsQueryKey = () => ['github-apps', userState.currentOrg.id] as const;
 
-	const selectedGitProviderName = $derived(
-		gitProviders.find((provider) => provider.key === selectedGitProvider)?.name ?? 'provider'
-	);
+	const githubAppsQuery = createQuery(() => ({
+		queryKey: getGithubAppsQueryKey(),
+		queryFn: async () => {
+			try {
+				const response = await api.get<GithubApp[] | null>('/provider/github/app/list');
+				githubApps = response.data ?? [];
+				return githubApps;
+			} catch (error) {
+				const err = error instanceof Error ? error : new Error('Failed to load GitHub apps');
+				githubApps = [];
+				axiosErr(err, 'Failed to load GitHub apps');
+				return [];
+			}
+		},
+		enabled: false
+	}));
+
+	// Git options are cached locally; selected values are stored in the TanStack form state.
+	let githubApps = $state<GithubApp[]>([]);
+	let githubRepos = $state<GithubRepo[]>([]);
 
 	const getReposMutation = createMutation(() => ({
-		mutationFn: async (provider: GitProviderOption): Promise<GetRepoResult> => {
-			const response = await api.get<GithubRepo[]>(provider.api, {
-				params: { org_id: userState.currentOrg.id },
+		mutationFn: async ({
+			provider,
+			appId
+		}: {
+			provider: GitProviderOption;
+			appId: number;
+		}): Promise<GetRepoResult> => {
+			const response = await api.get<GithubRepo[] | ApiMessageRes>(provider.api, {
+				params: { app_id: appId },
 				validateStatus: (status) => status === 200 || status === 204 || status === 409
 			});
 
 			return {
 				status: response.status,
-				repos: response.status === 200 ? response.data : [],
+				repos: response.status === 200 ? (response.data as GithubRepo[]) : [],
+				message: response.status === 409 ? ((response.data as ApiMessageRes)?.message ?? '') : '',
 				provider: provider.key
 			};
 		},
 		onSuccess: (result) => {
-			if (result.status === 200 && result.repos.length > 0) {
-				gitRepoList = result.repos;
-				gitRepoFetchStatus = 'loaded';
-				return;
-			}
+			githubRepos = result.repos;
 
-			gitRepoList = [];
-			selectedGitRepoId = '';
-			selectedGitRepoName = '';
-			gitRepoFetchStatus =
-				result.status === 409
-					? 'provider_not_connected'
-					: result.status === 204 || result.status === 200
-						? 'no_repo_authorized'
-						: 'error';
+			if (result.status === 409) {
+				toast.error(result.message || 'No github connected');
+			}
 		},
 		onError: (error) => {
-			gitRepoList = [];
-			selectedGitRepoId = '';
-			selectedGitRepoName = '';
-			gitRepoFetchStatus = 'error';
+			githubRepos = [];
 			axiosErr(error, 'Failed to fetch repositories');
 		}
 	}));
@@ -179,6 +188,7 @@
 		onError: (error) => axiosErr(error, 'Failed to create service')
 	}));
 
+	// Dynamic validators gate service-specific fields without manual submit-time checks.
 	// TanStack Form handles one dynamic service form for both app and psql service creation.
 	const form = createForm(() => ({
 		defaultValues: {
@@ -187,10 +197,38 @@
 			description: '',
 			type: 'app',
 			app_name: '',
+			git_provider: '' as GitProviderKey | '',
+			git_app_id: '',
+			git_repo_id: '',
+			git_branch: '',
 			db_name: '',
 			db_user: '',
 			db_password: '',
 			image: ''
+		},
+		validationLogic: revalidateLogic(),
+		validators: {
+			onDynamic: ({ value }) => {
+				const fields = {} as typeof value;
+
+				switch (value.type) {
+					case 'app':
+						if (value.git_provider === 'github') {
+							if (value.git_app_id === '') fields.git_app_id = 'GitHub app is required';
+							if (value.git_repo_id === '') fields.git_repo_id = 'Repository is required';
+							if (value.git_branch === '') fields.git_branch = 'Branch is required';
+						}
+						break;
+
+					case 'psql':
+						if (value.db_name.trim() === '') fields.db_name = 'Database name is required';
+						if (value.db_user.trim() === '') fields.db_user = 'Database user is required';
+						if (value.db_password === '') fields.db_password = 'Database password is required';
+						if (value.image.trim() === '') fields.image = 'Image is required';
+						break;
+				}
+				return Object.keys(fields).length > 0 ? { fields } : undefined;
+			}
 		},
 		onSubmit: ({ value }) => {
 			const projectId = projectIdFromPath || value.project_id;
@@ -200,15 +238,9 @@
 			}
 
 			if (value.type === 'app') {
-				if (selectedGitProvider === '') {
-					toast.error('Please select a git provider');
-					return;
-				}
-
-				if (selectedGitRepoId === '' || selectedGitRepoName === '') {
-					toast.error('Please select a repository');
-					return;
-				}
+				const selectedGithubRepo = githubRepos.find(
+					(repo) => repo.id.toString() === value.git_repo_id
+				);
 
 				createServiceMutation.mutate({
 					type: 'app',
@@ -217,9 +249,10 @@
 						name: value.name.trim(),
 						description: value.description.trim(),
 						app_name: value.app_name.trim(),
-						git_provider: selectedGitProvider,
-						git_repo_id: selectedGitRepoId,
-						git_repo_name: selectedGitRepoName
+						git_provider: value.git_provider,
+						git_repo_id: value.git_repo_id,
+						git_repo_name: selectedGithubRepo?.full_name ?? '',
+						git_branch: value.git_branch
 					}
 				});
 				return;
@@ -247,30 +280,99 @@
 	}
 
 	function resetGitRepoSelection() {
-		selectedGitProvider = '';
-		selectedGitRepoId = '';
-		selectedGitRepoName = '';
-		gitRepoFetchStatus = 'idle';
-		gitRepoList = [];
+		form.resetField('git_provider');
+		form.resetField('git_app_id');
+		form.resetField('git_repo_id');
+		form.resetField('git_branch');
+		githubApps = [];
+		githubRepos = [];
 	}
 
-	function fetchGitRepos(provider: GitProviderOption) {
-		if (provider.api === '' || userState.currentOrg.id === '' || createServiceMutation.isPending) return;
+	function onServiceTypeChange(type: ServiceType) {
+		const currentType = form.getFieldValue('type');
+		form.setFieldValue('type', type);
 
-		selectedGitProvider = provider.key;
-		selectedGitRepoId = '';
-		selectedGitRepoName = '';
-		gitRepoFetchStatus = 'loading';
-		gitRepoList = [];
-		getReposMutation.mutate(provider);
+		if (currentType === type) return;
+
+		resetGitRepoSelection();
+
+		if (type === 'app') {
+			form.resetField('db_name');
+			form.resetField('db_user');
+			form.resetField('db_password');
+			form.resetField('image');
+		}
+	}
+
+	function selectGithubApp(app: GithubApp) {
+		if (
+			userState.currentOrg.id === '' ||
+			createServiceMutation.isPending ||
+			getReposMutation.isPending
+		)
+			return;
+
+		const githubProvider = gitProviders.find((provider) => provider.key === 'github');
+		if (!githubProvider) return;
+
+		form.setFieldValue('git_provider', 'github');
+		form.setFieldValue('git_app_id', app.app_id.toString());
+		form.setFieldValue('git_repo_id', '');
+		form.setFieldValue('git_branch', '');
+		githubRepos = [];
+
+		getReposMutation.mutate({
+			provider: githubProvider,
+			appId: app.app_id
+		});
+	}
+
+	function onGithubAppSelect(appId: string) {
+		const app = githubApps.find((item) => item.app_id.toString() === appId);
+		if (!app) return;
+
+		selectGithubApp(app);
+	}
+
+	function fetchGitProvider(provider: GitProviderOption) {
+		if (provider.api === '' || userState.currentOrg.id === '' || createServiceMutation.isPending)
+			return;
+
+		form.setFieldValue('git_provider', provider.key);
+		form.setFieldValue('git_app_id', '');
+		form.setFieldValue('git_repo_id', '');
+		form.setFieldValue('git_branch', '');
+		githubApps = [];
+		githubRepos = [];
+
+		if (provider.key === 'github') {
+			void githubAppsQuery.refetch();
+		}
 	}
 
 	function onRepoSelect(repoId: string) {
-		const repo = gitRepoList.find((r) => r.id.toString() === repoId);
+		const repo = githubRepos.find((r) => r.id.toString() === repoId);
 		if (!repo) return;
 
-		selectedGitRepoId = repoId;
-		selectedGitRepoName = repo.full_name;
+		form.setFieldValue('git_repo_id', repoId);
+		form.setFieldValue('git_branch', repo.default_branch);
+	}
+
+	function onBranchSelect(branchName: string) {
+		form.setFieldValue('git_branch', branchName);
+	}
+
+	function getRepoBranches(repoId: string): string[] {
+		const selectedRepo = githubRepos.find((repo) => repo.id.toString() === repoId);
+		return selectedRepo ? [selectedRepo.default_branch] : [];
+	}
+
+	function getGithubAppName(appId: string): string {
+		return githubApps.find((app) => app.app_id.toString() === appId)?.name ?? '';
+	}
+
+	function getGithubRepoName(repoId: string): string {
+		return githubRepos.find((repo) => repo.id.toString() === repoId)?.full_name ?? '';
 	}
 </script>
 
@@ -383,7 +485,7 @@
 							<Select.Root
 								type="single"
 								value={field.state.value}
-								onValueChange={(value) => field.handleChange(value as ServiceType)}
+								onValueChange={(value) => onServiceTypeChange(value as ServiceType)}
 							>
 								<Select.Trigger class="w-full" id={field.name}>
 									{serviceTypes.find((item) => item.value === field.state.value)?.label}
@@ -423,60 +525,154 @@
 				<form.Subscribe selector={(state) => state.values.type}>
 					{#snippet children(currentType)}
 						{#if currentType === 'app'}
-							<div class="space-y-2">
-								<Label>Git</Label>
-								<div class="flex items-center gap-3 w-full">
-									{#each gitProviders as provider (provider.key)}
-										<Button
-											type="button"
-											variant="outline"
-											disabled={provider.api === '' ||
-												userState.currentOrg.id === '' ||
-												getReposMutation.isPending ||
-												createServiceMutation.isPending}
-											onclick={() => fetchGitRepos(provider)}
-											class="flex-1"
-										>
-											<Icon icon={provider.icon} width="20" height="20" />
-											<p>{provider.name}</p>
-										</Button>
-									{/each}
-								</div>
+							<form.Subscribe
+								selector={(state) => ({
+									gitProvider: state.values.git_provider,
+									gitAppId: state.values.git_app_id,
+									gitRepoId: state.values.git_repo_id,
+									gitBranch: state.values.git_branch
+								})}
+							>
+								{#snippet children(gitState)}
+									<div class="space-y-2">
+										<form.Field name="git_provider">
+											{#snippet children(field)}
+												<Label>Git</Label>
+												<div class="flex items-center gap-3 w-full">
+													{#each gitProviders as provider (provider.key)}
+														<Button
+															type="button"
+															variant="outline"
+															disabled={provider.api === '' ||
+																userState.currentOrg.id === '' ||
+																getReposMutation.isPending ||
+																createServiceMutation.isPending}
+															onclick={() => {
+																field.handleChange(provider.key);
+																fetchGitProvider(provider);
+															}}
+															class="flex-1"
+														>
+															<Icon icon={provider.icon} width="20" height="20" />
+															<p>{provider.name}</p>
+														</Button>
+													{/each}
+												</div>
+												{#if field.state.meta.errors.length}
+													<p class="text-sm font-medium text-destructive">
+														{field.state.meta.errors[0]}
+													</p>
+												{/if}
+											{/snippet}
+										</form.Field>
 
-								{#if gitRepoFetchStatus === 'loading'}
-									<p class="text-sm text-muted-foreground">Loading repositories...</p>
-								{:else if gitRepoFetchStatus === 'provider_not_connected'}
-									<p class="text-sm text-muted-foreground">No {selectedGitProviderName} connected</p>
-								{:else if gitRepoFetchStatus === 'no_repo_authorized'}
-									<p class="text-sm text-muted-foreground">No repo authorized.</p>
-								{:else if gitRepoFetchStatus === 'loaded'}
-									<div class="space-y-1.5">
-										<Label for="git-repo-select">Repository</Label>
-										<Select.Root
-											type="single"
-											value={selectedGitRepoId}
-											onValueChange={onRepoSelect}
-										>
-											<Select.Trigger class="w-full" id="git-repo-select">
-												{selectedGitRepoName || 'Select repository'}
-											</Select.Trigger>
-											<Select.Content>
-												{#each gitRepoList as repo (repo.id)}
-													<Select.Item value={repo.id.toString()} label={repo.full_name} />
-												{/each}
-											</Select.Content>
-										</Select.Root>
+										<form.Field name="git_app_id">
+											{#snippet children(field)}
+												<div class="space-y-1.5">
+													<Label for="github-app-select">GitHub App</Label>
+													<Select.Root
+														type="single"
+														value={field.state.value}
+														onValueChange={(value) => {
+															field.handleChange(value);
+															onGithubAppSelect(value);
+														}}
+														disabled={gitState.gitProvider !== 'github'}
+													>
+														<Select.Trigger class="w-full" id="github-app-select">
+															{getGithubAppName(gitState.gitAppId) || 'Select GitHub app'}
+														</Select.Trigger>
+														<Select.Content>
+															{#each githubApps as app (app.app_id)}
+																<Select.Item value={app.app_id.toString()} label={app.name} />
+															{/each}
+														</Select.Content>
+													</Select.Root>
+													{#if field.state.meta.errors.length}
+														<p class="text-sm font-medium text-destructive">
+															{field.state.meta.errors[0]}
+														</p>
+													{/if}
+												</div>
+											{/snippet}
+										</form.Field>
+
+										<form.Field name="git_repo_id">
+											{#snippet children(field)}
+												<div class="space-y-1.5">
+													<Label for="git-repo-select">Repository</Label>
+													<Select.Root
+														type="single"
+														value={field.state.value}
+														onValueChange={(value) => {
+															field.handleChange(value);
+															onRepoSelect(value);
+														}}
+														disabled={gitState.gitAppId === ''}
+													>
+														<Select.Trigger class="w-full" id="git-repo-select">
+															{getGithubRepoName(gitState.gitRepoId) || 'Select repository'}
+														</Select.Trigger>
+														<Select.Content>
+															{#each githubRepos as repo (repo.id)}
+																<Select.Item value={repo.id.toString()} label={repo.full_name} />
+															{/each}
+														</Select.Content>
+													</Select.Root>
+													{#if field.state.meta.errors.length}
+														<p class="text-sm font-medium text-destructive">
+															{field.state.meta.errors[0]}
+														</p>
+													{/if}
+												</div>
+											{/snippet}
+										</form.Field>
+
+										<form.Field name="git_branch">
+											{#snippet children(field)}
+												<div class="space-y-1.5">
+													<Label for="git-branch-select">Branch</Label>
+													<Select.Root
+														type="single"
+														value={field.state.value}
+														onValueChange={(value) => {
+															field.handleChange(value);
+															onBranchSelect(value);
+														}}
+														disabled={gitState.gitRepoId === ''}
+													>
+														<Select.Trigger class="w-full" id="git-branch-select">
+															{gitState.gitBranch || 'Select branch'}
+														</Select.Trigger>
+														<Select.Content>
+															{#each getRepoBranches(gitState.gitRepoId) as branch (branch)}
+																<Select.Item value={branch} label={branch} />
+															{/each}
+														</Select.Content>
+													</Select.Root>
+													{#if field.state.meta.errors.length}
+														<p class="text-sm font-medium text-destructive">
+															{field.state.meta.errors[0]}
+														</p>
+													{/if}
+												</div>
+											{/snippet}
+										</form.Field>
 									</div>
-								{:else if gitRepoFetchStatus === 'error'}
-									<p class="text-sm text-destructive">Failed to fetch repositories.</p>
-								{/if}
-							</div>
+								{/snippet}
+							</form.Subscribe>
 						{/if}
 
 						{#if currentType === 'psql'}
 							<form.Field
 								name="db_name"
-								validators={{ onChange: z.string().min(1, 'Database name is required') }}
+								validators={{
+									onChange: z.string().min(1, 'Database name is required'),
+									onDynamic: ({ value, fieldApi }) => {
+										if (fieldApi.form.getFieldValue('type') !== 'psql') return undefined;
+										return value.trim() === '' ? 'Database name is required' : undefined;
+									}
+								}}
 							>
 								{#snippet children(field)}
 									<div class="space-y-1.5">
@@ -500,7 +696,13 @@
 
 							<form.Field
 								name="db_user"
-								validators={{ onChange: z.string().min(1, 'Database user is required') }}
+								validators={{
+									onChange: z.string().min(1, 'Database user is required'),
+									onDynamic: ({ value, fieldApi }) => {
+										if (fieldApi.form.getFieldValue('type') !== 'psql') return undefined;
+										return value.trim() === '' ? 'Database user is required' : undefined;
+									}
+								}}
 							>
 								{#snippet children(field)}
 									<div class="space-y-1.5">
@@ -524,7 +726,13 @@
 
 							<form.Field
 								name="db_password"
-								validators={{ onChange: z.string().min(1, 'Database password is required') }}
+								validators={{
+									onChange: z.string().min(1, 'Database password is required'),
+									onDynamic: ({ value, fieldApi }) => {
+										if (fieldApi.form.getFieldValue('type') !== 'psql') return undefined;
+										return value === '' ? 'Database password is required' : undefined;
+									}
+								}}
 							>
 								{#snippet children(field)}
 									<div class="space-y-1.5">
@@ -549,7 +757,13 @@
 
 							<form.Field
 								name="image"
-								validators={{ onChange: z.string().min(1, 'Image is required') }}
+								validators={{
+									onChange: z.string().min(1, 'Image is required'),
+									onDynamic: ({ value, fieldApi }) => {
+										if (fieldApi.form.getFieldValue('type') !== 'psql') return undefined;
+										return value.trim() === '' ? 'Image is required' : undefined;
+									}
+								}}
 							>
 								{#snippet children(field)}
 									<div class="space-y-1.5">

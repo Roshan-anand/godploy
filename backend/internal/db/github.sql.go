@@ -13,9 +13,10 @@ import (
 	"github.com/google/uuid"
 )
 
-const createGithubApp = `-- name: CreateGithubApp :exec
+const createGithubApp = `-- name: CreateGithubApp :one
 INSERT INTO github_app (id, name, organization_id,app_id, pem_key, webhook_secret)
 VALUES (?, ?, ?, ?, ?, ?)
+RETURNING app_id
 `
 
 type CreateGithubAppParams struct {
@@ -27,8 +28,8 @@ type CreateGithubAppParams struct {
 	WebhookSecret  string    `json:"webhook_secret"`
 }
 
-func (q *Queries) CreateGithubApp(ctx context.Context, arg CreateGithubAppParams) error {
-	_, err := q.db.ExecContext(ctx, createGithubApp,
+func (q *Queries) CreateGithubApp(ctx context.Context, arg CreateGithubAppParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, createGithubApp,
 		arg.ID,
 		arg.Name,
 		arg.OrganizationID,
@@ -36,12 +37,14 @@ func (q *Queries) CreateGithubApp(ctx context.Context, arg CreateGithubAppParams
 		arg.PemKey,
 		arg.WebhookSecret,
 	)
-	return err
+	var app_id int64
+	err := row.Scan(&app_id)
+	return app_id, err
 }
 
 const createRedirectSession = `-- name: CreateRedirectSession :exec
 INSERT INTO redirect_session (state, user_id, org_id, expires_at)
-VALUES (?, ?, ?, ?)
+VALUES  (?, ?, ?, ?)
 `
 
 type CreateRedirectSessionParams struct {
@@ -63,11 +66,11 @@ func (q *Queries) CreateRedirectSession(ctx context.Context, arg CreateRedirectS
 
 const deleteGithubApp = `-- name: DeleteGithubApp :exec
 DELETE FROM github_app
-WHERE organization_id = ?
+WHERE app_id = ?
 `
 
-func (q *Queries) DeleteGithubApp(ctx context.Context, organizationID uuid.UUID) error {
-	_, err := q.db.ExecContext(ctx, deleteGithubApp, organizationID)
+func (q *Queries) DeleteGithubApp(ctx context.Context, appID int64) error {
+	_, err := q.db.ExecContext(ctx, deleteGithubApp, appID)
 	return err
 }
 
@@ -81,13 +84,49 @@ func (q *Queries) DeleteRedirectSession(ctx context.Context, state string) error
 	return err
 }
 
-const getGithubApp = `-- name: GetGithubApp :one
-SELECT id, name, organization_id, app_id, installation_id, pem_key, webhook_secret, created_at, updated_at FROM github_app
-WHERE organization_id = ?
+const getAllGhAppsByEmail = `-- name: GetAllGhAppsByEmail :many
+SELECT gh.name, gh.app_id, gh.created_at
+FROM user u
+JOIN github_app gh ON u.current_org_id = gh.organization_id
+WHERE u.email = ?
 `
 
-func (q *Queries) GetGithubApp(ctx context.Context, organizationID uuid.UUID) (GithubApp, error) {
-	row := q.db.QueryRowContext(ctx, getGithubApp, organizationID)
+type GetAllGhAppsByEmailRow struct {
+	Name      string    `json:"name"`
+	AppID     int64     `json:"app_id"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+func (q *Queries) GetAllGhAppsByEmail(ctx context.Context, email string) ([]GetAllGhAppsByEmailRow, error) {
+	rows, err := q.db.QueryContext(ctx, getAllGhAppsByEmail, email)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetAllGhAppsByEmailRow
+	for rows.Next() {
+		var i GetAllGhAppsByEmailRow
+		if err := rows.Scan(&i.Name, &i.AppID, &i.CreatedAt); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getGhAppByAppId = `-- name: GetGhAppByAppId :one
+SELECT id, name, organization_id, app_id, installation_id, pem_key, webhook_secret, created_at, updated_at FROM github_app
+WHERE app_id = ?
+`
+
+func (q *Queries) GetGhAppByAppId(ctx context.Context, appID int64) (GithubApp, error) {
+	row := q.db.QueryRowContext(ctx, getGhAppByAppId, appID)
 	var i GithubApp
 	err := row.Scan(
 		&i.ID,
@@ -104,7 +143,7 @@ func (q *Queries) GetGithubApp(ctx context.Context, organizationID uuid.UUID) (G
 }
 
 const getRedirectSession = `-- name: GetRedirectSession :one
-SELECT state, user_id, org_id, expires_at, created_at
+SELECT state, user_id, org_id, gh_app_id, expires_at, created_at
 FROM redirect_session
 WHERE state = ?
 `
@@ -116,24 +155,54 @@ func (q *Queries) GetRedirectSession(ctx context.Context, state string) (Redirec
 		&i.State,
 		&i.UserID,
 		&i.OrgID,
+		&i.GhAppID,
 		&i.ExpiresAt,
 		&i.CreatedAt,
 	)
 	return i, err
 }
 
+const getRedirectSessionGhAppID = `-- name: GetRedirectSessionGhAppID :one
+SELECT gh_app_id
+FROM redirect_session
+WHERE state = ?
+`
+
+func (q *Queries) GetRedirectSessionGhAppID(ctx context.Context, state string) (sql.NullInt64, error) {
+	row := q.db.QueryRowContext(ctx, getRedirectSessionGhAppID, state)
+	var gh_app_id sql.NullInt64
+	err := row.Scan(&gh_app_id)
+	return gh_app_id, err
+}
+
 const insertInstallationID = `-- name: InsertInstallationID :exec
 UPDATE github_app
 SET installation_id = ?, updated_at = CURRENT_TIMESTAMP
-WHERE organization_id = ?
+WHERE app_id = ?
 `
 
 type InsertInstallationIDParams struct {
 	InstallationID sql.NullInt64 `json:"installation_id"`
-	OrganizationID uuid.UUID     `json:"organization_id"`
+	AppID          int64         `json:"app_id"`
 }
 
 func (q *Queries) InsertInstallationID(ctx context.Context, arg InsertInstallationIDParams) error {
-	_, err := q.db.ExecContext(ctx, insertInstallationID, arg.InstallationID, arg.OrganizationID)
+	_, err := q.db.ExecContext(ctx, insertInstallationID, arg.InstallationID, arg.AppID)
+	return err
+}
+
+const updateRedirectSession = `-- name: UpdateRedirectSession :exec
+UPDATE redirect_session
+SET gh_app_id = ?
+WHERE state = ?
+`
+
+type UpdateRedirectSessionParams struct {
+	GhAppID sql.NullInt64 `json:"gh_app_id"`
+	State   string        `json:"state"`
+}
+
+func (q *Queries) UpdateRedirectSession(ctx context.Context, arg UpdateRedirectSessionParams) error {
+	_, err := q.db.ExecContext(ctx, updateRedirectSession, arg.GhAppID, arg.State)
 	return err
 }

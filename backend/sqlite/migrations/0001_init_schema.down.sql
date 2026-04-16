@@ -4,5 +4,6 @@ DROP TABLE IF EXISTS user_organization;
 DROP TABLE IF EXISTS project;
 DROP TABLE IF EXISTS service;
 DROP TABLE IF EXISTS psql_service;
+DROP TABLE IF EXISTS app_service;
 DROP TABLE IF EXISTS redirect_session;
 DROP TABLE IF EXISTS github_app;

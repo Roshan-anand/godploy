@@ -9,8 +9,8 @@
 
 	interface GithubApp {
 		name: string;
+		app_id: number;
 		created_at: string;
-		github_app_id: string;
 	}
 
 	const providers = [
@@ -31,36 +31,34 @@
 		}
 	];
 
-	const getGithubAppQueryKey = () => ['github-app', userState.currentOrg.id] as const;
+	const getGithubAppsQueryKey = () => ['github-apps', userState.currentOrg.id] as const;
 
-	const getGithubAppQuery = createQuery(() => ({
-		queryKey: getGithubAppQueryKey(),
-		queryFn: () =>
-			api
-				.get<GithubApp | null>('/provider/github/app', {
-					params: { org_id: userState.currentOrg.id }
-				})
-				.then((res) => res.data),
+	const getGithubAppsQuery = createQuery(() => ({
+		queryKey: getGithubAppsQueryKey(),
+		queryFn: () => api.get<GithubApp[] | null>('/provider/github/app/list').then((res) => res.data),
 		enabled: userState.currentOrg.id !== ''
 	}));
 
 	const deleteGithubAppMutation = createMutation(() => ({
-		mutationFn: (payload: { org_id: string }) =>
+		mutationFn: (payload: { app_id: number }) =>
 			api.delete('/provider/github/app', { data: payload }).then((res) => res.data),
-		onSuccess: () => {
-			queryClient.setQueryData(getGithubAppQueryKey(), null);
+		onSuccess: (_res, payload) => {
+			queryClient.setQueryData(
+				getGithubAppsQueryKey(),
+				(cachedApps: GithubApp[] | null | undefined) => {
+					if (!cachedApps) return null;
+
+					const remainingApps = cachedApps.filter((app) => app.app_id !== payload.app_id);
+					return remainingApps.length > 0 ? remainingApps : null;
+				}
+			);
+
 			toast.success('Github app deleted successfully');
 		},
 		onError: (error) => axiosErr(error, 'Failed to delete github app')
 	}));
 
 	const providerRedirect = (loc: string) => (window.location.href = loc);
-
-	const deleteGithubApp = () => {
-		if (deleteGithubAppMutation.isPending || userState.currentOrg.id === '') return;
-
-		deleteGithubAppMutation.mutate({ org_id: userState.currentOrg.id });
-	};
 
 	const formatCreatedAt = (createdAt: string) => {
 		const parsedDate = new Date(createdAt);
@@ -91,38 +89,44 @@
 <hr class="my-3" />
 
 <section class="flex-1">
-	{#if getGithubAppQuery.isPending && userState.currentOrg.id !== ''}
+	{#if getGithubAppsQuery.isPending && userState.currentOrg.id !== ''}
 		<p class="text-muted-foreground">Loading provider details...</p>
-	{:else if getGithubAppQuery.isError || !getGithubAppQuery.data}
+	{:else if getGithubAppsQuery.isError}
+		<p class="text-destructive">Failed to load provider details.</p>
+	{:else if !getGithubAppsQuery.data || getGithubAppsQuery.data.length === 0}
 		<div class="flex items-center gap-2 text-muted-foreground size-full justify-center">
 			<Icon icon="material-icon-theme:git" width="24" height="24" />
 			<p>No provider connected</p>
 		</div>
 	{:else}
-		<div class="rounded-lg border bg-card text-card-foreground shadow-sm p-4 space-y-3">
-			<div class="flex items-start justify-between gap-3">
-				<div class="flex items-center gap-2">
-					<Icon icon="meteor-icons:github" width="24" height="24" />
-					<div>
-						<h2 class="font-semibold">GitHub</h2>
-						<p class="text-sm text-muted-foreground">{getGithubAppQuery.data.name}</p>
+		<div class="space-y-3">
+			{#each getGithubAppsQuery.data as app (app.app_id)}
+				<div class="rounded-lg border bg-card text-card-foreground shadow-sm p-4 space-y-3">
+					<div class="flex items-start justify-between gap-3">
+						<div class="flex items-center gap-2">
+							<Icon icon="meteor-icons:github" width="24" height="24" />
+							<div>
+								<h2 class="font-semibold">GitHub</h2>
+								<p class="text-sm text-muted-foreground">{app.name}</p>
+							</div>
+						</div>
+
+						<Button
+							variant="destructive"
+							size="sm"
+							onclick={() => deleteGithubAppMutation.mutate({ app_id: app.app_id })}
+							disabled={deleteGithubAppMutation.isPending}
+						>
+							{deleteGithubAppMutation.isPending ? 'Deleting...' : 'Delete'}
+						</Button>
+					</div>
+
+					<div class="text-sm text-muted-foreground space-y-1">
+						<span class="font-medium text-foreground">Created:</span>
+						{formatCreatedAt(app.created_at)}
 					</div>
 				</div>
-
-				<Button
-					variant="destructive"
-					size="sm"
-					onclick={deleteGithubApp}
-					disabled={deleteGithubAppMutation.isPending}
-				>
-					{deleteGithubAppMutation.isPending ? 'Deleting...' : 'Delete'}
-				</Button>
-			</div>
-
-			<div class="text-sm text-muted-foreground space-y-1">
-				<span class="font-medium text-foreground">Created:</span>
-				{formatCreatedAt(getGithubAppQuery.data.created_at)}
-			</div>
+			{/each}
 		</div>
 	{/if}
 </section>

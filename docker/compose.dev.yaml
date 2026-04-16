@@ -21,10 +21,11 @@ services:
         - action: rebuild
           path: ../frontend/bun.lock
     volumes:
-      - ../frontend/.svelte-kit:/app/frontend/.svelte-kit
+      - ../frontend/.svelte-kit:/app/frontend/.svelte-kit:rw
     environment:
       - NODE_ENV=development
       - DEV_BACKEND_URL=http://server:8080
+    user: "bun"
     ports:
       - "3000:3000"
     depends_on:

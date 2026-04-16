@@ -98,15 +98,15 @@ func SetSessionCookies(s *config.Server, c *echo.Context, uId uuid.UUID) error {
 	}
 
 	go func() {
-		query := s.DB.Queries
+		q := s.DB.Queries
 		ctx := context.Background()
 		// remove old session if any
-		if err := query.RemoveSessionByUID(ctx, uId); err != nil {
+		if err := q.RemoveSessionByUID(ctx, uId); err != nil {
 			fmt.Println("remove old session error :", err)
 		}
 
 		// store session data
-		if err := query.CreateSession(ctx, db.CreateSessionParams{
+		if err := q.CreateSession(ctx, db.CreateSessionParams{
 			UserID:    uId,
 			Token:     sToken,
 			ExpiresAt: time.Now().Add(SESSION_DATA_EXPIRY_DAY),

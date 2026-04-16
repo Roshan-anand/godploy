@@ -70,13 +70,13 @@ func SetupRoutes(srv *config.Server) (*echo.Echo, error) {
 	app.DELETE("", h.Service.DeleteAppService)
 
 	gh := protected.Group("/provider/github")
-	ghPublic := public.Group("/provider/github")
 	gh.GET("/app/create", h.Git.CreateGithubApp)
-	gh.GET("/app", h.Git.GetGithubApp)
+	gh.GET("/app/list", h.Git.GetAllGithubApps)
 	gh.DELETE("/app", h.Git.DeleteGithubApp)
+	gh.GET("/repo/list", h.Git.GetGithubRepoList)
+	ghPublic := public.Group("/provider/github")
 	ghPublic.GET("/app/callback", h.Git.CreateGithubAppCallback)
 	ghPublic.GET("/app/setup", h.Git.SetupGithubApp)
-	gh.GET("/repo/list", h.Git.GetGithubRepoList)
 
 	return e, nil
 }

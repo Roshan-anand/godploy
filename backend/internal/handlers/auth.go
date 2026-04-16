@@ -58,10 +58,10 @@ func InitAuthHandlers(s *config.Server) *AuthHandler {
 // route: GET /api/auth/user
 func (h *AuthHandler) AuthUser(c *echo.Context) error {
 	u, ok := c.Get(h.Server.Config.EchoCtxUserKey).(lib.AuthUser)
-	query := h.Server.DB.Queries
+	q := h.Server.DB.Queries
 
 	if !ok {
-		exists, err := query.AdminExists(h.qCtx)
+		exists, err := q.AdminExists(h.qCtx)
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, lib.Res{Message: "Internal Sever Error"})
 		}
@@ -72,7 +72,7 @@ func (h *AuthHandler) AuthUser(c *echo.Context) error {
 		return c.JSON(http.StatusUnauthorized, lib.Res{Message: "Unauthorized"})
 	}
 
-	org, err := query.GetCurrentOrg(h.qCtx, u.Email)
+	org, err := q.GetCurrentOrg(h.qCtx, u.Email)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, lib.Res{Message: "Internal Sever Error"})
 	}
@@ -96,10 +96,10 @@ func (h *AuthHandler) AppRegiter(c *echo.Context) error {
 		return c.JSON(http.StatusBadRequest, Res)
 	}
 
-	query := h.Server.DB.Queries
+	q := h.Server.DB.Queries
 
 	// check if admin user already exists
-	if exist, err := query.AdminExists(h.qCtx); err != nil {
+	if exist, err := q.AdminExists(h.qCtx); err != nil {
 		return c.JSON(http.StatusInternalServerError, lib.Res{Message: "Internal Server Error"})
 	} else if exist {
 		return c.JSON(http.StatusBadRequest, lib.Res{Message: "Admin User Already Exists"})
@@ -113,7 +113,7 @@ func (h *AuthHandler) AppRegiter(c *echo.Context) error {
 	}
 
 	// create organization first (user needs orgId at insert time)
-	org, err := query.CreateOrg(h.qCtx, db.CreateOrgParams{
+	org, err := q.CreateOrg(h.qCtx, db.CreateOrgParams{
 		ID:   lib.NewID(),
 		Name: b.OrgName,
 	})
@@ -122,7 +122,7 @@ func (h *AuthHandler) AppRegiter(c *echo.Context) error {
 	}
 
 	// register new admin user
-	uId, err := query.CreateUser(h.qCtx, db.CreateUserParams{
+	uId, err := q.CreateUser(h.qCtx, db.CreateUserParams{
 		ID:           lib.NewID(),
 		Name:         b.Name,
 		Email:        b.Email,
@@ -135,7 +135,7 @@ func (h *AuthHandler) AppRegiter(c *echo.Context) error {
 	}
 
 	// link user with organization
-	if err := query.LinkUserNOrg(h.qCtx, db.LinkUserNOrgParams{
+	if err := q.LinkUserNOrg(h.qCtx, db.LinkUserNOrgParams{
 		UserEmail:      b.Email,
 		OrganizationID: org.ID,
 	}); err != nil {

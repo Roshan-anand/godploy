@@ -8,6 +8,7 @@
 	import { Input } from '@/components/ui/input';
 	import { Checkbox } from '@/components/ui/checkbox';
 	import { Label } from '@/components/ui/label';
+	import { resolve } from '$app/paths';
 
 	const login = useLoginMutation();
 
@@ -135,7 +136,7 @@
 
 			<p class="px-8 text-center text-sm text-muted-foreground">
 				Don't have an account?
-				<Button variant="link" href="/register">Sign up</Button>
+				<Button variant="link" href={resolve('/register')}>Sign up</Button>
 			</p>
 		</div>
 	</div>

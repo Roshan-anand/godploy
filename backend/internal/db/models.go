@@ -20,10 +20,10 @@ type AppService struct {
 	Name        string            `json:"name"`
 	AppName     string            `json:"app_name"`
 	Description string            `json:"description"`
-	CreatedAt   time.Time         `json:"created_at"`
 	GitProvider string            `json:"git_provider"`
 	GitRepoID   string            `json:"git_repo_id"`
 	GitRepoName string            `json:"git_repo_name"`
+	CreatedAt   time.Time         `json:"created_at"`
 }
 
 type GithubApp struct {
@@ -69,11 +69,12 @@ type PsqlService struct {
 }
 
 type RedirectSession struct {
-	State     string    `json:"state"`
-	UserID    uuid.UUID `json:"user_id"`
-	OrgID     uuid.UUID `json:"org_id"`
-	ExpiresAt time.Time `json:"expires_at"`
-	CreatedAt time.Time `json:"created_at"`
+	State     string        `json:"state"`
+	UserID    uuid.UUID     `json:"user_id"`
+	OrgID     uuid.UUID     `json:"org_id"`
+	GhAppID   sql.NullInt64 `json:"gh_app_id"`
+	ExpiresAt time.Time     `json:"expires_at"`
+	CreatedAt time.Time     `json:"created_at"`
 }
 
 type Session struct {

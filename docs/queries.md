@@ -35,3 +35,7 @@
 - [ ] provider integration state via HTTP status codes
     - when to use `409 Conflict` vs `204 No Content` for integration-driven UI
     - how status-code contracts simplify frontend state branches
+
+- [ ] github app selection before repo discovery
+    - how `/provider/github/app/list` can populate a client-side picker
+    - how repo fetches should carry the selected `app_id`

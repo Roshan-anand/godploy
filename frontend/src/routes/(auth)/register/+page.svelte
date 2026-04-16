@@ -8,6 +8,7 @@
 	import { Checkbox } from '@/components/ui/checkbox';
 	import { Label } from '@/components/ui/label';
 	import { useRegisterMutation } from '@/composables/useAuth';
+	import { resolve } from '$app/paths';
 
 	const register = useRegisterMutation();
 
@@ -203,7 +204,7 @@
 
 			<p class="px-8 text-center text-sm text-muted-foreground">
 				Already have an account?
-				<Button variant="link" href="/login">Log in</Button>
+				<Button variant="link" href={resolve('/login')}>Log in</Button>
 			</p>
 		</div>
 	</div>

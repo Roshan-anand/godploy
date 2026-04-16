@@ -22,14 +22,6 @@ SELECT CAST(EXISTS (
     WHERE email = ? AND role = 'admin'
 ) AS BOOLEAN);
 
--- name: GetUsersByCurrentOrg :many
-SELECT email FROM user
-WHERE current_org_id = ?;
-
--- name: RemoveUser :exec
-DELETE FROM user
-WHERE id = ?;
-
 -- name: AdminExists :one
 SELECT CAST(EXISTS (
     SELECT 1 FROM user

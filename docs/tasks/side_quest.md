@@ -23,16 +23,24 @@
 - [ ] delete project btn sould show popup to confirm deletion. [easy, ui]
 - [x] git provider page. [easy, ui]
 - [ ] tests for project lifecycle
-- [ ] tests for service lifecycle
+- [ ] tests for pqsl service lifecycle
 - [ ] rememberMe functionality for login
 
 ## enhancements
 
 - [ ] use dynamic imports in client side
-- [ ] at [CheckUserExistsInOrg](../../backend/internal/handlers/utils.go) func return org details instead of just bool. 
+- create service form
+  - [ ] the `app name` field should be prefixed with project name and should be non editable. [easy, ui]
+  - [ ] the git provider github shoudl be auto fetched if the selected service is app. [easy, query]
+  - [x] select field for selecting git-provider-app after **git-provider-selection**.
+  - [x] select field for selecting branch after **repo-selection**.
+  - [ ] input field for build path after **branch-selection**.
+  - [ ] update create service aapi to accept build path, repo nd branch. [easy, api]
+- [ ] at [CheckUserExistsInOrg](../../backend/internal/handlers/utils.go) func return org details instead of just bool.
 
 ## Potential bugs
 
 - [x] not using enums for column user.role in [sql](../../backend/sqlite/migrations/0001_init_schema.up.sql).
 - [ ] service data is stored in DB and deployed, but what if user remove the service from terminal. the data still exists.
 - [ ] the github app is stored linked to org_ig, what if user fails on instllation then data still ramins. so retry fails because there is multiple github app store in singe org.
+- [ ] delete github app only deletes app from the DB and not from the github.
