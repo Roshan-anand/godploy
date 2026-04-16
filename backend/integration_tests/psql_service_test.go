@@ -32,15 +32,14 @@ func TestPsqlOperation(t *testing.T) {
 		t.Fatal("err creating http client:", err)
 	}
 
-	user, err := mockUserRejister(ts.URL, h, srv.Config)
+	_, err = mockUserRejister(ts.URL, h, srv.Config)
 	if err != nil {
 		t.Fatal(err)
 	}
-	orgid := user.OrgId
 
 	// route req body
 	p := new(db.CreateProjectRow)
-	r, err := h.Post(ts.URL+"/api/project", "application/json", reqBody(handlers.CreateProjectReq{Name: "test", OrgID: orgid}))
+	r, err := h.Post(ts.URL+"/api/project", "application/json", reqBody(handlers.CreateProjectReq{Name: "test"}))
 	if err != nil {
 		t.Fatal("err making request:", err)
 	}

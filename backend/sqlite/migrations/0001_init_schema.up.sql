@@ -39,16 +39,6 @@ CREATE TABLE project (
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 
--- CREATE TABLE service (
---     id uuid PRIMARY KEY,
---     project_id uuid NOT NULL REFERENCES project(id) ON DELETE CASCADE,
---     name TEXT NOT NULL,
---     description TEXT NOT NULL,
---     type TEXT NOT NULL,
---     info_id uuid NOT NULL,
---     created_at DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL
--- )
-
 CREATE TABLE psql_service (
     id uuid PRIMARY KEY,
     project_id uuid NOT NULL REFERENCES project(id) ON DELETE CASCADE,

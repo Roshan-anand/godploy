@@ -42,13 +42,13 @@
 	let deletingServiceId = $state('');
 	const pageUi = useServicePageUiState();
 
-	const getServiceListQueryKey = () => ['services', scopeType, scopeId] as const;
+	const getServiceListQueryKey = () => ['services', scopeType, scopeId];
 
 	// Shared service-list query/mutation keeps project-level and org-level pages in one UI component.
 	const servicesQuery = createQuery(() => ({
 		queryKey: getServiceListQueryKey(),
 		queryFn: () => {
-			const params = scopeType === 'project' ? { project_id: scopeId } : { org_id: scopeId };
+			const params = scopeType === 'project' ? { project_id: scopeId } : {};
 			const url = scopeType === 'project' ? '/service/project' : '/service/org';
 
 			return api.get<ServiceListResponse>(url, { params }).then((res) => res.data.services);

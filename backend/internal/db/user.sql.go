@@ -94,6 +94,19 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (GetUserByEm
 	return i, err
 }
 
+const getUserCurrentOrg = `-- name: GetUserCurrentOrg :one
+SELECT u.current_org_id
+FROM user u
+WHERE u.email = ?
+`
+
+func (q *Queries) GetUserCurrentOrg(ctx context.Context, email string) (uuid.UUID, error) {
+	row := q.db.QueryRowContext(ctx, getUserCurrentOrg, email)
+	var current_org_id uuid.UUID
+	err := row.Scan(&current_org_id)
+	return current_org_id, err
+}
+
 const isUserAdmin = `-- name: IsUserAdmin :one
 SELECT CAST(EXISTS (
     SELECT 1 FROM user

@@ -22,7 +22,6 @@ type ProjectHandler struct {
 type CreateProjectReq struct {
 	Name        string    `json:"project_name" validate:"required,min=3"`
 	Description string    `json:"description"`
-	OrgID       uuid.UUID `json:"org_id" validate:"required"`
 }
 
 type DeleteProjectReq struct {
@@ -43,21 +42,15 @@ func InitProjectHandlers(s *config.Server) *ProjectHandler {
 func (h *ProjectHandler) CreateProject(c *echo.Context) error {
 	u := c.Get(h.Server.Config.EchoCtxUserKey).(lib.AuthUser)
 	b := new(CreateProjectReq)
+	q := h.Server.DB.Queries
 
 	if Res := BindAndValidate(b, c, h.Validate); Res != nil {
 		return c.JSON(http.StatusBadRequest, Res)
 	}
 
-	q := h.Server.DB.Queries
-
-	status, Res := CheckUserExistsInOrg(q, u.Email, b.OrgID)
-	if Res != nil {
-		return c.JSON(status, Res)
-	}
-
 	// check if project already exists
 	if exist, err := q.CheckProjectExist(h.qCtx, db.CheckProjectExistParams{
-		OrgID:       b.OrgID,
+		Email:       u.Email,
 		ProjectName: b.Name,
 	}); err != nil {
 		return c.JSON(http.StatusInternalServerError, &lib.Res{Message: "internal server error"})
@@ -69,7 +62,7 @@ func (h *ProjectHandler) CreateProject(c *echo.Context) error {
 		ID:          lib.NewID(),
 		Name:        b.Name,
 		Description: b.Description,
-		OrgID:       b.OrgID,
+		Email:       u.Email,
 	})
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, lib.Res{Message: "Failed to create project"})
@@ -80,24 +73,12 @@ func (h *ProjectHandler) CreateProject(c *echo.Context) error {
 
 // get all the  projects of the organization
 //
-// route: GET /api/project/all?org_id
+// route: GET /api/project/all
 func (h *ProjectHandler) GetProjects(c *echo.Context) error {
 	u := c.Get(h.Server.Config.EchoCtxUserKey).(lib.AuthUser)
-
-	// get the value of org_id from query params
-	orgId, err := uuid.Parse(c.QueryParam("org_id"))
-	if err != nil {
-		return c.JSON(http.StatusBadRequest, lib.Res{Message: "invalid organisation id"})
-	}
 	q := h.Server.DB.Queries
 
-	// TODO : check weather the user exists in the organization or not
-	status, Res := CheckUserExistsInOrg(q, u.Email, orgId)
-	if Res != nil {
-		return c.JSON(status, Res)
-	}
-
-	p, err := q.GetAllProjects(h.qCtx, orgId)
+	p, err := q.GetAllProjects(h.qCtx, u.Email)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, lib.Res{Message: "Failed to get project"})
 	}

@@ -142,9 +142,14 @@ func (h *OrgHandler) SwitchOrg(c *echo.Context) error {
 
 	q := h.Server.DB.Queries
 
-	status, Res := CheckUserExistsInOrg(q, u.Email, b.OrgID)
-	if Res != nil {
-		return c.JSON(status, Res)
+	// check if the user is part of the organization they are trying to switch to
+	if exists, err := q.CheckUserOrgExists(context.Background(), db.CheckUserOrgExistsParams{
+		UserEmail:      u.Email,
+		OrganizationID: b.OrgID,
+	}); err != nil {
+		return c.JSON(http.StatusInternalServerError, lib.Res{Message: "internal server error"})
+	} else if !exists {
+		return c.JSON(http.StatusForbidden, lib.Res{Message: "User does not have access to the organization"})
 	}
 
 	user, err := q.GetUserByEmail(h.qCtx, u.Email)

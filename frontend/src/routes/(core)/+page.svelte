@@ -28,7 +28,6 @@
 	interface CreateProjectPayload {
 		project_name: string;
 		description: string;
-		org_id: string;
 	}
 
 	interface DeleteProjectPayload {
@@ -45,9 +44,7 @@
 	const query = createQuery(() => ({
 		queryKey: getProjectsQueryKey(),
 		queryFn: async () => {
-			return api
-				.get<Project[]>('/project/all', { params: { org_id: userState.currentOrg.id } })
-				.then((res) => res.data);
+			return api.get<Project[]>('/project/all').then((res) => res.data);
 		},
 		enabled: userState.currentOrg.id !== ''
 	}));
@@ -114,7 +111,6 @@
 		createProjectMutation.mutate({
 			project_name: projectName.trim(),
 			description: projectDescription.trim(),
-			org_id: userState.currentOrg.id
 		});
 	}
 

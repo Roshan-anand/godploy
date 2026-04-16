@@ -13,19 +13,20 @@ import (
 
 const checkProjectExist = `-- name: CheckProjectExist :one
 SELECT CAST(EXISTS(
-    SELECT 1 FROM project p
-    JOIN organization o ON o.id = p.organization_id
-    WHERE o.id = ?1  AND p.name = ?2
+    SELECT 1
+    FROM project p
+    JOIN user u ON u.current_org_id = p.organization_id
+    WHERE u.email = ? AND p.name = ?
 ) AS BOOLEAN )
 `
 
 type CheckProjectExistParams struct {
-	OrgID       uuid.UUID `json:"org_id"`
-	ProjectName string    `json:"project_name"`
+	Email       string `json:"email"`
+	ProjectName string `json:"project_name"`
 }
 
 func (q *Queries) CheckProjectExist(ctx context.Context, arg CheckProjectExistParams) (bool, error) {
-	row := q.db.QueryRowContext(ctx, checkProjectExist, arg.OrgID, arg.ProjectName)
+	row := q.db.QueryRowContext(ctx, checkProjectExist, arg.Email, arg.ProjectName)
 	var column_1 bool
 	err := row.Scan(&column_1)
 	return column_1, err
@@ -52,7 +53,9 @@ func (q *Queries) CheckProjectHasServices(ctx context.Context, projectID uuid.UU
 
 const createProject = `-- name: CreateProject :one
 INSERT INTO project (id,name,description,organization_id)
-VALUES (?,?,?,?)
+SELECT ?, ?, ?, u.current_org_id
+FROM user u
+WHERE u.email = ?
 RETURNING id,name,description
 `
 
@@ -60,7 +63,7 @@ type CreateProjectParams struct {
 	ID          uuid.UUID `json:"id"`
 	Name        string    `json:"name"`
 	Description string    `json:"description"`
-	OrgID       uuid.UUID `json:"org_id"`
+	Email       string    `json:"email"`
 }
 
 type CreateProjectRow struct {
@@ -74,7 +77,7 @@ func (q *Queries) CreateProject(ctx context.Context, arg CreateProjectParams) (C
 		arg.ID,
 		arg.Name,
 		arg.Description,
-		arg.OrgID,
+		arg.Email,
 	)
 	var i CreateProjectRow
 	err := row.Scan(&i.ID, &i.Name, &i.Description)
@@ -93,9 +96,9 @@ func (q *Queries) DeleteProject(ctx context.Context, id uuid.UUID) error {
 
 const getAllProjects = `-- name: GetAllProjects :many
 SELECT p.id,p.name,p.description
-FROM organization o
-JOIN project p ON o.id = p.organization_id
-WHERE o.id = ?1
+FROM project p
+JOIN user u ON u.current_org_id = p.organization_id
+WHERE u.email = ?
 `
 
 type GetAllProjectsRow struct {
@@ -104,8 +107,8 @@ type GetAllProjectsRow struct {
 	Description string    `json:"description"`
 }
 
-func (q *Queries) GetAllProjects(ctx context.Context, orgID uuid.UUID) ([]GetAllProjectsRow, error) {
-	rows, err := q.db.QueryContext(ctx, getAllProjects, orgID)
+func (q *Queries) GetAllProjects(ctx context.Context, email string) ([]GetAllProjectsRow, error) {
+	rows, err := q.db.QueryContext(ctx, getAllProjects, email)
 	if err != nil {
 		return nil, err
 	}

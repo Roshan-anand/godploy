@@ -16,6 +16,11 @@ FROM user u
 JOIN organization o ON o.id = u.current_org_id
 WHERE u.email = ?;
 
+-- name: GetUserCurrentOrg :one
+SELECT u.current_org_id
+FROM user u
+WHERE u.email = ?;
+
 -- name: IsUserAdmin :one
 SELECT CAST(EXISTS (
     SELECT 1 FROM user

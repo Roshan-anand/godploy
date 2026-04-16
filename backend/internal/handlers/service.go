@@ -48,22 +48,17 @@ func (h *ServiceHandler) GetAllProjectServices(c *echo.Context) error {
 
 // get all services of a organization
 //
-// route: GET /api/service/org?org_id
+// route: GET /api/service/org
 func (h *ServiceHandler) GetAllOrganizationServices(c *echo.Context) error {
 	u := c.Get(h.Server.Config.EchoCtxUserKey).(lib.AuthUser)
 	q := h.Server.DB.Queries
 
-	orgId, err := uuid.Parse(c.QueryParam("org_id"))
+	orgID, err := q.GetUserCurrentOrg(h.qCtx, u.Email)
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, lib.Res{Message: "invalid org_id"})
+		return c.JSON(http.StatusInternalServerError, lib.Res{Message: "failed to get user's current org"})
 	}
 
-	status, Res := CheckUserExistsInOrg(q, u.Email, orgId)
-	if Res != nil {
-		return c.JSON(status, Res)
-	}
-
-	services, err := q.GetAllServicesByOrgId(h.qCtx, orgId)
+	services, err := q.GetAllServicesByOrgId(h.qCtx, orgID)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, lib.Res{Message: "failed to get services"})
 	}

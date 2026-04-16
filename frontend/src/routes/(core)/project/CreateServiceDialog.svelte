@@ -104,9 +104,7 @@
 	const projectsQuery = createQuery(() => ({
 		queryKey: getProjectsQueryKey(),
 		queryFn: async () => {
-			return api
-				.get<Project[]>('/project/all', { params: { org_id: userState.currentOrg.id } })
-				.then((res) => res.data);
+			return api.get<Project[]>('/project/all').then((res) => res.data);
 		},
 		enabled: !isProjectScoped && userState.currentOrg.id !== ''
 	}));

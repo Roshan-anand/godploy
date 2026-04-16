@@ -44,17 +44,16 @@ func TestProjectOperations(t *testing.T) {
 		t.Fatal("err creating http client:", err)
 	}
 
-	user, err := mockUserRejister(ts.URL, h, srv.Config)
+	_, err = mockUserRejister(ts.URL, h, srv.Config)
 	if err != nil {
 		t.Fatal(err)
 	}
-	orgid := user.OrgId
 
 	// route paths
 	rProject := "/api/project"
 
 	// route req body
-	rCreateBody := handlers.CreateProjectReq{Name: "test", OrgID: orgid}
+	rCreateBody := handlers.CreateProjectReq{Name: "test", Description: ""}
 	rDeletBody := handlers.DeleteProjectReq{}
 
 	// route res body
@@ -88,8 +87,8 @@ func TestProjectOperations(t *testing.T) {
 		}
 	})
 
-	t.Run("GET /project?org_id : returns projects avalible in the org", func(t *testing.T) {
-		r, err := h.Get(ts.URL + rProject + "?org_id=" + orgid.String())
+	t.Run("GET /project/all : returns projects avalible in the org", func(t *testing.T) {
+		r, err := h.Get(ts.URL + rProject + "/all")
 		if err != nil {
 			t.Fatal("err making request:", err)
 		}

@@ -1,19 +1,22 @@
 -- name: CheckProjectExist :one
 SELECT CAST(EXISTS(
-    SELECT 1 FROM project p
-    JOIN organization o ON o.id = p.organization_id
-    WHERE o.id = @org_id  AND p.name = @project_name
+    SELECT 1
+    FROM project p
+    JOIN user u ON u.current_org_id = p.organization_id
+    WHERE u.email = ? AND p.name = @project_name
 ) AS BOOLEAN );
 
 -- name: GetAllProjects :many
 SELECT p.id,p.name,p.description
-FROM organization o
-JOIN project p ON o.id = p.organization_id
-WHERE o.id = @org_id;
+FROM project p
+JOIN user u ON u.current_org_id = p.organization_id
+WHERE u.email = ?;
 
 -- name: CreateProject :one
 INSERT INTO project (id,name,description,organization_id)
-VALUES (?,?,?,@org_id)
+SELECT ?, ?, ?, u.current_org_id
+FROM user u
+WHERE u.email = ?
 RETURNING id,name,description;
 
 -- name: DeleteProject :exec
