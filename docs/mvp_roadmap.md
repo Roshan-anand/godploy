@@ -6,12 +6,13 @@
 
 - [ ] i want to install Godploy on my vps in one cmd.
 - [x] i want to register/login using email and password.
-- [ ] i want to CRUD organizations.
-- [ ] i want to CRUD projects.
+- [x] i want to CRUD organizations.
+- [x] i want to CRUD projects.
+- [x] i want to connect to Github.
+- [x] i want to select a repo and branch.
 - [ ] i want to CRUD services.
 - [ ] i want to setup DB services (PSQL, MongoDB).
-- [ ] i want to connect to Github.
-- [ ] i want to select a repo and branch to deploy.
+- [ ] i want to deploy the service.
 - [ ] i want to view the build logs.
 - [ ] i want to view the service logs.
 - [ ] i want to set ssl certs for the service.
@@ -34,14 +35,14 @@
   - [ ] RBAC
 
 - **ORG/project**
-  - [ ] CRUD for Org.
-  - [ ] CRUD for Projects.
+  - [x] CRUD for Org.
+  - [x] CRUD for Projects.
 
 - **Services**
   - [ ] CRUD for Services.
   - [ ] Deploy, Stop, Rebuild service.
   - [ ] Predefined service templates (PSQL, MongoDB).
-  - [ ] Application Service template (for user code deployments).
+  - [x] Application Service template (for user code deployments).
   - [ ] Build logs streaming.
   - [ ] Service logs streaming.
   - [ ] Environment variable management.
@@ -55,6 +56,6 @@
 
 - **Github Integration**
   - [x] installation of GitHub App.
-  - [ ] Fetch the repositories and branches.
+  - [x] Fetch the repositories and branches.
   - [ ] WebHooks to trigger auto-deploy on push.
   - [ ] Build context management - Cleaning up old build artifacts.

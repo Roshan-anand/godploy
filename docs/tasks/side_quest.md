@@ -31,11 +31,11 @@
 - [ ] use dynamic imports in client side
 - create service form
   - [ ] the `app name` field should be prefixed with project name and should be non editable. [easy, ui]
-  - [ ] the git provider github shoudl be auto fetched if the selected service is app. [easy, query]
+  - [x] the git provider github shoudl be auto fetched if the selected service is app. [easy, query]
   - [x] select field for selecting git-provider-app after **git-provider-selection**.
   - [x] select field for selecting branch after **repo-selection**.
-  - [ ] input field for build path after **branch-selection**.
-  - [ ] update create service api to accept build path, repo nd branch. [easy, api]
+  - [x] input field for build path after **branch-selection**.
+  - [x] update create service api to accept build path, repo nd branch. [easy, api]
 - [ ] at [CheckUserExistsInOrg](../../backend/internal/handlers/utils.go) func return org details instead of just bool.
 
 ## Potential bugs

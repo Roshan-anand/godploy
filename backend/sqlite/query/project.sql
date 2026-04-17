@@ -17,6 +17,7 @@ INSERT INTO project (id,name,description,organization_id)
 SELECT ?, ?, ?, u.current_org_id
 FROM user u
 WHERE u.email = ?
+LIMIT 1
 RETURNING id,name,description;
 
 -- name: DeleteProject :exec
