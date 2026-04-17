@@ -7,13 +7,13 @@
 	import { Input } from '@/components/ui/input';
 	import { Label } from '@/components/ui/label';
 	import { Skeleton } from '@/components/ui/skeleton';
-	import type { Organization } from '@/composables/useAuth';
 	import { queryClient } from '@/query';
-	import { userState } from '@/store/user-state.svelte';
+	import { userState } from '@/store/userState.svelte';
 	import { createMutation, createQuery } from '@tanstack/svelte-query';
 	import { Check, ChevronsUpDown } from '@lucide/svelte';
 	import { toast } from 'svelte-sonner';
 	import CreateBtn from './CreateBtn.svelte';
+	import type { Organization } from '../../routes/(auth)/auth.api';
 
 	let orgMenuOpen = $state(false);
 	let createDialogOpen = $state(false);

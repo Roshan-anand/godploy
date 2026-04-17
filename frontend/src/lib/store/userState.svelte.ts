@@ -1,4 +1,5 @@
-import type { Organization, AuthResponse } from '@/composables/useAuth';
+import type { AuthResponse, Organization } from '../../routes/(auth)/auth.api';
+
 type UserState = {
 	name: string;
 	email: string;

@@ -1,25 +1,17 @@
 <script lang="ts">
-	import { api } from '@/axios';
 	import ServiceDetailApp from '@/components/services/service-detail-app.svelte';
 	import ServiceDetailPsql from '@/components/services/service-detail-psql.svelte';
 	import { Skeleton } from '@/components/ui/skeleton';
-	import type { ServiceDetails } from '@/types.js';
-	import { createQuery } from '@tanstack/svelte-query';
+	import { createServiceDetailQuery } from './service.api';
 
 	const { data } = $props();
 	const serviceType = $derived(data.service);
 	const serviceId = $derived(data.id ?? '');
 
-	// query to fetch service details based on service type and id
-	const serviceQuery = createQuery(() => ({
-		queryKey: ['service-details', serviceType, serviceId],
-		queryFn: async () => {
-			const url =
-				serviceType === 'app' ? `/service/app/${serviceId}` : `/service/psql/${serviceId}`;
-			return api.get<ServiceDetails>(url).then((res) => res.data);
-		},
-		enabled: serviceId !== '' && (serviceType === 'psql' || serviceType === 'app')
-	}));
+	const serviceQuery = createServiceDetailQuery({
+		getServiceType: () => serviceType,
+		getServiceId: () => serviceId
+	});
 </script>
 
 <section class="p-2 flex-1">

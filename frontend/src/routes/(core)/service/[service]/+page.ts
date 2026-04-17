@@ -1,7 +1,7 @@
-import type { ServiceType } from '@/types.js';
+import type { ServiceType } from './service.api';
 
 export function load({ params, url }) {
-	const queryString =url.hash.split('?')[1];
+	const queryString = url.hash.split('?')[1];
 	const searchParams = new URLSearchParams(queryString);
 
 	return {

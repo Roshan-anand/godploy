@@ -4,7 +4,7 @@
 	import { Label } from '@/components/ui/label';
 	import { Search } from '@lucide/svelte';
 	import { setServicePageUiState } from '@/components/services/context.svelte';
-	import { userState } from '@/store/user-state.svelte';
+	import { userState } from '@/store/userState.svelte';
 	import CreateServiceDialog from './CreateServiceDialog.svelte';
 
 	let { children } = $props();

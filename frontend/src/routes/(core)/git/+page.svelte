@@ -1,70 +1,18 @@
 <script lang="ts">
-	import { api, axiosErr } from '@/axios';
-	import { queryClient } from '@/query';
-	import { userState } from '@/store/user-state.svelte';
+	import { userState } from '@/store/userState.svelte';
 	import Button from '@/components/ui/button/button.svelte';
 	import Icon from '@iconify/svelte';
-	import { createMutation, createQuery } from '@tanstack/svelte-query';
-	import { toast } from 'svelte-sonner';
+	import {
+		createDeleteGithubAppMutation,
+		createGithubAppsQuery,
+		formatCreatedAt,
+		providers
+	} from './git.api';
 
-	interface GithubApp {
-		name: string;
-		app_id: number;
-		created_at: string;
-	}
-
-	const providers = [
-		{
-			name: 'Github',
-			icon: 'meteor-icons:github',
-			redirect: '/api/provider/github/app/create'
-		},
-		{
-			name: 'GitLab',
-			icon: 'material-icon-theme:gitlab',
-			redirect: ''
-		},
-		{
-			name: 'BitBucket',
-			icon: 'material-icon-theme:bitbucket',
-			redirect: ''
-		}
-	];
-
-	const getGithubAppsQueryKey = () => ['github-apps', userState.currentOrg.id] as const;
-
-	const getGithubAppsQuery = createQuery(() => ({
-		queryKey: getGithubAppsQueryKey(),
-		queryFn: () => api.get<GithubApp[] | null>('/provider/github/app/list').then((res) => res.data),
-		enabled: userState.currentOrg.id !== ''
-	}));
-
-	const deleteGithubAppMutation = createMutation(() => ({
-		mutationFn: (payload: { app_id: number }) =>
-			api.delete('/provider/github/app', { data: payload }).then((res) => res.data),
-		onSuccess: (_res, payload) => {
-			queryClient.setQueryData(
-				getGithubAppsQueryKey(),
-				(cachedApps: GithubApp[] | null | undefined) => {
-					if (!cachedApps) return null;
-
-					const remainingApps = cachedApps.filter((app) => app.app_id !== payload.app_id);
-					return remainingApps.length > 0 ? remainingApps : null;
-				}
-			);
-
-			toast.success('Github app deleted successfully');
-		},
-		onError: (error) => axiosErr(error, 'Failed to delete github app')
-	}));
+	const getGithubAppsQuery = createGithubAppsQuery();
+	const deleteGithubAppMutation = createDeleteGithubAppMutation();
 
 	const providerRedirect = (loc: string) => (window.location.href = loc);
-
-	const formatCreatedAt = (createdAt: string) => {
-		const parsedDate = new Date(createdAt);
-		if (Number.isNaN(parsedDate.getTime())) return createdAt;
-		return parsedDate.toLocaleString();
-	};
 </script>
 
 <section class="p-2">
