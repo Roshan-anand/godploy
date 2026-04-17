@@ -66,6 +66,8 @@ CREATE TABLE app_service (
     git_provider TEXT NOT NULL,
     git_repo_id TEXT NOT NULL,
     git_repo_name TEXT NOT NULL,
+    git_branch TEXT NOT NULL,
+    build_path TEXT NOT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 

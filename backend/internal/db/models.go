@@ -23,6 +23,8 @@ type AppService struct {
 	GitProvider string            `json:"git_provider"`
 	GitRepoID   string            `json:"git_repo_id"`
 	GitRepoName string            `json:"git_repo_name"`
+	GitBranch   string            `json:"git_branch"`
+	BuildPath   string            `json:"build_path"`
 	CreatedAt   time.Time         `json:"created_at"`
 }
 

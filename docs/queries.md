@@ -39,3 +39,7 @@
 - [ ] github app selection before repo discovery
     - how `/provider/github/app/list` can populate a client-side picker
     - how repo fetches should carry the selected `app_id`
+
+- [ ] app service source metadata persistence
+    - how `git_branch` and `build_path` should be validated in API input
+    - how those fields flow from form payload to `app_service` schema/sqlc params

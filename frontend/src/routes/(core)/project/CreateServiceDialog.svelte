@@ -69,6 +69,33 @@
 		provider: GitProviderKey;
 	}
 
+	interface CreateAppServiceBody {
+		project_id: string;
+		name: string;
+		description: string;
+		app_name: string;
+		git_provider: GitProviderKey;
+		git_repo_id: string;
+		git_repo_name: string;
+		git_branch: string;
+		build_path: string;
+	}
+
+	interface CreatePsqlServiceBody {
+		project_id: string;
+		name: string;
+		description: string;
+		app_name: string;
+		db_name: string;
+		db_user: string;
+		db_password: string;
+		image: string;
+	}
+
+	type CreateServicePayload =
+		| { type: 'app'; body: CreateAppServiceBody }
+		| { type: 'psql'; body: CreatePsqlServiceBody };
+
 	const projectIdFromPath = $derived(page.params.id ?? '');
 	const isProjectScoped = $derived(projectIdFromPath !== '');
 
@@ -166,7 +193,7 @@
 	}));
 
 	const createServiceMutation = createMutation(() => ({
-		mutationFn: async (payload: { type: ServiceType; body: Record<string, string> }) => {
+		mutationFn: async (payload: CreateServicePayload) => {
 			const url = payload.type === 'app' ? '/service/app' : '/service/psql';
 			return api.post<CreateServiceResponse>(url, payload.body).then((res) => res.data);
 		},
@@ -199,6 +226,7 @@
 			git_app_id: '',
 			git_repo_id: '',
 			git_branch: '',
+			build_path: '/',
 			db_name: '',
 			db_user: '',
 			db_password: '',
@@ -207,14 +235,16 @@
 		validationLogic: revalidateLogic(),
 		validators: {
 			onDynamic: ({ value }) => {
-				const fields = {} as typeof value;
+				const fields: Record<string, string> = {};
 
 				switch (value.type) {
 					case 'app':
+						if (value.git_provider === '') fields.git_provider = 'Git provider is required';
 						if (value.git_provider === 'github') {
 							if (value.git_app_id === '') fields.git_app_id = 'GitHub app is required';
 							if (value.git_repo_id === '') fields.git_repo_id = 'Repository is required';
 							if (value.git_branch === '') fields.git_branch = 'Branch is required';
+							if (value.build_path.trim() === '') fields.build_path = 'Build path is required';
 						}
 						break;
 
@@ -239,6 +269,7 @@
 				const selectedGithubRepo = githubRepos.find(
 					(repo) => repo.id.toString() === value.git_repo_id
 				);
+				const buildPath = value.build_path.trim() === '' ? '/' : value.build_path.trim();
 
 				createServiceMutation.mutate({
 					type: 'app',
@@ -247,10 +278,11 @@
 						name: value.name.trim(),
 						description: value.description.trim(),
 						app_name: value.app_name.trim(),
-						git_provider: value.git_provider,
+						git_provider: (value.git_provider || 'github') as GitProviderKey,
 						git_repo_id: value.git_repo_id,
 						git_repo_name: selectedGithubRepo?.full_name ?? '',
-						git_branch: value.git_branch
+						git_branch: value.git_branch,
+						build_path: buildPath
 					}
 				});
 				return;
@@ -282,6 +314,7 @@
 		form.resetField('git_app_id');
 		form.resetField('git_repo_id');
 		form.resetField('git_branch');
+		form.resetField('build_path');
 		githubApps = [];
 		githubRepos = [];
 	}
@@ -295,12 +328,23 @@
 		resetGitRepoSelection();
 
 		if (type === 'app') {
+			void githubAppsQuery.refetch();
 			form.resetField('db_name');
 			form.resetField('db_user');
 			form.resetField('db_password');
 			form.resetField('image');
 		}
 	}
+
+	$effect(() => {
+		if (!pageUi.createDialogOpen) return;
+		if (form.getFieldValue('type') !== 'app') return;
+		if (userState.currentOrg.id === '') return;
+		if (githubAppsQuery.isFetching) return;
+		if (githubApps.length > 0) return;
+
+		void githubAppsQuery.refetch();
+	});
 
 	function selectGithubApp(app: GithubApp) {
 		if (
@@ -340,10 +384,9 @@
 		form.setFieldValue('git_app_id', '');
 		form.setFieldValue('git_repo_id', '');
 		form.setFieldValue('git_branch', '');
-		githubApps = [];
 		githubRepos = [];
 
-		if (provider.key === 'github') {
+		if (provider.key === 'github' && githubApps.length === 0) {
 			void githubAppsQuery.refetch();
 		}
 	}
@@ -575,7 +618,7 @@
 															field.handleChange(value);
 															onGithubAppSelect(value);
 														}}
-														disabled={gitState.gitProvider !== 'github'}
+														disabled={createServiceMutation.isPending}
 													>
 														<Select.Trigger class="w-full" id="github-app-select">
 															{getGithubAppName(gitState.gitAppId) || 'Select GitHub app'}
@@ -648,6 +691,36 @@
 															{/each}
 														</Select.Content>
 													</Select.Root>
+													{#if field.state.meta.errors.length}
+														<p class="text-sm font-medium text-destructive">
+															{field.state.meta.errors[0]}
+														</p>
+													{/if}
+												</div>
+											{/snippet}
+										</form.Field>
+
+										<form.Field
+											name="build_path"
+											validators={{
+												onChange: z.string().min(1, 'Build path is required'),
+												onDynamic: ({ value, fieldApi }) => {
+													if (fieldApi.form.getFieldValue('type') !== 'app') return undefined;
+													return value.trim() === '' ? 'Build path is required' : undefined;
+												}
+											}}
+										>
+											{#snippet children(field)}
+												<div class="space-y-1.5">
+													<Label for={field.name}>Build Path</Label>
+													<Input
+														id={field.name}
+														placeholder="/"
+														value={field.state.value}
+														onblur={field.handleBlur}
+														oninput={(e) => field.handleChange(e.currentTarget.value)}
+														disabled={createServiceMutation.isPending}
+													/>
 													{#if field.state.meta.errors.length}
 														<p class="text-sm font-medium text-destructive">
 															{field.state.meta.errors[0]}

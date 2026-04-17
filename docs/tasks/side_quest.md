@@ -35,7 +35,7 @@
   - [x] select field for selecting git-provider-app after **git-provider-selection**.
   - [x] select field for selecting branch after **repo-selection**.
   - [ ] input field for build path after **branch-selection**.
-  - [ ] update create service aapi to accept build path, repo nd branch. [easy, api]
+  - [ ] update create service api to accept build path, repo nd branch. [easy, api]
 - [ ] at [CheckUserExistsInOrg](../../backend/internal/handlers/utils.go) func return org details instead of just bool.
 
 ## Potential bugs
