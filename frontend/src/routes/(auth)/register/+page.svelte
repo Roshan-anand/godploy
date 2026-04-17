@@ -1,34 +1,16 @@
 <script lang="ts">
-	import { createForm } from '@tanstack/svelte-form';
-	import { z } from 'zod';
+	import { createRegisterMutation } from '../auth.api';
+	import { createRegisterForm, registerFieldValidators } from './register.form';
 	import { toast } from 'svelte-sonner';
 	import AuthBranding from '@/components/auth-branding.svelte';
 	import { Button } from '@/components/ui/button';
 	import { Input } from '@/components/ui/input';
 	import { Checkbox } from '@/components/ui/checkbox';
 	import { Label } from '@/components/ui/label';
-	import { useRegisterMutation } from '@/composables/useAuth';
 	import { resolve } from '$app/paths';
 
-	const register = useRegisterMutation();
-
-	const form = createForm(() => ({
-		defaultValues: {
-			name: '',
-			email: '',
-			password: '',
-			organisation: '',
-			rememberMe: false
-		},
-		onSubmit: async ({ value }) => {
-			register.mutate({
-				name: value.name,
-				email: value.email,
-				password: value.password,
-				org_name: value.organisation
-			});
-		}
-	}));
+	const register = createRegisterMutation();
+	const form = createRegisterForm(register);
 
 	$effect(() => {
 		if (register.isError) {
@@ -56,12 +38,7 @@
 				}}
 			>
 				<div class="grid gap-4">
-					<form.Field
-						name="name"
-						validators={{
-							onChange: z.string().min(2, 'Name must be at least 2 characters')
-						}}
-					>
+					<form.Field name="name" validators={registerFieldValidators.name}>
 						{#snippet children(field)}
 							<div class="grid gap-2">
 								<Label for={field.name}>Name</Label>
@@ -83,12 +60,7 @@
 						{/snippet}
 					</form.Field>
 
-					<form.Field
-						name="email"
-						validators={{
-							onChange: z.email('Please enter a valid email')
-						}}
-					>
+					<form.Field name="email" validators={registerFieldValidators.email}>
 						{#snippet children(field)}
 							<div class="grid gap-2">
 								<Label for={field.name}>Email</Label>
@@ -110,12 +82,7 @@
 						{/snippet}
 					</form.Field>
 
-					<form.Field
-						name="password"
-						validators={{
-							onChange: z.string().min(8, 'Password must be at least 8 characters')
-						}}
-					>
+					<form.Field name="password" validators={registerFieldValidators.password}>
 						{#snippet children(field)}
 							<div class="grid gap-2">
 								<Label for={field.name}>Password</Label>
@@ -136,12 +103,7 @@
 						{/snippet}
 					</form.Field>
 
-					<form.Field
-						name="organisation"
-						validators={{
-							onChange: z.string().min(2, 'Organisation must be at least 2 characters')
-						}}
-					>
+					<form.Field name="organisation" validators={registerFieldValidators.organisation}>
 						{#snippet children(field)}
 							<div class="grid gap-2">
 								<Label for={field.name}>Organisation</Label>

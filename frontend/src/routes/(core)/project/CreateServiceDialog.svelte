@@ -1,22 +1,29 @@
 <script lang="ts">
-	import { api, axiosErr } from '@/axios';
 	import { Button } from '@/components/ui/button';
 	import * as Dialog from '@/components/ui/dialog';
 	import { Input } from '@/components/ui/input';
 	import { Label } from '@/components/ui/label';
 	import * as Select from '@/components/ui/select';
 	import { Textarea } from '@/components/ui/textarea';
-	import { queryClient } from '@/query';
 	import { createForm, revalidateLogic } from '@tanstack/svelte-form';
-	import { createMutation, createQuery } from '@tanstack/svelte-query';
 	import Icon from '@iconify/svelte';
-	import { goto } from '$app/navigation';
-	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 	import { toast } from 'svelte-sonner';
 	import { z } from 'zod';
-	import type { ServiceType } from '@/types';
-	import { userState } from '@/store/user-state.svelte';
+	import {
+		createGetReposMutation,
+		createGithubAppsQuery,
+		createProjectsQuery,
+		createServiceCreateMutation,
+		gitProviders,
+		serviceTypes,
+		type GithubApp,
+		type GithubRepo,
+		type GitProviderKey,
+		type GitProviderOption,
+		type ServiceType
+	} from './createService.api';
+	import { userState } from '@/store/userState.svelte';
 	import type { ServicePageUiState } from '@/components/services/context.svelte';
 
 	const {
@@ -25,193 +32,25 @@
 		pageUi: ServicePageUiState;
 	} = $props();
 
-	interface Project {
-		id: string;
-		name: string;
-	}
-
-	interface CreateServiceResponse {
-		id: string;
-		type: ServiceType;
-	}
-
-	type GitProviderKey = 'github' | 'gitlab' | 'bitbucket';
-	interface GitProviderOption {
-		key: GitProviderKey;
-		name: string;
-		icon: string;
-		api: string;
-	}
-
-	interface ApiMessageRes {
-		message: string;
-	}
-
-	interface GithubApp {
-		name: string;
-		app_id: number;
-		created_at: string;
-	}
-
-	interface GithubRepo {
-		id: number;
-		name: string;
-		full_name: string;
-		html_url: string;
-		private: boolean;
-		default_branch: string;
-	}
-
-	interface GetRepoResult {
-		status: number;
-		repos: GithubRepo[];
-		message: string;
-		provider: GitProviderKey;
-	}
-
-	interface CreateAppServiceBody {
-		project_id: string;
-		name: string;
-		description: string;
-		app_name: string;
-		git_provider: GitProviderKey;
-		git_repo_id: string;
-		git_repo_name: string;
-		git_branch: string;
-		build_path: string;
-	}
-
-	interface CreatePsqlServiceBody {
-		project_id: string;
-		name: string;
-		description: string;
-		app_name: string;
-		db_name: string;
-		db_user: string;
-		db_password: string;
-		image: string;
-	}
-
-	type CreateServicePayload =
-		| { type: 'app'; body: CreateAppServiceBody }
-		| { type: 'psql'; body: CreatePsqlServiceBody };
-
 	const projectIdFromPath = $derived(page.params.id ?? '');
 	const isProjectScoped = $derived(projectIdFromPath !== '');
-
-	const serviceTypes = [
-		{ value: 'app' as const, label: 'App Service' },
-		{ value: 'psql' as const, label: 'PostgreSQL Service' }
-	];
-
-	const gitProviders: GitProviderOption[] = [
-		{
-			key: 'github',
-			name: 'Github',
-			icon: 'meteor-icons:github',
-			api: '/provider/github/repo/list'
-		},
-		{
-			key: 'gitlab',
-			name: 'GitLab',
-			icon: 'material-icon-theme:gitlab',
-			api: ''
-		},
-		{
-			key: 'bitbucket',
-			name: 'BitBucket',
-			icon: 'material-icon-theme:bitbucket',
-			api: ''
-		}
-	];
-
-	const getProjectsQueryKey = () =>
-		['projects', userState.currentOrg.id, 'service-create'] as const;
-
-	const projectsQuery = createQuery(() => ({
-		queryKey: getProjectsQueryKey(),
-		queryFn: async () => {
-			return api.get<Project[]>('/project/all').then((res) => res.data);
-		},
-		enabled: !isProjectScoped && userState.currentOrg.id !== ''
-	}));
-
-	const getGithubAppsQueryKey = () => ['github-apps', userState.currentOrg.id] as const;
-
-	const githubAppsQuery = createQuery(() => ({
-		queryKey: getGithubAppsQueryKey(),
-		queryFn: async () => {
-			try {
-				const response = await api.get<GithubApp[] | null>('/provider/github/app/list');
-				githubApps = response.data ?? [];
-				return githubApps;
-			} catch (error) {
-				const err = error instanceof Error ? error : new Error('Failed to load GitHub apps');
-				githubApps = [];
-				axiosErr(err, 'Failed to load GitHub apps');
-				return [];
-			}
-		},
-		enabled: false
-	}));
 
 	// Git options are cached locally; selected values are stored in the TanStack form state.
 	let githubApps = $state<GithubApp[]>([]);
 	let githubRepos = $state<GithubRepo[]>([]);
 
-	const getReposMutation = createMutation(() => ({
-		mutationFn: async ({
-			provider,
-			appId
-		}: {
-			provider: GitProviderOption;
-			appId: number;
-		}): Promise<GetRepoResult> => {
-			const response = await api.get<GithubRepo[] | ApiMessageRes>(provider.api, {
-				params: { app_id: appId },
-				validateStatus: (status) => status === 200 || status === 204 || status === 409
-			});
-
-			return {
-				status: response.status,
-				repos: response.status === 200 ? (response.data as GithubRepo[]) : [],
-				message: response.status === 409 ? ((response.data as ApiMessageRes)?.message ?? '') : '',
-				provider: provider.key
-			};
-		},
-		onSuccess: (result) => {
-			githubRepos = result.repos;
-
-			if (result.status === 409) {
-				toast.error(result.message || 'No github connected');
-			}
-		},
-		onError: (error) => {
-			githubRepos = [];
-			axiosErr(error, 'Failed to fetch repositories');
-		}
-	}));
-
-	const createServiceMutation = createMutation(() => ({
-		mutationFn: async (payload: CreateServicePayload) => {
-			const url = payload.type === 'app' ? '/service/app' : '/service/psql';
-			return api.post<CreateServiceResponse>(url, payload.body).then((res) => res.data);
-		},
-		onSuccess: async (createdService) => {
-			await queryClient.invalidateQueries({ queryKey: ['services'] });
-			pageUi.closeCreateDialog();
-			resetGitRepoSelection();
-			form.reset();
-
-			toast.success('Service created successfully');
-			goto(
-				resolve(`/(core)/service/[service]?id=${createdService.id}`, {
-					service: createdService.type
-				})
-			);
-		},
-		onError: (error) => axiosErr(error, 'Failed to create service')
-	}));
+	const projectsQuery = createProjectsQuery(() => isProjectScoped);
+	const githubAppsQuery = createGithubAppsQuery((apps) => {
+		githubApps = apps;
+	});
+	const getReposMutation = createGetReposMutation((repos) => {
+		githubRepos = repos;
+	});
+	const createServiceMutation = createServiceCreateMutation(() => {
+		pageUi.closeCreateDialog();
+		resetGitRepoSelection();
+		form.reset();
+	});
 
 	// Dynamic validators gate service-specific fields without manual submit-time checks.
 	// TanStack Form handles one dynamic service form for both app and psql service creation.

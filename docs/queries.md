@@ -31,15 +31,3 @@
     - when to update local store from query cache vs mutation response
 
 - [ ] svelte class based global context [context.svelte.ts](../frontend/src/lib/components/services/context.svelte.ts)
-
-- [ ] provider integration state via HTTP status codes
-    - when to use `409 Conflict` vs `204 No Content` for integration-driven UI
-    - how status-code contracts simplify frontend state branches
-
-- [ ] github app selection before repo discovery
-    - how `/provider/github/app/list` can populate a client-side picker
-    - how repo fetches should carry the selected `app_id`
-
-- [ ] app service source metadata persistence
-    - how `git_branch` and `build_path` should be validated in API input
-    - how those fields flow from form payload to `app_service` schema/sqlc params

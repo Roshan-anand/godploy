@@ -1,8 +1,7 @@
 <script lang="ts">
-	import { useLoginMutation } from '@/composables/useAuth';
-	import { createForm } from '@tanstack/svelte-form';
+	import { createLoginMutation } from '../auth.api';
+	import { createLoginForm, loginFieldValidators } from './login.form';
 	import { toast } from 'svelte-sonner';
-	import { z } from 'zod';
 	import AuthBranding from '@/components/auth-branding.svelte';
 	import { Button } from '@/components/ui/button';
 	import { Input } from '@/components/ui/input';
@@ -10,18 +9,8 @@
 	import { Label } from '@/components/ui/label';
 	import { resolve } from '$app/paths';
 
-	const login = useLoginMutation();
-
-	const form = createForm(() => ({
-		defaultValues: {
-			email: '',
-			password: '',
-			rememberMe: false
-		},
-		onSubmit: async ({ value }) => {
-			login.mutate({ email: value.email, password: value.password });
-		}
-	}));
+	const login = createLoginMutation();
+	const form = createLoginForm(login);
 
 	$effect(() => {
 		if (login.isError)
@@ -46,12 +35,7 @@
 				}}
 			>
 				<div class="grid gap-4">
-					<form.Field
-						name="email"
-						validators={{
-							onChange: z.email('Please enter a valid email')
-						}}
-					>
+					<form.Field name="email" validators={loginFieldValidators.email}>
 						{#snippet children(field)}
 							<div class="grid gap-2">
 								<Label for={field.name}>Email</Label>
@@ -73,12 +57,7 @@
 						{/snippet}
 					</form.Field>
 
-					<form.Field
-						name="password"
-						validators={{
-							onChange: z.string().min(8, 'Password must be at least 8 characters')
-						}}
-					>
+					<form.Field name="password" validators={loginFieldValidators.password}>
 						{#snippet children(field)}
 							<div class="grid gap-2">
 								<div class="flex items-center">

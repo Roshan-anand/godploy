@@ -37,6 +37,7 @@
   - [ ] input field for build path after **branch-selection**.
   - [ ] update create service api to accept build path, repo nd branch. [easy, api]
 - [ ] at [CheckUserExistsInOrg](../../backend/internal/handlers/utils.go) func return org details instead of just bool.
+- [ ] impliment class based context sharing in svelte. 
 
 ## Potential bugs
 

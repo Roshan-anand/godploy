@@ -1,17 +1,19 @@
 <script lang="ts">
-	import { api, axiosErr } from '@/axios';
 	import { Button } from '@/components/ui/button';
 	import { Input } from '@/components/ui/input';
 	import { Label } from '@/components/ui/label';
 	import { Skeleton } from '@/components/ui/skeleton';
-	import { queryClient } from '@/query';
-	import { userState } from '@/store/user-state.svelte';
-	import { createMutation, createQuery } from '@tanstack/svelte-query';
+	import { userState } from '@/store/userState.svelte';
 	import { Search, Trash2 } from '@lucide/svelte';
 	import * as Dialog from '@/components/ui/dialog';
-	import { toast } from 'svelte-sonner';
 	import CreateBtn from '@/components/CreateBtn.svelte';
 	import { resolve } from '$app/paths';
+	import {
+		createProjectCreateMutation,
+		createProjectDeleteMutation,
+		createProjectsQuery,
+		type Project
+	} from './core.api';
 
 	let searchQuery = $state('');
 	let createDialogOpen = $state(false);
@@ -19,74 +21,22 @@
 	let projectDescription = $state('');
 	let deletingProjectId = $state('');
 
-	interface Project {
-		id: string;
-		name: string;
-		description: string;
-	}
+	const query = createProjectsQuery();
 
-	interface CreateProjectPayload {
-		project_name: string;
-		description: string;
-	}
+	const createProjectMutation = createProjectCreateMutation(() => {
+		projectName = '';
+		projectDescription = '';
+		createDialogOpen = false;
+	});
 
-	interface DeleteProjectPayload {
-		id: string;
-	}
-
-	interface ApiRes {
-		message: string;
-	}
-
-	const getProjectsQueryKey = () => ['projects', userState.currentOrg];
-
-	// Fetches projects for the currently selected organization.
-	const query = createQuery(() => ({
-		queryKey: getProjectsQueryKey(),
-		queryFn: async () => {
-			return api.get<Project[]>('/project/all').then((res) => res.data);
+	const deleteProjectMutation = createProjectDeleteMutation(
+		(projectId) => {
+			deletingProjectId = projectId;
 		},
-		enabled: userState.currentOrg.id !== ''
-	}));
-
-	// Creates a new project and updates local query cache immediately.
-	const createProjectMutation = createMutation(() => ({
-		mutationFn: (payload: CreateProjectPayload) =>
-			api.post<Project>('/project', payload).then((res) => res.data),
-		onSuccess: (createdProject) => {
-			queryClient.setQueryData(getProjectsQueryKey(), (cachedProjects: Project[] | undefined) => {
-				if (!cachedProjects) return [createdProject];
-				return [createdProject, ...cachedProjects];
-			});
-
-			projectName = '';
-			projectDescription = '';
-			createDialogOpen = false;
-			toast.success('Project created successfully');
-		},
-		onError: (error) => axiosErr(error, 'Faild to create project')
-	}));
-
-	// Deletes a project and removes it from local query cache.
-	const deleteProjectMutation = createMutation(() => ({
-		mutationFn: (payload: DeleteProjectPayload) =>
-			api.delete<ApiRes>('/project', { data: payload }).then((res) => res.data),
-		onMutate: (payload) => {
-			deletingProjectId = payload.id;
-		},
-		onSuccess: (res, payload) => {
-			queryClient.setQueryData(getProjectsQueryKey(), (cachedProjects: Project[] | undefined) => {
-				if (!cachedProjects) return [];
-				return cachedProjects.filter((project) => project.id !== payload.id);
-			});
-
-			toast.success(res.message || 'Project deleted successfully');
-		},
-		onError: (error) => axiosErr(error, 'Faild to delete project'),
-		onSettled: () => {
+		() => {
 			deletingProjectId = '';
 		}
-	}));
+	);
 
 	const canCreateProject = $derived.by(() => {
 		return projectName.trim().length >= 3 && userState.currentOrg.id !== '';
@@ -110,7 +60,7 @@
 
 		createProjectMutation.mutate({
 			project_name: projectName.trim(),
-			description: projectDescription.trim(),
+			description: projectDescription.trim()
 		});
 	}
 

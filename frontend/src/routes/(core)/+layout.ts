@@ -1,10 +1,10 @@
 import { resolve } from '$app/paths';
 import { api } from '@/axios';
-import type { AuthResponse } from '@/composables/useAuth';
 import { queryClient } from '@/query';
-import { userState } from '@/store/user-state.svelte';
+import { userState } from '@/store/userState.svelte';
 import { redirect } from '@sveltejs/kit';
 import axios from 'axios';
+import type { AuthResponse } from '../(auth)/auth.api';
 
 export async function load() {
 	if (userState.isAuth) return;

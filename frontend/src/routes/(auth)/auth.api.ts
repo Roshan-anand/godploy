@@ -1,7 +1,7 @@
 import { goto } from '$app/navigation';
 import { resolve } from '$app/paths';
 import { api } from '@/axios';
-import { userState } from '@/store/user-state.svelte';
+import { userState } from '@/store/userState.svelte';
 import { createMutation } from '@tanstack/svelte-query';
 
 export interface LoginPayload {
@@ -29,7 +29,7 @@ export interface AuthResponse {
 	org_name: string;
 }
 
-export function useLoginMutation() {
+export function createLoginMutation() {
 	return createMutation(() => ({
 		mutationFn: (payload: LoginPayload) =>
 			api.post<AuthResponse>('/auth/login', payload).then((res) => res.data),
@@ -41,7 +41,7 @@ export function useLoginMutation() {
 	}));
 }
 
-export function useRegisterMutation() {
+export function createRegisterMutation() {
 	return createMutation(() => ({
 		mutationFn: (payload: RegisterPayload) =>
 			api.post<AuthResponse>('/auth/register', payload).then((res) => res.data),
@@ -52,3 +52,6 @@ export function useRegisterMutation() {
 		}
 	}));
 }
+
+export type LoginMutation = ReturnType<typeof createLoginMutation>;
+export type RegisterMutation = ReturnType<typeof createRegisterMutation>;
