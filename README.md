@@ -14,6 +14,10 @@ Lightweight, single-binary, self-hosted alternative to Dokploy, Coolify, Netlify
 
 check out the [Roadmap](https://github.com/Roshan-anand/godploy/blob/main/docs/mvp_roadmap.md)
 
+## Resources :
+
+check out the [Design DOCs](https://github.com/Roshan-anand/godploy/tree/main/docs/design_docs)
+
 ---
 
 ## Contribution guidelines

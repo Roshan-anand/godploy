@@ -25,7 +25,7 @@ func LoadConfig() (*Config, error) {
 
 	fmt.Println("server url : ", srvUrl)
 
-	// TODO: load from env variable
+	// TODO : load from env variable
 	return &Config{
 		Port:             "8080",
 		SessionDataName:  "godploy_session_data",

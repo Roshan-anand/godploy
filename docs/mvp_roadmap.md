@@ -11,6 +11,7 @@
 - [x] i want to connect to Github.
 - [x] i want to select a repo and branch.
 - [ ] i want to CRUD services.
+- [ ] i want to setup Application service.
 - [ ] i want to setup DB services (PSQL, MongoDB).
 - [ ] i want to deploy the service.
 - [ ] i want to view the build logs.
@@ -43,7 +44,9 @@
   - [ ] Deploy, Stop, Rebuild service.
   - [ ] Predefined service templates (PSQL, MongoDB).
   - [x] Application Service template (for user code deployments).
+  - [ ] Pull logs streaming.
   - [ ] Build logs streaming.
+  - [ ] Deploy logs streaming.
   - [ ] Service logs streaming.
   - [ ] Environment variable management.
   - [ ] SSL certificate management (Let's Encrypt integration).

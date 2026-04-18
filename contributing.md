@@ -38,8 +38,8 @@ openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
 
 ## stopping the development environment
 
-- run `make services-rm` to stop and remove the traefik
 - run `make dev-stop` to stop dev services
+- run `make services-rm` to stop and remove the traefik
 
 ## errors
 
