@@ -2,7 +2,7 @@
 	import ServiceDetailApp from '@/components/services/service-detail-app.svelte';
 	import ServiceDetailPsql from '@/components/services/service-detail-psql.svelte';
 	import { Skeleton } from '@/components/ui/skeleton';
-	import { createServiceDetailQuery } from './service.api';
+	import { createServiceDetailQuery } from '@/features/service/query';
 
 	const { data } = $props();
 	const serviceType = $derived(data.service);

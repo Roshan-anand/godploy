@@ -1,16 +1,45 @@
 <script lang="ts">
-	import { createLoginMutation } from '../auth.api';
-	import { createLoginForm, loginFieldValidators } from './login.form';
+	import { createLoginMutation } from '@/features/auth/mutation';
 	import { toast } from 'svelte-sonner';
 	import AuthBranding from '@/components/auth-branding.svelte';
 	import { Button } from '@/components/ui/button';
 	import { Input } from '@/components/ui/input';
 	import { Checkbox } from '@/components/ui/checkbox';
 	import { Label } from '@/components/ui/label';
+	import { createForm } from '@tanstack/svelte-form';
 	import { resolve } from '$app/paths';
+	import { z } from 'zod';
+	import { getFieldErrMsg } from '@/utils';
+
+	interface LoginFormValues {
+		email: string;
+		password: string;
+		rememberMe: boolean;
+	}
 
 	const login = createLoginMutation();
-	const form = createLoginForm(login);
+
+	const defaultValues: LoginFormValues = {
+		email: '',
+		password: '',
+		rememberMe: false
+	};
+
+	const form = createForm(() => ({
+		defaultValues,
+		onSubmit: async ({ value }) => {
+			login.mutate({ email: value.email, password: value.password });
+		}
+	}));
+
+	const loginFieldValidators = {
+		email: {
+			onBlur: z.email('Please enter a valid email')
+		},
+		password: {
+			onBlur: z.string().min(8, 'Password must be at least 8 characters')
+		}
+	};
 
 	$effect(() => {
 		if (login.isError)
@@ -50,7 +79,7 @@
 								/>
 								{#if field.state.meta.errors.length}
 									<p class="text-sm font-medium text-destructive">
-										{field.state.meta.errors[0] ?? 'Invalid email'}
+										{getFieldErrMsg(field.state.meta.errors[0])}
 									</p>
 								{/if}
 							</div>
@@ -73,7 +102,7 @@
 								/>
 								{#if field.state.meta.errors.length}
 									<p class="text-sm font-medium text-destructive">
-										{field.state.meta.errors[0] ?? 'invalid password'}
+										{getFieldErrMsg(field.state.meta.errors[0])}
 									</p>
 								{/if}
 							</div>

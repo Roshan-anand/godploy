@@ -31,3 +31,7 @@
     - when to update local store from query cache vs mutation response
 
 - [ ] svelte class based global context [context.svelte.ts](../frontend/src/lib/components/services/context.svelte.ts)
+
+- [ ] feature-first query and mutation modules
+    - keep shared query keys, fetchers, mutations, and domain types in `frontend/src/lib/features/<feature>/`
+    - let route files stay focused on UI wiring and local form state

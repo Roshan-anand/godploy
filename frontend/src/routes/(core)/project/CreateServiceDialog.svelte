@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { axiosErr } from '@/axios';
 	import { Button } from '@/components/ui/button';
 	import * as Dialog from '@/components/ui/dialog';
 	import { Input } from '@/components/ui/input';
@@ -10,21 +11,20 @@
 	import { page } from '$app/state';
 	import { toast } from 'svelte-sonner';
 	import { z } from 'zod';
-	import {
-		createGetReposMutation,
-		createGithubAppsQuery,
-		createProjectsQuery,
-		createServiceCreateMutation,
-		gitProviders,
-		serviceTypes,
-		type GithubApp,
-		type GithubRepo,
-		type GitProviderKey,
-		type GitProviderOption,
-		type ServiceType
-	} from './createService.api';
+	import { createGetReposMutation } from '@/features/github/mutation';
+	import { createGithubAppsQuery } from '@/features/github/query';
+	import type {
+		GithubApp,
+		GithubRepo,
+		GitProviderKey,
+		GitProviderOption
+	} from '@/features/github/types';
+	import { createProjectsQuery } from '@/features/project/query';
+	import { createServiceCreateMutation } from '@/features/service/mutation';
+	import type { ServiceType } from '@/features/service/types';
 	import { userState } from '@/store/userState.svelte';
 	import type { ServicePageUiState } from '@/components/services/context.svelte';
+	import { getFieldErrMsg } from '@/utils';
 
 	const {
 		pageUi
@@ -38,10 +38,44 @@
 	// Git options are cached locally; selected values are stored in the TanStack form state.
 	let githubApps = $state<GithubApp[]>([]);
 	let githubRepos = $state<GithubRepo[]>([]);
+	const gitProviders: GitProviderOption[] = [
+		{
+			key: 'github',
+			name: 'Github',
+			icon: 'meteor-icons:github',
+			api: '/provider/github/repo/list'
+		},
+		{
+			key: 'gitlab',
+			name: 'GitLab',
+			icon: 'material-icon-theme:gitlab',
+			api: ''
+		},
+		{
+			key: 'bitbucket',
+			name: 'BitBucket',
+			icon: 'material-icon-theme:bitbucket',
+			api: ''
+		}
+	];
+	const serviceTypes = [
+		{ value: 'app' as const, label: 'App Service' },
+		{ value: 'psql' as const, label: 'PostgreSQL Service' }
+	];
 
-	const projectsQuery = createProjectsQuery(() => isProjectScoped);
-	const githubAppsQuery = createGithubAppsQuery((apps) => {
-		githubApps = apps;
+	const projectsQuery = createProjectsQuery(() => isProjectScoped, 'service-create');
+	const githubAppsQuery = createGithubAppsQuery({
+		enabled: false,
+		onSuccess: (apps) => {
+			githubApps = apps;
+		},
+		onError: (error) => {
+			githubApps = [];
+			axiosErr(
+				error instanceof Error ? error : new Error('Failed to load GitHub apps'),
+				'Failed to load GitHub apps'
+			);
+		}
 	});
 	const getReposMutation = createGetReposMutation((repos) => {
 		githubRepos = repos;
@@ -282,7 +316,7 @@
 				{#if !isProjectScoped}
 					<form.Field
 						name="project_id"
-						validators={{ onChange: z.string().min(1, 'Project is required') }}
+						validators={{ onBlur: z.string().min(1, 'Project is required') }}
 					>
 						{#snippet children(field)}
 							<div class="space-y-1.5">
@@ -307,7 +341,9 @@
 									</Select.Content>
 								</Select.Root>
 								{#if field.state.meta.errors.length}
-									<p class="text-sm font-medium text-destructive">{field.state.meta.errors[0]}</p>
+									<p class="text-sm font-medium text-destructive">
+										{getFieldErrMsg(field.state.meta.errors[0])}
+									</p>
 								{/if}
 							</div>
 						{/snippet}
@@ -316,7 +352,7 @@
 
 				<form.Field
 					name="name"
-					validators={{ onChange: z.string().min(3, 'Service name must be at least 3 characters') }}
+					validators={{ onBlur: z.string().min(3, 'Service name must be at least 3 characters') }}
 				>
 					{#snippet children(field)}
 						<div class="space-y-1.5">
@@ -330,7 +366,9 @@
 								disabled={createServiceMutation.isPending}
 							/>
 							{#if field.state.meta.errors.length}
-								<p class="text-sm font-medium text-destructive">{field.state.meta.errors[0]}</p>
+								<p class="text-sm font-medium text-destructive">
+									{getFieldErrMsg(field.state.meta.errors[0])}
+								</p>
 							{/if}
 						</div>
 					{/snippet}
@@ -338,7 +376,7 @@
 
 				<form.Field
 					name="description"
-					validators={{ onChange: z.string().min(1, 'Description is required') }}
+					validators={{ onBlur: z.string().min(1, 'Description is required') }}
 				>
 					{#snippet children(field)}
 						<div class="space-y-1.5">
@@ -352,7 +390,9 @@
 								disabled={createServiceMutation.isPending}
 							/>
 							{#if field.state.meta.errors.length}
-								<p class="text-sm font-medium text-destructive">{field.state.meta.errors[0]}</p>
+								<p class="text-sm font-medium text-destructive">
+									{getFieldErrMsg(field.state.meta.errors[0])}
+								</p>
 							{/if}
 						</div>
 					{/snippet}
@@ -382,7 +422,7 @@
 
 				<form.Field
 					name="app_name"
-					validators={{ onChange: z.string().min(3, 'App name must be at least 3 characters') }}
+					validators={{ onBlur: z.string().min(3, 'App name must be at least 3 characters') }}
 				>
 					{#snippet children(field)}
 						<div class="space-y-1.5">
@@ -396,7 +436,9 @@
 								disabled={createServiceMutation.isPending}
 							/>
 							{#if field.state.meta.errors.length}
-								<p class="text-sm font-medium text-destructive">{field.state.meta.errors[0]}</p>
+								<p class="text-sm font-medium text-destructive">
+									{getFieldErrMsg(field.state.meta.errors[0])}
+								</p>
 							{/if}
 						</div>
 					{/snippet}
@@ -440,7 +482,7 @@
 												</div>
 												{#if field.state.meta.errors.length}
 													<p class="text-sm font-medium text-destructive">
-														{field.state.meta.errors[0]}
+														{getFieldErrMsg(field.state.meta.errors[0])}
 													</p>
 												{/if}
 											{/snippet}
@@ -470,7 +512,7 @@
 													</Select.Root>
 													{#if field.state.meta.errors.length}
 														<p class="text-sm font-medium text-destructive">
-															{field.state.meta.errors[0]}
+															{getFieldErrMsg(field.state.meta.errors[0])}
 														</p>
 													{/if}
 												</div>
@@ -501,7 +543,7 @@
 													</Select.Root>
 													{#if field.state.meta.errors.length}
 														<p class="text-sm font-medium text-destructive">
-															{field.state.meta.errors[0]}
+															{getFieldErrMsg(field.state.meta.errors[0])}
 														</p>
 													{/if}
 												</div>
@@ -532,7 +574,7 @@
 													</Select.Root>
 													{#if field.state.meta.errors.length}
 														<p class="text-sm font-medium text-destructive">
-															{field.state.meta.errors[0]}
+															{getFieldErrMsg(field.state.meta.errors[0])}
 														</p>
 													{/if}
 												</div>
@@ -542,7 +584,7 @@
 										<form.Field
 											name="build_path"
 											validators={{
-												onChange: z.string().min(1, 'Build path is required'),
+												onBlur: z.string().min(1, 'Build path is required'),
 												onDynamic: ({ value, fieldApi }) => {
 													if (fieldApi.form.getFieldValue('type') !== 'app') return undefined;
 													return value.trim() === '' ? 'Build path is required' : undefined;
@@ -562,7 +604,7 @@
 													/>
 													{#if field.state.meta.errors.length}
 														<p class="text-sm font-medium text-destructive">
-															{field.state.meta.errors[0]}
+															{getFieldErrMsg(field.state.meta.errors[0])}
 														</p>
 													{/if}
 												</div>
@@ -577,7 +619,7 @@
 							<form.Field
 								name="db_name"
 								validators={{
-									onChange: z.string().min(1, 'Database name is required'),
+									onBlur: z.string().min(1, 'Database name is required'),
 									onDynamic: ({ value, fieldApi }) => {
 										if (fieldApi.form.getFieldValue('type') !== 'psql') return undefined;
 										return value.trim() === '' ? 'Database name is required' : undefined;
@@ -597,7 +639,7 @@
 										/>
 										{#if field.state.meta.errors.length}
 											<p class="text-sm font-medium text-destructive">
-												{field.state.meta.errors[0]}
+												{getFieldErrMsg(field.state.meta.errors[0])}
 											</p>
 										{/if}
 									</div>
@@ -607,7 +649,7 @@
 							<form.Field
 								name="db_user"
 								validators={{
-									onChange: z.string().min(1, 'Database user is required'),
+									onBlur: z.string().min(1, 'Database user is required'),
 									onDynamic: ({ value, fieldApi }) => {
 										if (fieldApi.form.getFieldValue('type') !== 'psql') return undefined;
 										return value.trim() === '' ? 'Database user is required' : undefined;
@@ -627,7 +669,7 @@
 										/>
 										{#if field.state.meta.errors.length}
 											<p class="text-sm font-medium text-destructive">
-												{field.state.meta.errors[0]}
+												{getFieldErrMsg(field.state.meta.errors[0])}
 											</p>
 										{/if}
 									</div>
@@ -637,7 +679,7 @@
 							<form.Field
 								name="db_password"
 								validators={{
-									onChange: z.string().min(1, 'Database password is required'),
+									onBlur: z.string().min(1, 'Database password is required'),
 									onDynamic: ({ value, fieldApi }) => {
 										if (fieldApi.form.getFieldValue('type') !== 'psql') return undefined;
 										return value === '' ? 'Database password is required' : undefined;
@@ -658,7 +700,7 @@
 										/>
 										{#if field.state.meta.errors.length}
 											<p class="text-sm font-medium text-destructive">
-												{field.state.meta.errors[0]}
+												{getFieldErrMsg(field.state.meta.errors[0])}
 											</p>
 										{/if}
 									</div>
@@ -668,7 +710,7 @@
 							<form.Field
 								name="image"
 								validators={{
-									onChange: z.string().min(1, 'Image is required'),
+									onBlur: z.string().min(1, 'Image is required'),
 									onDynamic: ({ value, fieldApi }) => {
 										if (fieldApi.form.getFieldValue('type') !== 'psql') return undefined;
 										return value.trim() === '' ? 'Image is required' : undefined;
@@ -688,7 +730,7 @@
 										/>
 										{#if field.state.meta.errors.length}
 											<p class="text-sm font-medium text-destructive">
-												{field.state.meta.errors[0]}
+												{getFieldErrMsg(field.state.meta.errors[0])}
 											</p>
 										{/if}
 									</div>

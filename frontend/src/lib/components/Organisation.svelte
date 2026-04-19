@@ -13,7 +13,7 @@
 	import { Check, ChevronsUpDown } from '@lucide/svelte';
 	import { toast } from 'svelte-sonner';
 	import CreateBtn from './CreateBtn.svelte';
-	import type { Organization } from '../../routes/(auth)/auth.api';
+	import type { Organization } from '@/features/auth/types';
 
 	let orgMenuOpen = $state(false);
 	let createDialogOpen = $state(false);

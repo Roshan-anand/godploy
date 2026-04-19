@@ -1,16 +1,59 @@
 <script lang="ts">
-	import { createRegisterMutation } from '../auth.api';
-	import { createRegisterForm, registerFieldValidators } from './register.form';
+	import { createRegisterMutation } from '@/features/auth/mutation';
 	import { toast } from 'svelte-sonner';
 	import AuthBranding from '@/components/auth-branding.svelte';
 	import { Button } from '@/components/ui/button';
 	import { Input } from '@/components/ui/input';
 	import { Checkbox } from '@/components/ui/checkbox';
 	import { Label } from '@/components/ui/label';
+	import { createForm } from '@tanstack/svelte-form';
 	import { resolve } from '$app/paths';
+	import { z } from 'zod';
+	import { getFieldErrMsg } from '@/utils';
+
+	interface RegisterFormValues {
+		name: string;
+		email: string;
+		password: string;
+		organisation: string;
+		rememberMe: boolean;
+	}
+
+	const defaultValues: RegisterFormValues = {
+		name: '',
+		email: '',
+		password: '',
+		organisation: '',
+		rememberMe: false
+	};
 
 	const register = createRegisterMutation();
-	const form = createRegisterForm(register);
+	const form = createForm(() => ({
+		defaultValues,
+		onSubmit: async ({ value }) => {
+			register.mutate({
+				name: value.name,
+				email: value.email,
+				password: value.password,
+				org_name: value.organisation
+			});
+		}
+	}));
+
+	const registerFieldValidators = {
+		name: {
+			onBlur: z.string().min(2, 'Name must be at least 2 characters')
+		},
+		email: {
+			onBlur: z.email('Please enter a valid email')
+		},
+		password: {
+			onBlur: z.string().min(8, 'Password must be at least 8 characters')
+		},
+		organisation: {
+			onBlur: z.string().min(2, 'Organisation must be at least 2 characters')
+		}
+	} as const;
 
 	$effect(() => {
 		if (register.isError) {
@@ -53,7 +96,7 @@
 								/>
 								{#if field.state.meta.errors.length}
 									<p class="text-sm font-medium text-destructive">
-										{field.state.meta.errors[0]}
+										{getFieldErrMsg(field.state.meta.errors[0])}
 									</p>
 								{/if}
 							</div>
@@ -75,7 +118,7 @@
 								/>
 								{#if field.state.meta.errors.length}
 									<p class="text-sm font-medium text-destructive">
-										{field.state.meta.errors[0] ?? 'Invalid email'}
+										{getFieldErrMsg(field.state.meta.errors[0])}
 									</p>
 								{/if}
 							</div>
@@ -96,7 +139,7 @@
 								/>
 								{#if field.state.meta.errors.length}
 									<p class="text-sm font-medium text-destructive">
-										{field.state.meta.errors[0] ?? 'invalid password'}
+										{getFieldErrMsg(field.state.meta.errors[0])}
 									</p>
 								{/if}
 							</div>
@@ -118,7 +161,7 @@
 								/>
 								{#if field.state.meta.errors.length}
 									<p class="text-sm font-medium text-destructive">
-										{field.state.meta.errors[0]}
+										{getFieldErrMsg(field.state.meta.errors[0])}
 									</p>
 								{/if}
 							</div>

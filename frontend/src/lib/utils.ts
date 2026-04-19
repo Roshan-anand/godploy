@@ -1,3 +1,4 @@
+import type { StandardSchemaV1Issue } from '@tanstack/svelte-form';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -11,3 +12,9 @@ export type WithoutChild<T> = T extends { child?: any } ? Omit<T, 'child'> : T;
 export type WithoutChildren<T> = T extends { children?: any } ? Omit<T, 'children'> : T;
 export type WithoutChildrenOrChild<T> = WithoutChildren<WithoutChild<T>>;
 export type WithElementRef<T, U extends HTMLElement = HTMLElement> = T & { ref?: U | null };
+
+export function getFieldErrMsg(error: string | StandardSchemaV1Issue | undefined): string {
+	if (!error) return '';
+	if (typeof error === 'string') return error;
+	return error.message;
+}

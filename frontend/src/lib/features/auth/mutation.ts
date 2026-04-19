@@ -3,39 +3,15 @@ import { resolve } from '$app/paths';
 import { api } from '@/axios';
 import { userState } from '@/store/userState.svelte';
 import { createMutation } from '@tanstack/svelte-query';
+import type { AuthResponse, LoginPayload, RegisterPayload } from './types';
 
-export interface LoginPayload {
-	email: string;
-	password: string;
-}
-
-export interface RegisterPayload {
-	name: string;
-	email: string;
-	password: string;
-	org_name: string;
-}
-
-export interface Organization {
-	id: string;
-	name: string;
-}
-
-export interface AuthResponse {
-	message: string;
-	name: string;
-	email: string;
-	org_id: string;
-	org_name: string;
-}
-
+// Login and register mutations both update user state and transition into the app shell.
 export function createLoginMutation() {
 	return createMutation(() => ({
 		mutationFn: (payload: LoginPayload) =>
 			api.post<AuthResponse>('/auth/login', payload).then((res) => res.data),
 		onSuccess: (data) => {
-			userState.name = data.name;
-			userState.email = data.email;
+			userState.setUser(data);
 			goto(resolve('/'));
 		}
 	}));
@@ -46,8 +22,7 @@ export function createRegisterMutation() {
 		mutationFn: (payload: RegisterPayload) =>
 			api.post<AuthResponse>('/auth/register', payload).then((res) => res.data),
 		onSuccess: (data) => {
-			userState.name = data.name;
-			userState.email = data.email;
+			userState.setUser(data);
 			goto(resolve('/'));
 		}
 	}));

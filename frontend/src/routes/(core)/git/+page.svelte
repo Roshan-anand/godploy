@@ -2,17 +2,37 @@
 	import { userState } from '@/store/userState.svelte';
 	import Button from '@/components/ui/button/button.svelte';
 	import Icon from '@iconify/svelte';
-	import {
-		createDeleteGithubAppMutation,
-		createGithubAppsQuery,
-		formatCreatedAt,
-		providers
-	} from './git.api';
+	import { createDeleteGithubAppMutation } from '@/features/github/mutation';
+	import { createGithubAppsQuery } from '@/features/github/query';
+
+	const providers = [
+		{
+			name: 'Github',
+			icon: 'meteor-icons:github',
+			redirect: '/api/provider/github/app/create'
+		},
+		{
+			name: 'GitLab',
+			icon: 'material-icon-theme:gitlab',
+			redirect: ''
+		},
+		{
+			name: 'BitBucket',
+			icon: 'material-icon-theme:bitbucket',
+			redirect: ''
+		}
+	];
 
 	const getGithubAppsQuery = createGithubAppsQuery();
 	const deleteGithubAppMutation = createDeleteGithubAppMutation();
 
 	const providerRedirect = (loc: string) => (window.location.href = loc);
+
+	function formatCreatedAt(createdAt: string) {
+		const parsedDate = new Date(createdAt);
+		if (Number.isNaN(parsedDate.getTime())) return createdAt;
+		return parsedDate.toLocaleString();
+	}
 </script>
 
 <section class="p-2">

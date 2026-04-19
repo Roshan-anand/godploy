@@ -8,12 +8,9 @@
 	import * as Dialog from '@/components/ui/dialog';
 	import CreateBtn from '@/components/CreateBtn.svelte';
 	import { resolve } from '$app/paths';
-	import {
-		createProjectCreateMutation,
-		createProjectDeleteMutation,
-		createProjectsQuery,
-		type Project
-	} from './core.api';
+	import { createProjectCreateMutation, createProjectDeleteMutation } from '@/features/project/mutation';
+	import { createProjectsQuery } from '@/features/project/query';
+	import type { Project } from '@/features/project/types';
 
 	let searchQuery = $state('');
 	let createDialogOpen = $state(false);

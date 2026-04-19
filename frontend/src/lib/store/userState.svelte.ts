@@ -1,4 +1,4 @@
-import type { AuthResponse, Organization } from '../../routes/(auth)/auth.api';
+import type { AuthResponse, Organization } from '@/features/auth/types';
 
 type UserState = {
 	name: string;

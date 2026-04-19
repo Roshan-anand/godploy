@@ -1,39 +1,13 @@
 import { api } from '@/axios';
 import { createQuery } from '@tanstack/svelte-query';
-
-export type ServiceType = 'psql' | 'app';
-
-type ServiceBase = {
-	id: string;
-	project_id: string;
-	type: ServiceType;
-	service_id: string;
-	name: string;
-	app_name: string;
-	description: string;
-	created_at: string;
-};
-
-type PsqlService = {
-	type: 'psql';
-	db_name: string;
-	db_user: string;
-	db_password: string;
-	image: string;
-	internal_url: string;
-};
-
-type AppService = {
-	type: 'app';
-};
-
-export type ServiceDetails = ServiceBase & (PsqlService | AppService);
+import type { ServiceDetails, ServiceType } from './types';
 
 type ServiceParams = {
 	getServiceType: () => ServiceType;
 	getServiceId: () => string;
 };
 
+// Service details are fetched from a single shared query helper used by the service page.
 export const createServiceDetailQuery = ({ getServiceType, getServiceId }: ServiceParams) => {
 	return createQuery(() => ({
 		queryKey: ['service-details', getServiceType(), getServiceId()],

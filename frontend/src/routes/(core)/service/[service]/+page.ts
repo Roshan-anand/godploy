@@ -1,4 +1,4 @@
-import type { ServiceType } from './service.api';
+import type { ServiceType } from '@/features/service/types';
 
 export function load({ params, url }) {
 	const queryString = url.hash.split('?')[1];

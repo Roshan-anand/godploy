@@ -1,41 +1,11 @@
 import { api, axiosErr } from '@/axios';
 import { queryClient } from '@/query';
-import { userState } from '@/store/userState.svelte';
-import { createMutation, createQuery } from '@tanstack/svelte-query';
+import { createMutation } from '@tanstack/svelte-query';
 import { toast } from 'svelte-sonner';
+import { getProjectsQueryKey } from './query';
+import type { ApiRes, CreateProjectPayload, DeleteProjectPayload, Project } from './types';
 
-// Route-local query/mutation module for the core projects page.
-export interface Project {
-	id: string;
-	name: string;
-	description: string;
-}
-
-interface CreateProjectPayload {
-	project_name: string;
-	description: string;
-}
-
-interface DeleteProjectPayload {
-	id: string;
-}
-
-interface ApiRes {
-	message: string;
-}
-
-export function getProjectsQueryKey() {
-	return ['projects', userState.currentOrg.id] as const;
-}
-
-export function createProjectsQuery() {
-	return createQuery(() => ({
-		queryKey: getProjectsQueryKey(),
-		queryFn: () => api.get<Project[]>('/project/all').then((res) => res.data),
-		enabled: userState.currentOrg.id !== ''
-	}));
-}
-
+// Project mutations keep the list cache in sync so page state updates immediately.
 export function createProjectCreateMutation(onCreate: () => void) {
 	return createMutation(() => ({
 		mutationFn: (payload: CreateProjectPayload) =>
@@ -49,7 +19,7 @@ export function createProjectCreateMutation(onCreate: () => void) {
 			onCreate();
 			toast.success('Project created successfully');
 		},
-		onError: (error) => axiosErr(error, 'Faild to create project')
+		onError: (error) => axiosErr(error, 'Failed to create project')
 	}));
 }
 
@@ -71,7 +41,7 @@ export function createProjectDeleteMutation(
 
 			toast.success(res.message || 'Project deleted successfully');
 		},
-		onError: (error) => axiosErr(error, 'Faild to delete project'),
+		onError: (error) => axiosErr(error, 'Failed to delete project'),
 		onSettled
 	}));
 }
