@@ -8,6 +8,7 @@ import (
 	"syscall"
 
 	"github.com/Roshan-anand/godploy/internal/config"
+	"github.com/Roshan-anand/godploy/internal/jobs/worker"
 	"github.com/Roshan-anand/godploy/internal/routes"
 	"github.com/joho/godotenv"
 )
@@ -21,20 +22,27 @@ func createServer() (*config.Server, error) {
 	}
 
 	// create server instance
-	server, err := config.NewServer(cfg)
+	s, err := config.NewServer(cfg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize server: %w", err)
 	}
 
 	// setup all routes
-	r, err := routes.SetupRoutes(server)
+	r, err := routes.SetupRoutes(s)
 	if err != nil {
 		return nil, fmt.Errorf("failed to setup routes: %w", err)
 	}
 
-	server.SetupHttp(r) // setup http server with routes
+	s.SetupHttp(r) // setup http server with routes
 
-	return server, nil
+	// setup workers
+	// TODO : modify the ctx for a gracefull showdown of workers
+	w := worker.NewWorker(s)
+	go w.PullWorker(context.Background(), s.JobQueue.PullQueue)
+	go w.BuildWorker(context.Background(), s.JobQueue.BuildQueue)
+	go w.DeployWorker(context.Background(), s.JobQueue.DeployQueue)
+
+	return s, nil
 }
 
 // starts the server
