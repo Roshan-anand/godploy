@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/Roshan-anand/godploy/internal/config"
+	deploymentqueue "github.com/Roshan-anand/godploy/internal/jobs/deployment/queue"
 	"github.com/Roshan-anand/godploy/internal/lib"
 	"github.com/go-playground/validator/v10"
 	"github.com/labstack/echo/v5"
@@ -36,6 +37,9 @@ func (h *HealthHandler) HealthCheck(c *echo.Context) error {
 	if h.Server.DB == nil {
 		return c.JSON(500, lib.Res{Message: "database not initialized"})
 	}
+
+	h.Server.DeploymentQ.EnqueuePullJob(&deploymentqueue.PullJobData{})
+
 	return c.JSON(200, lib.Res{Message: "ok"})
 }
 

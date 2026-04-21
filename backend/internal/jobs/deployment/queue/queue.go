@@ -1,4 +1,4 @@
-package queue
+package deploymentqueue
 
 //	!IMP : this is just a placeholder
 //
@@ -31,7 +31,7 @@ type JobQueue struct {
 }
 
 // initializes the job queues
-func InitWorkerQueue() *JobQueue {
+func InitDeploymentQueue() *JobQueue {
 	pull := make(chan *PullJobData, 10)
 	build := make(chan *BuildJobData, 10)
 	deploy := make(chan *DeployJobData, 10)
@@ -59,7 +59,7 @@ func (j *JobQueue) EnqueueDeployJob(data *DeployJobData) {
 }
 
 // closes all the queue channels
-func (j *JobQueue) CloseQueue() {
+func (j *JobQueue) Close() {
 	close(j.PullQueue)
 	close(j.BuildQueue)
 	close(j.DeployQueue)

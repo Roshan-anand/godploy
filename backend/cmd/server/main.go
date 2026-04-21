@@ -8,7 +8,8 @@ import (
 	"syscall"
 
 	"github.com/Roshan-anand/godploy/internal/config"
-	"github.com/Roshan-anand/godploy/internal/jobs/worker"
+	deploymentjob "github.com/Roshan-anand/godploy/internal/jobs/deployment"
+	logbroker "github.com/Roshan-anand/godploy/internal/jobs/pubsub"
 	"github.com/Roshan-anand/godploy/internal/routes"
 	"github.com/joho/godotenv"
 )
@@ -35,12 +36,16 @@ func createServer() (*config.Server, error) {
 
 	s.SetupHttp(r) // setup http server with routes
 
-	// setup workers
+	// setup deployment workers
 	// TODO : modify the ctx for a gracefull showdown of workers
-	w := worker.NewWorker(s)
-	go w.PullWorker(context.Background(), s.JobQueue.PullQueue)
-	go w.BuildWorker(context.Background(), s.JobQueue.BuildQueue)
-	go w.DeployWorker(context.Background(), s.JobQueue.DeployQueue)
+	dj := deploymentjob.NewJob(s)
+	go dj.PullWorker(context.Background(), s.DeploymentQ.PullQueue)
+	go dj.BuildWorker(context.Background(), s.DeploymentQ.BuildQueue)
+	go dj.DeployWorker(context.Background(), s.DeploymentQ.DeployQueue)
+
+	// setup log broker
+	lb := logbroker.InitLogsBroker(s)
+	go lb.LogsBrokerJob(context.Background(), s.LogBrokerQ.Pub)
 
 	return s, nil
 }

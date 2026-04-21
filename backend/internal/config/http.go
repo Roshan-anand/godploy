@@ -71,7 +71,8 @@ func (s *Server) ShutDownServer() error {
 	}
 
 	// close queue channels
-	s.JobQueue.CloseQueue()
+	s.DeploymentQ.Close()
+	s.LogBrokerQ.Close()
 
 	return nil
 }

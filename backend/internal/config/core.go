@@ -5,7 +5,8 @@ import (
 	"net/http"
 
 	"github.com/Roshan-anand/godploy/internal/db"
-	"github.com/Roshan-anand/godploy/internal/jobs/queue"
+	deploymentqueue "github.com/Roshan-anand/godploy/internal/jobs/deployment/queue"
+	logbrokerqueue "github.com/Roshan-anand/godploy/internal/jobs/pubsub/queue"
 	"github.com/moby/moby/client"
 )
 
@@ -16,11 +17,12 @@ type DataBase struct {
 
 // server holds the global configuration for the application
 type Server struct {
-	Http     *http.Server
-	DB       *DataBase
-	Config   *Config
-	Docker   *client.Client
-	JobQueue *queue.JobQueue
+	Http        *http.Server
+	DB          *DataBase
+	Config      *Config
+	Docker      *client.Client
+	DeploymentQ *deploymentqueue.JobQueue
+	LogBrokerQ  *logbrokerqueue.LogBrokerQueue
 }
 
 // creates a new server instance
@@ -39,13 +41,17 @@ func NewServer(cfg *Config) (*Server, error) {
 		return nil, err
 	}
 
-	// initialize job queue
-	queue := queue.InitWorkerQueue()
+	// initialize deployment workers queue
+	dq := deploymentqueue.InitDeploymentQueue()
+
+	// initialize log broker queue
+	lbq := logbrokerqueue.InitLogBrokerQueue()
 
 	return &Server{
-		DB:       db,
-		Config:   cfg,
-		Docker:   docker,
-		JobQueue: queue,
+		DB:          db,
+		Config:      cfg,
+		Docker:      docker,
+		DeploymentQ: dq,
+		LogBrokerQ:  lbq,
 	}, nil
 }
