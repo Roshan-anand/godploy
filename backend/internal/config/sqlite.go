@@ -17,6 +17,11 @@ import (
 	"github.com/golang-migrate/migrate/v4/source/iofs"
 )
 
+type DataBase struct {
+	Pool    *sql.DB
+	Queries *db.Queries
+}
+
 const (
 	MAX_DB_OPEN_CONNECTIONS = 1
 	MAX_DB_IDLE_CONNECTIONS = 1
@@ -111,9 +116,9 @@ func InitDb(dir string) (*DataBase, error) {
 }
 
 // close the database connection
-func (s *Server) CloseDb() error {
+func (db *DataBase) CloseDb() error {
 	fmt.Println("closing database connection")
-	if err := s.DB.Pool.Close(); err != nil {
+	if err := db.Pool.Close(); err != nil {
 		return errors.Join(Pool_Close_Err, err)
 	}
 

@@ -9,7 +9,7 @@ import (
 
 	"github.com/Roshan-anand/godploy/internal/config"
 	deploymentjob "github.com/Roshan-anand/godploy/internal/jobs/deployment"
-	logbroker "github.com/Roshan-anand/godploy/internal/jobs/pubsub"
+	"github.com/Roshan-anand/godploy/internal/jobs/logbroker"
 	"github.com/Roshan-anand/godploy/internal/routes"
 	"github.com/joho/godotenv"
 )

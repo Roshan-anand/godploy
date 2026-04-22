@@ -1,26 +1,19 @@
 package config
 
 import (
-	"database/sql"
 	"net/http"
 
-	"github.com/Roshan-anand/godploy/internal/db"
 	deploymentqueue "github.com/Roshan-anand/godploy/internal/jobs/deployment/queue"
 	logbrokerqueue "github.com/Roshan-anand/godploy/internal/jobs/logbroker/queue"
-	"github.com/moby/moby/client"
 )
-
-type DataBase struct {
-	Pool    *sql.DB
-	Queries *db.Queries
-}
 
 // server holds the global configuration for the application
 type Server struct {
 	Http        *http.Server
 	DB          *DataBase
+	BadgerDB    *BadgerDB
 	Config      *Config
-	Docker      *client.Client
+	Docker      *DockerClient
 	DeploymentQ *deploymentqueue.JobQueue
 	LogBrokerQ  *logbrokerqueue.LogBrokerQueue
 }
@@ -31,6 +24,12 @@ func NewServer(cfg *Config) (*Server, error) {
 
 	// initialize database connection
 	db, err := InitDb(cfg.DbDir)
+	if err != nil {
+		return nil, err
+	}
+
+	// initialize badgerDB connection
+	badger, err := InitBadgerDB(cfg.DbDir)
 	if err != nil {
 		return nil, err
 	}
@@ -49,6 +48,7 @@ func NewServer(cfg *Config) (*Server, error) {
 
 	return &Server{
 		DB:          db,
+		BadgerDB:    badger,
 		Config:      cfg,
 		Docker:      docker,
 		DeploymentQ: dq,

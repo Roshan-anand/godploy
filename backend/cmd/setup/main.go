@@ -18,13 +18,13 @@ func runCommand(name string, args ...string) error {
 
 // to setup local development env
 func main() {
-	c, err := config.InitDockerClient()
+	docker, err := config.InitDockerClient()
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 
-	host := c.DaemonHost()
+	host := docker.Client.DaemonHost()
 	os.Setenv("DOCKER_HOST", host)
 
 	switch os.Args[1] {

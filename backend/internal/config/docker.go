@@ -9,7 +9,11 @@ import (
 	"github.com/moby/moby/client"
 )
 
-func InitDockerClient() (*client.Client, error) {
+type DockerClient struct {
+	Client *client.Client
+}
+
+func InitDockerClient() (*DockerClient, error) {
 	c, err := client.New(client.FromEnv)
 	if err != nil {
 		return nil, err
@@ -38,10 +42,10 @@ func InitDockerClient() (*client.Client, error) {
 		}
 	}
 
-	return c, nil
+	return &DockerClient{Client: c}, nil
 }
 
-func (s *Server) CloseDockerClient() error {
+func (d *DockerClient) CloseClient() error {
 	fmt.Println("closing docker client connection")
-	return s.Docker.Close()
+	return d.Client.Close()
 }

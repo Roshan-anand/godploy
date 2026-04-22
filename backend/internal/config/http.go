@@ -61,12 +61,17 @@ func (s *Server) ShutDownServer() error {
 	}
 
 	// close database connections
-	if err := s.CloseDb(); err != nil {
+	if err := s.DB.CloseDb(); err != nil {
+		return err
+	}
+
+	// close badgerDB connection
+	if err := s.BadgerDB.CloseDb(); err != nil {
 		return err
 	}
 
 	// close docker client connection
-	if err := s.CloseDockerClient(); err != nil {
+	if err := s.Docker.CloseClient(); err != nil {
 		return err
 	}
 
