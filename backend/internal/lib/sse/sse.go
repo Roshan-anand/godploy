@@ -7,9 +7,13 @@ import (
 	"net/http"
 )
 
+type SSE struct {
+	W http.ResponseWriter
+}
+
 // Event represents Server-Sent Event.
 // SSE explanation: https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events/Using_server-sent_events#event_stream_format
-type Event struct {
+type event struct {
 	// ID is used to set the EventSource object's last event ID value.
 	ID []byte
 	// Data field is for the message. When the EventSource receives multiple consecutive lines
@@ -30,8 +34,15 @@ type Event struct {
 	Comment []byte
 }
 
+// initializes a new SSE instance
+func NewSSE(w http.ResponseWriter) *SSE {
+	return &SSE{
+		W: w,
+	}
+}
+
 // MarshalTo marshals Event to given Writer
-func (ev *Event) MarshalTo(w io.Writer) error {
+func (ev *event) marshalTo(w io.Writer) error {
 	// Marshalling part is taken from: https://github.com/r3labs/sse/blob/c6d5381ee3ca63828b321c16baa008fd6c0b4564/http.go#L16
 	if len(ev.Data) == 0 && len(ev.Comment) == 0 {
 		return nil
@@ -75,19 +86,20 @@ func (ev *Event) MarshalTo(w io.Writer) error {
 	return nil
 }
 
-func SendSSE(w http.ResponseWriter, eventName string, data string) error {
+// sends a Server-Sent Event to the client
+func (sse *SSE) SendSSE(eventName string, data string) error {
 
 	// build event
-	e := &Event{
+	e := &event{
 		Data:  []byte(data),
 		Event: []byte(eventName),
 	}
 
 	// write event
-	if err := e.MarshalTo(w); err != nil {
+	if err := e.marshalTo(sse.W); err != nil {
 		return err
 	}
 
 	// flush immediately
-	return http.NewResponseController(w).Flush()
+	return http.NewResponseController(sse.W).Flush()
 }

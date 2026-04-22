@@ -56,6 +56,7 @@ type GetGithubRepoListRes struct {
 	Private       bool   `json:"private"`
 	DefaultBranch string `json:"default_branch"`
 	HtmlURL       string `json:"html_url"`
+	RepoURL       string `json:"repo_url"`
 }
 
 func InitGitHandlers(s *config.Server) *GitHandler {
@@ -298,6 +299,9 @@ func (h *GitHandler) GetGithubRepoList(c *echo.Context) error {
 	q := h.Server.DB.Queries
 
 	appID, err := strconv.ParseInt(c.QueryParam("app_id"), 10, 64)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, lib.Res{Message: "Invalid app_id"})
+	}
 
 	ghApp, err := q.GetGhAppByAppId(h.qCtx, appID)
 	if err != nil {
@@ -337,6 +341,7 @@ func (h *GitHandler) GetGithubRepoList(c *echo.Context) error {
 				Private:       repo.GetPrivate(),
 				DefaultBranch: repo.GetDefaultBranch(),
 				HtmlURL:       repo.GetHTMLURL(),
+				RepoURL:       repo.GetCloneURL(),
 			})
 		}
 

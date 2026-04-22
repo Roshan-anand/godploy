@@ -102,7 +102,7 @@ func (h *ServiceHandler) GetPsqlServiceById(c *echo.Context) error {
 //
 // route: POST /api/service/psql/deploy
 func (h *ServiceHandler) DeployPsqlService(c *echo.Context) error {
-	docker := h.Server.Docker
+	docker := h.Server.Docker.Client
 	q := h.Server.DB.Queries
 
 	b := new(ServiceReq)
@@ -187,7 +187,7 @@ func (h *ServiceHandler) DeployPsqlService(c *echo.Context) error {
 //
 // route: POST /api/service/psql/stop
 func (h *ServiceHandler) StopPsqlService(c *echo.Context) error {
-	docker := h.Server.Docker
+	docker := h.Server.Docker.Client
 	q := h.Server.DB.Queries
 
 	b := new(ServiceReq)
@@ -212,7 +212,7 @@ func (h *ServiceHandler) StopPsqlService(c *echo.Context) error {
 //
 // route: DELETE /api/service/psql
 func (h *ServiceHandler) DeletePsqlService(c *echo.Context) error {
-	docker := h.Server.Docker
+	docker := h.Server.Docker.Client
 	q := h.Server.DB.Queries
 
 	b := new(ServiceReq)

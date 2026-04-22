@@ -1,10 +1,10 @@
 ## Pull Build Deploy Operations
 
-- [ ] API to trigger deploy.
+- [x] API to trigger deploy.
   - create deployment record in DB.
   - trigger pull.
   - redirect to deployment logs page.
-- [ ] API to trigger SSE of deployment logs.
+- [X] API to trigger SSE of deployment logs.
   - open SSE connection.
   - subscribe to logsbroker.
 - [ ] UI to stream deployment logs.

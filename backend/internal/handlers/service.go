@@ -2,10 +2,13 @@ package handlers
 
 import (
 	"context"
+	"log"
 	"net/http"
 
 	"github.com/Roshan-anand/godploy/internal/config"
+	logbrokerqueue "github.com/Roshan-anand/godploy/internal/jobs/logbroker/queue"
 	"github.com/Roshan-anand/godploy/internal/lib"
+	"github.com/Roshan-anand/godploy/internal/lib/sse"
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v5"
@@ -72,12 +75,50 @@ func (h *ServiceHandler) GetAllOrganizationServices(c *echo.Context) error {
 //
 // route: GET /api/service/deployment?service_id
 func (h *ServiceHandler) GetServiceDeployments(c *echo.Context) error {
-	return c.JSON(http.StatusNotImplemented, lib.Res{Message: "not implemented"})
+	q := h.Server.DB.Queries
+
+	serviceID, err := uuid.Parse(c.QueryParam("service_id"))
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, lib.Res{Message: "invalid service_id"})
+	}
+
+	deployemnts, err := q.GetDeploymentsByServiceID(h.qCtx, serviceID)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, lib.Res{Message: "failed to get deployments"})
+	}
+
+	return c.JSON(http.StatusOK, deployemnts)
 }
 
 // subscribe to service deployment logs event
 //
-// route: GET /api/service/deployment/logs?service_id
+// route: GET /api/service/deployment/logs?deployment_id
 func (h *ServiceHandler) SubscribeServiceDeploymentLogs(c *echo.Context) error {
-	return c.JSON(http.StatusNotImplemented, lib.Res{Message: "not implemented"})
+
+	deploymentID, err := uuid.Parse(c.QueryParam("deployment_id"))
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, lib.Res{Message: "invalid deployment_id"})
+	}
+
+	w := c.Response()
+	w.Header().Set("Content-Type", "text/event-stream")
+	w.Header().Set("Cache-Control", "no-cache")
+	w.Header().Set("Connection", "keep-alive")
+
+	sse := sse.NewSSE(w)
+
+	userID := lib.NewID()
+	h.Server.LogBrokerQ.SubscribeLogs(userID, &logbrokerqueue.Subscriber{
+		SSE:          sse,
+		DeploymentID: deploymentID,
+	})
+
+	for {
+		select {
+		case <-c.Request().Context().Done():
+			log.Printf("SSE client disconnected, ip: %v", c.RealIP())
+			h.Server.LogBrokerQ.UnsubscribeLogs(userID)
+			return nil
+		}
+	}
 }

@@ -73,7 +73,7 @@ CREATE TABLE app_service (
 
 CREATE TABLE deployments (
     id uuid PRIMARY KEY,
-    service_id TEXT NOT NULL REFERENCES app_service(id) ON DELETE CASCADE,
+    service_id uuid NOT NULL REFERENCES app_service(id) ON DELETE CASCADE,
     name TEXT NOT NULL,
     status TEXT NOT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL

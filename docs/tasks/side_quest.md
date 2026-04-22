@@ -16,6 +16,7 @@
 - [x] setup dev env for separate frontend
 - [x] setup containerized dev env
 - [x] migrate UI from vue to svelte
+- [ ] validate CORS & cookie setting for both dev and prod[!IMP]
 
 ## application
 

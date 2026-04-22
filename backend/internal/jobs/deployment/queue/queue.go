@@ -1,13 +1,15 @@
 package deploymentqueue
 
+import "github.com/google/uuid"
+
 //	!IMP : this is just a placeholder
 //
 // TODO : fill struct with actual data required for the job
 type PullJobData struct {
-	Token  string
-	Owner  string
-	Repo   string
-	Branch string
+	DeploymentID uuid.UUID
+	Token        string
+	Url          string
+	Branch       string
 }
 
 type BuildJobData struct {

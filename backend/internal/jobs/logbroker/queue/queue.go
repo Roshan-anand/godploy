@@ -1,8 +1,7 @@
 package logbrokerqueue
 
 import (
-	"net/http"
-
+	"github.com/Roshan-anand/godploy/internal/lib/sse"
 	"github.com/google/uuid"
 )
 
@@ -12,7 +11,7 @@ type PubData struct {
 }
 
 type Subscriber struct {
-	w            http.ResponseWriter
+	SSE          *sse.SSE
 	DeploymentID uuid.UUID
 }
 
@@ -43,11 +42,11 @@ func (l *LogBrokerQueue) PublishLog(data *PubData) {
 }
 
 // subscribe to logs of the deployment
-func (l *LogBrokerQueue) SubscribeLogs(id uuid.UUID, sub *Subscriber) {
-	l.Subscribers[id] = sub
+func (l *LogBrokerQueue) SubscribeLogs(userID uuid.UUID, sub *Subscriber) {
+	l.Subscribers[userID] = sub
 }
 
 // unsubscribe user from logs of the deployment
-func (l *LogBrokerQueue) UnsubscribeLogs(id uuid.UUID) {
-	delete(l.Subscribers, id)
+func (l *LogBrokerQueue) UnsubscribeLogs(userID uuid.UUID) {
+	delete(l.Subscribers, userID)
 }

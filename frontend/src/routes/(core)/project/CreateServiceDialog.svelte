@@ -30,10 +30,20 @@
 		name: string;
 	}
 
-	interface CreateServiceResponse {
+	interface CreatePsqlServiceResponse {
 		id: string;
 		type: ServiceType;
 	}
+
+	interface CreateAppServiceResponse {
+		service_id: string;
+		type: ServiceType;
+		deployment_id: string;
+		status: string;
+		redirect_url: string;
+	}
+
+	type CreateServiceResponse = CreatePsqlServiceResponse | CreateAppServiceResponse;
 
 	type GitProviderKey = 'github' | 'gitlab' | 'bitbucket';
 	interface GitProviderOption {
@@ -58,6 +68,7 @@
 		name: string;
 		full_name: string;
 		html_url: string;
+		repo_url: string;
 		private: boolean;
 		default_branch: string;
 	}
@@ -75,8 +86,10 @@
 		description: string;
 		app_name: string;
 		git_provider: GitProviderKey;
+		gh_app_id: number;
 		git_repo_id: string;
 		git_repo_name: string;
+		git_repo_url: string;
 		git_branch: string;
 		build_path: string;
 	}
@@ -198,6 +211,9 @@
 			return api.post<CreateServiceResponse>(url, payload.body).then((res) => res.data);
 		},
 		onSuccess: async (createdService) => {
+			const serviceId =
+				'service_id' in createdService ? createdService.service_id : createdService.id;
+
 			await queryClient.invalidateQueries({ queryKey: ['services'] });
 			pageUi.closeCreateDialog();
 			resetGitRepoSelection();
@@ -205,7 +221,7 @@
 
 			toast.success('Service created successfully');
 			goto(
-				resolve(`/(core)/service/[service]?id=${createdService.id}`, {
+				resolve(`/(core)/service/[service]?id=${serviceId}`, {
 					service: createdService.type
 				})
 			);
@@ -269,6 +285,18 @@
 				const selectedGithubRepo = githubRepos.find(
 					(repo) => repo.id.toString() === value.git_repo_id
 				);
+
+				if (!selectedGithubRepo) {
+					toast.error('Please select a repository');
+					return;
+				}
+
+				const ghAppId = Number.parseInt(value.git_app_id, 10);
+				if (Number.isNaN(ghAppId)) {
+					toast.error('Please select a GitHub app');
+					return;
+				}
+
 				const buildPath = value.build_path.trim() === '' ? '/' : value.build_path.trim();
 
 				createServiceMutation.mutate({
@@ -279,8 +307,10 @@
 						description: value.description.trim(),
 						app_name: value.app_name.trim(),
 						git_provider: (value.git_provider || 'github') as GitProviderKey,
+						gh_app_id: ghAppId,
 						git_repo_id: value.git_repo_id,
-						git_repo_name: selectedGithubRepo?.full_name ?? '',
+						git_repo_name: selectedGithubRepo.full_name,
+						git_repo_url: selectedGithubRepo.repo_url,
 						git_branch: value.git_branch,
 						build_path: buildPath
 					}

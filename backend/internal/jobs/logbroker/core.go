@@ -28,6 +28,16 @@ func (job *LogsBroker) LogsBrokerJob(ctx context.Context, pub chan *logbrokerque
 				return
 			}
 			println("log broker recived message : ", p.Msg)
+
+			// check for subscribers
+			for _, sub := range job.Server.LogBrokerQ.Subscribers {
+				if sub.DeploymentID == p.ID {
+					sub.SSE.SendSSE("event", "data")
+				}
+			}
+
+			// TODO : send it to buffer
+
 		case <-ctx.Done():
 			fmt.Println("Context cancelled, exiting logBroker")
 			return
