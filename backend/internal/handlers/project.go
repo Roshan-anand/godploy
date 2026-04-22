@@ -20,8 +20,8 @@ type ProjectHandler struct {
 }
 
 type CreateProjectReq struct {
-	Name        string    `json:"project_name" validate:"required,min=3"`
-	Description string    `json:"description"`
+	Name        string `json:"project_name" validate:"required,min=3"`
+	Description string `json:"description"`
 }
 
 type DeleteProjectReq struct {

@@ -13,6 +13,14 @@ install-server:
 
 install: install-web install-server
 
+format-server:
+	cd backend && go fmt ./...
+
+format-web:
+	cd frontend && bun run format && bun run lint
+
+format: format-server format-web
+
 check:
 	cd frontend && bun check
 

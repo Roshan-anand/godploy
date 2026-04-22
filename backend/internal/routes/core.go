@@ -1,9 +1,15 @@
 package routes
 
 import (
+	"fmt"
+	"log"
+	"net/http"
+	"time"
+
 	"github.com/Roshan-anand/godploy/frontend"
 	"github.com/Roshan-anand/godploy/internal/config"
 	"github.com/Roshan-anand/godploy/internal/handlers"
+	"github.com/Roshan-anand/godploy/internal/lib/sse"
 	"github.com/Roshan-anand/godploy/internal/middleware"
 	"github.com/labstack/echo/v5"
 )
@@ -27,6 +33,37 @@ func SetupRoutes(srv *config.Server) (*echo.Echo, error) {
 	public := api.Group("")
 	protected := api.Group("")
 	protected.Use(m.GlobalMiddlewareUser)
+
+	public.GET("sse", func(c *echo.Context) error {
+		log.Printf("SSE client connected, ip: %v", c.RealIP())
+
+		w := c.Response()
+		w.Header().Set("Content-Type", "text/event-stream")
+		w.Header().Set("Cache-Control", "no-cache")
+		w.Header().Set("Connection", "keep-alive")
+
+		ticker := time.NewTicker(1 * time.Second)
+		defer ticker.Stop()
+		count := uint64(0)
+		for {
+			select {
+			case <-c.Request().Context().Done():
+				log.Printf("SSE client disconnected, ip: %v", c.RealIP())
+				return nil
+			case <-ticker.C:
+				count++
+				event := sse.Event{
+					Data: []byte(fmt.Sprintf("count: %d, time: %s\n\n", count, time.Now().Format(time.RFC3339Nano))),
+				}
+				if err := event.MarshalTo(w); err != nil {
+					return err
+				}
+				if err := http.NewResponseController(w).Flush(); err != nil {
+					return err
+				}
+			}
+		}
+	})
 
 	// public routes
 	public.GET("/health", h.Health.HealthCheck)

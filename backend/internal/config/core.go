@@ -6,7 +6,7 @@ import (
 
 	"github.com/Roshan-anand/godploy/internal/db"
 	deploymentqueue "github.com/Roshan-anand/godploy/internal/jobs/deployment/queue"
-	logbrokerqueue "github.com/Roshan-anand/godploy/internal/jobs/pubsub/queue"
+	logbrokerqueue "github.com/Roshan-anand/godploy/internal/jobs/logbroker/queue"
 	"github.com/moby/moby/client"
 )
 

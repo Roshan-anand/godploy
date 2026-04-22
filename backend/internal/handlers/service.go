@@ -67,3 +67,17 @@ func (h *ServiceHandler) GetAllOrganizationServices(c *echo.Context) error {
 		"services": services,
 	})
 }
+
+// get all service deployment jobs
+//
+// route: GET /api/service/deployment?service_id
+func (h *ServiceHandler) GetServiceDeployments(c *echo.Context) error {
+	return c.JSON(http.StatusNotImplemented, lib.Res{Message: "not implemented"})
+}
+
+// subscribe to service deployment logs event
+//
+// route: GET /api/service/deployment/logs?service_id
+func (h *ServiceHandler) SubscribeServiceDeploymentLogs(c *echo.Context) error {
+	return c.JSON(http.StatusNotImplemented, lib.Res{Message: "not implemented"})
+}

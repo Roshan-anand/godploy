@@ -5,7 +5,7 @@ import (
 
 	"github.com/Roshan-anand/godploy/internal/db"
 	"github.com/Roshan-anand/godploy/internal/lib"
-	"github.com/Roshan-anand/godploy/internal/types"
+	"github.com/Roshan-anand/godploy/internal/lib/types"
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v5"
 )

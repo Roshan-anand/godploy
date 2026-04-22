@@ -110,7 +110,7 @@
 
 		createProjectMutation.mutate({
 			project_name: projectName.trim(),
-			description: projectDescription.trim(),
+			description: projectDescription.trim()
 		});
 	}
 

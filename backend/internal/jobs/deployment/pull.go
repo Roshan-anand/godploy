@@ -6,7 +6,7 @@ import (
 	"time"
 
 	deploymentqueue "github.com/Roshan-anand/godploy/internal/jobs/deployment/queue"
-	logbrokerqueue "github.com/Roshan-anand/godploy/internal/jobs/pubsub/queue"
+	logbrokerqueue "github.com/Roshan-anand/godploy/internal/jobs/logbroker/queue"
 	"github.com/Roshan-anand/godploy/internal/lib"
 )
 

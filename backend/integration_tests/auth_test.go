@@ -23,7 +23,7 @@ func TestUserLogin(t *testing.T) {
 		Name:     "test",
 		Email:    "test@test.com",
 		Password: "testtest",
-		OrgName:      "test_org",
+		OrgName:  "test_org",
 	}
 
 	// initialize mock server

@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/Roshan-anand/godploy/internal/config"
-	logbrokerqueue "github.com/Roshan-anand/godploy/internal/jobs/pubsub/queue"
+	logbrokerqueue "github.com/Roshan-anand/godploy/internal/jobs/logbroker/queue"
 )
 
 type LogsBroker struct {

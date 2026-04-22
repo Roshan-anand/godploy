@@ -1,13 +1,21 @@
 ## Pull Build Deploy Operations
 
 - [ ] API to trigger deploy.
-- [ ] API to trigger SSE of deployemnt logs.
+  - create deployment record in DB.
+  - trigger pull.
+  - redirect to deployment logs page.
+- [ ] API to trigger SSE of deployment logs.
+  - open SSE connection.
+  - subscribe to logsbroker.
 - [ ] UI to stream deployment logs.
 - [ ] Worker pool to execute pull & store code.
 - [ ] Worker pool to execute build & create image.
 - [ ] Worker pool to execute deploy using docker stack.
 - [ ] setup BadgerDB.
-- [ ] BadgerDB operation to recive all old logs.
-- [ ] Pub/Sub system to send and receive logs.
-  - [ ] SSE setup to strem logs
-  - [ ] BadgerDB operation to push logs to DB
+- [ ] logbroker to publish logs.
+  - setup buffer to store logs in memory.
+  - send logs to SSE clients.
+    - look for all subs for current log_id
+    - also if client is new then send all logs from BadgerDB then buffer then current log.
+  - send logs to BadgerDB.
+    - certain amt of logs in buffer trigger DB uploads
