@@ -23,13 +23,13 @@ func NewServer(cfg *Config) (*Server, error) {
 	// connect DB, Redis, Docker client etc. here and add them to the server struct
 
 	// initialize database connection
-	db, err := InitDb(cfg.DbDir)
+	db, err := InitDb(cfg.SqliteDir)
 	if err != nil {
 		return nil, err
 	}
 
 	// initialize badgerDB connection
-	badger, err := InitBadgerDB(cfg.DbDir)
+	badger, err := InitBadgerDB(cfg.BadgerDir)
 	if err != nil {
 		return nil, err
 	}

@@ -11,7 +11,6 @@ import (
 	"os"
 
 	"github.com/Roshan-anand/godploy/internal/config"
-	"github.com/Roshan-anand/godploy/internal/db"
 	"github.com/Roshan-anand/godploy/internal/handlers"
 	"github.com/Roshan-anand/godploy/internal/routes"
 	"github.com/labstack/echo/v5"
@@ -29,11 +28,12 @@ func mockConfigServer() (*echo.Echo, *config.Server, error) {
 	cfg.WebUrl = "*"
 	cfg.JwtSecret = "test_secret"
 
-	tempDir, err := getTempDir()
+	sqliteTempPath, badgerTempPath, err := getTempDir()
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to get temp dir: %w", err)
 	}
-	cfg.DbDir = tempDir
+	cfg.SqliteDir = sqliteTempPath
+	cfg.BadgerDir = badgerTempPath
 
 	// create server instance
 	server, err := config.NewServer(cfg)
@@ -50,21 +50,6 @@ func mockConfigServer() (*echo.Echo, *config.Server, error) {
 	// server.SetupHttp(r) // setup http server with routes
 
 	return r, server, nil
-}
-
-// mock db connection
-func mockDbConnection() (*db.Queries, error) {
-	tempDir, err := getTempDir()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get temp dir: %w", err)
-	}
-
-	db, err := config.InitDb(tempDir)
-	if err != nil {
-		return nil, fmt.Errorf("failed to init db: %w", err)
-	}
-
-	return db.Queries, nil
 }
 
 // mock a new logined user
@@ -159,12 +144,23 @@ func getFreePort() (int, error) {
 }
 
 // get temp dir for testing
-func getTempDir() (string, error) {
+func getTempDir() (string, string, error) {
 	p, err := os.MkdirTemp("", "godploy_test_*")
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
-	return p, nil
+
+	sqliteDir := fmt.Sprintf("%s/sqlite", p)
+	if err := os.Mkdir(sqliteDir, os.FileMode(0755)); err != nil {
+		return "", "", err
+	}
+
+	badgerDir := fmt.Sprintf("%s/badger", p)
+	if err := os.Mkdir(badgerDir, os.FileMode(0755)); err != nil {
+		return "", "", err
+	}
+
+	return sqliteDir, badgerDir, nil
 }
 
 func reqBody(data any) io.Reader {

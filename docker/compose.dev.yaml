@@ -57,7 +57,8 @@ services:
           path: ../backend/go.sum
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - godploy-dev-data:/app/backend/data
+      - godploy-dev-data:/app/backend/data/sqlite
+      - godploy-dev-logs:/app/backend/data/badger
     env_file:
       - ../.env
     environment:
@@ -78,3 +79,5 @@ networks:
 volumes:
   godploy-dev-data:
     name: godploy-dev-data
+  godploy-dev-logs:
+    name: godploy-dev-logs

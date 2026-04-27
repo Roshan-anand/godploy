@@ -25,6 +25,7 @@ func InitBadgerDB(dir string) (*BadgerDB, error) {
 		return nil, fmt.Errorf("failed to open badgerDB: %w", err)
 	}
 
+	fmt.Println("badgerDB connection established ...")
 	return &BadgerDB{pool: pool}, nil
 }
 

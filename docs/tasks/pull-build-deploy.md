@@ -11,7 +11,7 @@
 - [ ] Worker pool to execute pull & store code.
 - [ ] Worker pool to execute build & create image.
 - [ ] Worker pool to execute deploy using docker stack.
-- [ ] setup BadgerDB.
+- [x] setup BadgerDB.
 - [ ] logbroker to publish logs.
   - setup buffer to store logs in memory.
   - send logs to SSE clients.

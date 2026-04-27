@@ -6,7 +6,6 @@ import (
 	"net/http"
 
 	"github.com/Roshan-anand/godploy/internal/config"
-	deploymentqueue "github.com/Roshan-anand/godploy/internal/jobs/deployment/queue"
 	"github.com/Roshan-anand/godploy/internal/lib"
 	"github.com/go-playground/validator/v10"
 	"github.com/labstack/echo/v5"
@@ -34,11 +33,14 @@ func InitHealthHandlers(s *config.Server) *HealthHandler {
 //
 // route: GET /api/health
 func (h *HealthHandler) HealthCheck(c *echo.Context) error {
-	if h.Server.DB == nil {
+	switch {
+	case h.Server.DB == nil:
 		return c.JSON(500, lib.Res{Message: "database not initialized"})
+	case h.Server.BadgerDB == nil:
+		return c.JSON(500, lib.Res{Message: "badger database not initialized"})
+	case h.Server.Docker == nil:
+		return c.JSON(500, lib.Res{Message: "docker client not initialized"})
 	}
-
-	h.Server.DeploymentQ.EnqueuePullJob(&deploymentqueue.PullJobData{})
 
 	return c.JSON(200, lib.Res{Message: "ok"})
 }

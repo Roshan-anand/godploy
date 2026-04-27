@@ -13,7 +13,8 @@ type Config struct {
 	JwtSecret        string
 	WebUrl           string
 	ServerUrl        string
-	DbDir            string
+	SqliteDir        string
+	BadgerDir        string
 	AppEnv           string
 }
 
@@ -33,7 +34,8 @@ func LoadConfig() (*Config, error) {
 		EchoCtxUserKey:   "user_email",
 		JwtSecret:        jwtSecrect,
 		WebUrl:           webUrl,
-		DbDir:            "data",
+		SqliteDir:        "data/sqlite",
+		BadgerDir:        "data/badger",
 		AppEnv:           appEnv,
 		ServerUrl:        srvUrl,
 	}, nil
