@@ -25,3 +25,11 @@ export type AppService = {
 };
 
 export type ServiceDetails = ServiceBase & (PsqlService | AppService);
+
+export type ServiceDeployment = {
+	id: string;
+	service_id: string;
+	name: string;
+	status: string;
+	created_at: string;
+};

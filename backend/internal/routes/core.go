@@ -56,6 +56,9 @@ func SetupRoutes(srv *config.Server) (*echo.Echo, error) {
 	service := protected.Group("/service")
 	service.GET("/project", h.Service.GetAllProjectServices)
 	service.GET("/org", h.Service.GetAllOrganizationServices)
+	service.GET("/deployment", h.Service.GetServiceDeployments)
+	service.DELETE("/deployment", h.Service.DeleteServiceDeployment)
+	service.GET("/deployment/logs", h.Service.SubscribeServiceDeploymentLogs)
 
 	psql := service.Group("/psql")
 	psql.GET("/:id", h.Service.GetPsqlServiceById)

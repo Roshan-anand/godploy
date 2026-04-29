@@ -52,7 +52,6 @@ func (h *ServiceHandler) CreateAppService(c *echo.Context) error {
 		ID:          lib.NewID(),
 		ProjectID:   b.ProjectID,
 		Type:        types.AppServiceType,
-		ServiceID:   "",
 		Name:        b.Name,
 		AppName:     b.AppName,
 		Description: b.Description,
@@ -84,6 +83,7 @@ func (h *ServiceHandler) CreateAppService(c *echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, lib.Res{Message: "Failed to get github token"})
 	}
 
+	// push a new deployment job to the queue
 	h.Server.DeploymentQ.EnqueuePullJob(&deploymentqueue.PullJobData{
 		DeploymentID: dID,
 		Url:          b.GitRepoURL,
@@ -91,7 +91,7 @@ func (h *ServiceHandler) CreateAppService(c *echo.Context) error {
 		Token:        token,
 	})
 
-	return c.JSON(http.StatusOK, nil)
+	return c.JSON(http.StatusOK, service)
 }
 
 // get app service details by id

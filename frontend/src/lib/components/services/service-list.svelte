@@ -113,8 +113,9 @@
 					class="rounded-lg border bg-card text-card-foreground shadow-sm p-4 hover:shadow-md transition-shadow cursor-pointer relative"
 				>
 					<a
-						href={resolve(`/(core)/service/[service]?id=${service.id}`, {
-							service: service.type
+						href={resolve('/(core)/service/[service_type]/[service_id]', {
+							service_type: service.type,
+							service_id: service.id
 						})}
 						class="absolute z-10 size-full inset-0 text-transparent"
 						title="open service"

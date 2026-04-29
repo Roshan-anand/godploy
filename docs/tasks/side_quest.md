@@ -34,9 +34,11 @@
   - [ ] the `app name` field should be prefixed with project name and should be non editable. [easy, ui]
   - [x] the git provider github shoudl be auto fetched if the selected service is app. [easy, query]
   - [x] select field for selecting git-provider-app after **git-provider-selection**.
-  - [x] select field for selecting branch after **repo-selection**.
+  - [ ] select field for selecting branch after **repo-selection**.
   - [x] input field for build path after **branch-selection**.
+  - [ ] select field for selecting watch path after **build-path-selection**.
   - [x] update create service api to accept build path, repo nd branch. [easy, api]
+  - [ ] if no github app connected then show msg and link to connect github app. [easy, ui]
 - [ ] at [CheckUserExistsInOrg](../../backend/internal/handlers/utils.go) func return org details instead of just bool.
 
 ## Potential bugs
@@ -45,3 +47,4 @@
 - [ ] service data is stored in DB and deployed, but what if user remove the service from terminal. the data still exists.
 - [ ] the github app is stored linked to org_ig, what if user fails on instllation then data still ramins. so retry fails because there is multiple github app store in singe org.
 - [ ] delete github app only deletes app from the DB and not from the github.
+- [ ] form errors pops up as [object object]

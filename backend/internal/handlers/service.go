@@ -20,6 +20,10 @@ type ServiceHandler struct {
 	qCtx     context.Context
 }
 
+type DeploymentReq struct {
+	DeploymentID uuid.UUID `json:"deployment_id" validate:"required"`
+}
+
 func InitServiceHandlers(s *config.Server) *ServiceHandler {
 	return &ServiceHandler{
 		Server:   s,
@@ -90,12 +94,30 @@ func (h *ServiceHandler) GetServiceDeployments(c *echo.Context) error {
 	return c.JSON(http.StatusOK, deployemnts)
 }
 
+// delete service deployment by deployment id
+//
+// route: DELETE /api/service/deployment
+func (h *ServiceHandler) DeleteServiceDeployment(c *echo.Context) error {
+	b := new(DeploymentReq)
+	q := h.Server.DB.Queries
+
+	if Res := BindAndValidate(b, c, h.Validate); Res != nil {
+		return c.JSON(http.StatusBadRequest, Res)
+	}
+
+	if err := q.DeleteDeploymentByID(h.qCtx, b.DeploymentID); err != nil {
+		return c.JSON(http.StatusInternalServerError, lib.Res{Message: "failed to delete deployment"})
+	}
+
+	return c.JSON(http.StatusOK, lib.Res{Message: "deployment deleted successfully"})
+}
+
 // subscribe to service deployment logs event
 //
 // route: GET /api/service/deployment/logs?deployment_id
 func (h *ServiceHandler) SubscribeServiceDeploymentLogs(c *echo.Context) error {
 
-	deploymentID, err := uuid.Parse(c.QueryParam("deployment_id"))
+	dID, err := uuid.Parse(c.QueryParam("deployment_id"))
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, lib.Res{Message: "invalid deployment_id"})
 	}
@@ -110,7 +132,7 @@ func (h *ServiceHandler) SubscribeServiceDeploymentLogs(c *echo.Context) error {
 	userID := lib.NewID()
 	h.Server.LogBrokerQ.SubscribeLogs(userID, &logbrokerqueue.Subscriber{
 		SSE:          sse,
-		DeploymentID: deploymentID,
+		DeploymentID: dID,
 	})
 
 	for {

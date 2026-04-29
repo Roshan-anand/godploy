@@ -16,7 +16,6 @@ type AppService struct {
 	ID          uuid.UUID         `json:"id"`
 	ProjectID   uuid.UUID         `json:"project_id"`
 	Type        types.ServiceType `json:"type"`
-	ServiceID   string            `json:"service_id"`
 	Name        string            `json:"name"`
 	AppName     string            `json:"app_name"`
 	Description string            `json:"description"`

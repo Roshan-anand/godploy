@@ -14,8 +14,8 @@ import (
 )
 
 const createAppService = `-- name: CreateAppService :one
-INSERT INTO app_service (id, project_id, type, service_id, name, app_name, description, git_provider, git_repo_id, git_repo_name, git_branch, build_path)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+INSERT INTO app_service (id, project_id, type, name, app_name, description, git_provider, git_repo_id, git_repo_name, git_branch, build_path)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 RETURNING id, type
 `
 
@@ -23,7 +23,6 @@ type CreateAppServiceParams struct {
 	ID          uuid.UUID         `json:"id"`
 	ProjectID   uuid.UUID         `json:"project_id"`
 	Type        types.ServiceType `json:"type"`
-	ServiceID   string            `json:"service_id"`
 	Name        string            `json:"name"`
 	AppName     string            `json:"app_name"`
 	Description string            `json:"description"`
@@ -44,7 +43,6 @@ func (q *Queries) CreateAppService(ctx context.Context, arg CreateAppServicePara
 		arg.ID,
 		arg.ProjectID,
 		arg.Type,
-		arg.ServiceID,
 		arg.Name,
 		arg.AppName,
 		arg.Description,
@@ -137,6 +135,16 @@ WHERE id = ?
 
 func (q *Queries) DeleteAppService(ctx context.Context, id uuid.UUID) error {
 	_, err := q.db.ExecContext(ctx, deleteAppService, id)
+	return err
+}
+
+const deleteDeploymentByID = `-- name: DeleteDeploymentByID :exec
+DELETE FROM deployments
+WHERE id = ?
+`
+
+func (q *Queries) DeleteDeploymentByID(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.ExecContext(ctx, deleteDeploymentByID, id)
 	return err
 }
 
@@ -290,7 +298,7 @@ func (q *Queries) GetAllServicesByProjectId(ctx context.Context, projectid uuid.
 }
 
 const getAppServiceById = `-- name: GetAppServiceById :one
-SELECT id, project_id, type, service_id, name, app_name, description, git_provider, git_repo_id, git_repo_name, git_branch, build_path, created_at
+SELECT id, project_id, type, name, app_name, description, git_provider, git_repo_id, git_repo_name, git_branch, build_path, created_at
 FROM app_service
 WHERE id = ?
 `
@@ -302,7 +310,6 @@ func (q *Queries) GetAppServiceById(ctx context.Context, id uuid.UUID) (AppServi
 		&i.ID,
 		&i.ProjectID,
 		&i.Type,
-		&i.ServiceID,
 		&i.Name,
 		&i.AppName,
 		&i.Description,

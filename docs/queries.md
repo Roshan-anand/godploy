@@ -31,3 +31,7 @@
     - when to update local store from query cache vs mutation response
 
 - [ ] svelte class based global context [context.svelte.ts](../frontend/src/lib/components/services/context.svelte.ts)
+
+- [ ] SSE with EventSource for deployment logs
+    - how to open and close `EventSource` safely with dialog lifecycle
+    - how custom SSE event names (like `event`) map to `addEventListener` in browser

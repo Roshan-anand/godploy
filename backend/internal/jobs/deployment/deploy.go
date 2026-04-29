@@ -7,7 +7,6 @@ import (
 
 	deploymentqueue "github.com/Roshan-anand/godploy/internal/jobs/deployment/queue"
 	logbrokerqueue "github.com/Roshan-anand/godploy/internal/jobs/logbroker/queue"
-	"github.com/Roshan-anand/godploy/internal/lib"
 )
 
 // responsible for pulling code and storing it local
@@ -15,7 +14,7 @@ func (w *worker) DeployWorker(ctx context.Context, data chan *deploymentqueue.De
 	fmt.Println("DeployWorker: started")
 	for {
 		select {
-		case _, ok := <-data:
+		case d, ok := <-data:
 			if !ok {
 				fmt.Println("DeployWorker: data channel closed, exiting")
 				return
@@ -25,7 +24,7 @@ func (w *worker) DeployWorker(ctx context.Context, data chan *deploymentqueue.De
 
 			for i := range 5 {
 				w.Server.LogBrokerQ.PublishLog(&logbrokerqueue.PubData{
-					ID:  lib.NewID(),
+					ID:  d.DeploymentID,
 					Msg: fmt.Sprintf("deploy : %v", i),
 				})
 				time.Sleep(1 * time.Second)

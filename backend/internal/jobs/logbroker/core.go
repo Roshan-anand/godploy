@@ -32,7 +32,7 @@ func (job *LogsBroker) LogsBrokerJob(ctx context.Context, pub chan *logbrokerque
 			// check for subscribers
 			for _, sub := range job.Server.LogBrokerQ.Subscribers {
 				if sub.DeploymentID == p.ID {
-					sub.SSE.SendSSE("event", "data")
+					sub.SSE.SendSSE("logs", p.Msg)
 				}
 			}
 

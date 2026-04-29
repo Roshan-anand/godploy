@@ -30,20 +30,12 @@
 		name: string;
 	}
 
-	interface CreatePsqlServiceResponse {
+	interface CreateServiceResponse {
 		id: string;
 		type: ServiceType;
 	}
 
-	interface CreateAppServiceResponse {
-		service_id: string;
-		type: ServiceType;
-		deployment_id: string;
-		status: string;
-		redirect_url: string;
-	}
-
-	type CreateServiceResponse = CreatePsqlServiceResponse | CreateAppServiceResponse;
+	// type CreateServiceResponse = CreatePsqlServiceResponse | CreateAppServiceResponse;
 
 	type GitProviderKey = 'github' | 'gitlab' | 'bitbucket';
 	interface GitProviderOption {
@@ -210,23 +202,24 @@
 			const url = payload.type === 'app' ? '/service/app' : '/service/psql';
 			return api.post<CreateServiceResponse>(url, payload.body).then((res) => res.data);
 		},
-		onSuccess: async (createdService) => {
-			const serviceId =
-				'service_id' in createdService ? createdService.service_id : createdService.id;
-
+		onSuccess: async ({ id, type }) => {
 			await queryClient.invalidateQueries({ queryKey: ['services'] });
 			pageUi.closeCreateDialog();
 			resetGitRepoSelection();
 			form.reset();
 
 			toast.success('Service created successfully');
-			goto(
-				resolve(`/(core)/service/[service]?id=${serviceId}`, {
-					service: createdService.type
+			await goto(
+				resolve('/(core)/service/[service_type]/[service_id]?tab=deployment', {
+					service_type: type,
+					service_id: id
 				})
 			);
 		},
-		onError: (error) => axiosErr(error, 'Failed to create service')
+		onError: (error) => {
+			console.error('Error creating service:', error);
+			axiosErr(error, 'Failed to create service');
+		}
 	}));
 
 	// Dynamic validators gate service-specific fields without manual submit-time checks.

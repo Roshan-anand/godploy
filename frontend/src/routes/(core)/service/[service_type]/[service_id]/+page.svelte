@@ -5,10 +5,13 @@
 	import { Skeleton } from '@/components/ui/skeleton';
 	import type { ServiceDetails } from '@/types.js';
 	import { createQuery } from '@tanstack/svelte-query';
+	import DeployementSection from './deployement.svelte';
+	import Nav from './nav.svelte';
 
 	const { data } = $props();
-	const serviceType = $derived(data.service);
-	const serviceId = $derived(data.id ?? '');
+	const serviceType = $derived(data.serviceType);
+	const serviceId = $derived(data.serviceID);
+	const tab = $derived(data.tab);
 
 	// query to fetch service details based on service type and id
 	const serviceQuery = createQuery(() => ({
@@ -23,6 +26,10 @@
 </script>
 
 <section class="p-2 flex-1">
+	<div class="mb-2">
+		<Nav {serviceType} {serviceId} {tab} />
+	</div>
+
 	{#if serviceType !== 'psql' && serviceType !== 'app'}
 		<p class="text-muted-foreground">Invalid service type in URL</p>
 	{:else if serviceId === ''}
@@ -35,9 +42,19 @@
 		</div>
 	{:else if serviceQuery.isError || !serviceQuery.data}
 		<p class="text-red-500">Failed to load service details</p>
-	{:else if serviceQuery.data.type === 'psql'}
-		<ServiceDetailPsql service={serviceQuery.data} />
+	{:else if tab === ''}
+		{#if serviceQuery.data.type === 'psql'}
+			<ServiceDetailPsql service={serviceQuery.data} />
+		{:else}
+			<ServiceDetailApp service={serviceQuery.data} />
+		{/if}
+	{:else if tab === 'logs'}
+		<p class="text-muted-foreground">Logs tab content goes here</p>
+	{:else if tab === 'deployment'}
+		<DeployementSection {serviceId} />
+	{:else if tab === 'env'}
+		<p class="text-muted-foreground">Environment variables tab content goes here</p>
 	{:else}
-		<ServiceDetailApp service={serviceQuery.data} />
+		<p class="text-muted-foreground">Invalid tab in URL</p>
 	{/if}
 </section>
