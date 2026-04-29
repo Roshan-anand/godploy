@@ -2,8 +2,11 @@
 	import AppSidebar from '@/components/app-sidebar.svelte';
 	import * as Sidebar from '@/components/ui/sidebar/index.js';
 	import ModeToggle from '@/components/mode-toggle.svelte';
+	import { setUserState } from '@/features/global/store.svelte';
 
 	let { children } = $props();
+
+	setUserState();
 </script>
 
 <Sidebar.Provider>

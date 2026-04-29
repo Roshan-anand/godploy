@@ -1,27 +1,21 @@
 import { resolve } from '$app/paths';
 import { api } from '@/axios';
-import type { AuthResponse } from '@/composables/useAuth';
+import type { AuthResponse } from '@/features/auth/type';
 import { queryClient } from '@/query';
-import { userState } from '@/store/user-state.svelte';
+import { getUserState } from '@/features/global/store.svelte';
 import { redirect } from '@sveltejs/kit';
 import axios from 'axios';
 
 export async function load() {
-	if (userState.isAuth) return;
+	const { isAuth, setUser } = getUserState();
+	if (isAuth) return;
 
 	try {
 		const res = await queryClient.fetchQuery({
 			queryKey: ['auth', 'user'],
 			queryFn: () => api.get<AuthResponse>('/auth/user')
 		});
-		const { email, name, org_id, org_name } = res.data;
-		userState.email = email;
-		userState.name = name;
-		userState.currentOrg = {
-			id: org_id,
-			name: org_name
-		};
-		userState.isAuth = true;
+		setUser(res.data);
 	} catch (err) {
 		if (axios.isAxiosError(err) && err.response?.status === 403)
 			redirect(302, resolve('/register'));

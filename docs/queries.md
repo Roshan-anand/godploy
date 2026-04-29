@@ -35,3 +35,7 @@
 - [ ] SSE with EventSource for deployment logs
     - how to open and close `EventSource` safely with dialog lifecycle
     - how custom SSE event names (like `event`) map to `addEventListener` in browser
+
+- [ ] feature-scoped query/mutation modules with page-local runes
+    - move API contracts, payload types, and query keys into `src/lib/features/*`
+    - keep `$state`/`$derived` form orchestration inside route components and pass reactive getters to query hooks

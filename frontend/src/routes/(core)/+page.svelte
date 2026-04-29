@@ -1,107 +1,41 @@
 <script lang="ts">
-	import { api, axiosErr } from '@/axios';
 	import { Button } from '@/components/ui/button';
 	import { Input } from '@/components/ui/input';
 	import { Label } from '@/components/ui/label';
 	import { Skeleton } from '@/components/ui/skeleton';
-	import { queryClient } from '@/query';
-	import { userState } from '@/store/user-state.svelte';
-	import { createMutation, createQuery } from '@tanstack/svelte-query';
+	import { useCreateProjectMutation, useDeleteProjectMutation } from '@/features/projects/mutation';
+	import { setProjectsFeatureState } from '@/features/projects/store.svelte';
+	import { useProjectsQuery } from '@/features/projects/query';
+	import type { Project } from '@/features/projects/type';
 	import { Search, Trash2 } from '@lucide/svelte';
 	import * as Dialog from '@/components/ui/dialog';
-	import { toast } from 'svelte-sonner';
 	import CreateBtn from '@/components/CreateBtn.svelte';
 	import { resolve } from '$app/paths';
+	import { getUserState } from '@/features/global/store.svelte';
+
+	const { currentOrg } = getUserState();
+	const featureState = setProjectsFeatureState();
 
 	let searchQuery = $state('');
-	let createDialogOpen = $state(false);
-	let projectName = $state('');
-	let projectDescription = $state('');
-	let deletingProjectId = $state('');
 
-	interface Project {
-		id: string;
-		name: string;
-		description: string;
-	}
-
-	interface CreateProjectPayload {
-		project_name: string;
-		description: string;
-	}
-
-	interface DeleteProjectPayload {
-		id: string;
-	}
-
-	interface ApiRes {
-		message: string;
-	}
-
-	const getProjectsQueryKey = () => ['projects', userState.currentOrg];
-
-	// Fetches projects for the currently selected organization.
-	const query = createQuery(() => ({
-		queryKey: getProjectsQueryKey(),
-		queryFn: async () => {
-			return api.get<Project[]>('/project/all').then((res) => res.data);
-		},
-		enabled: userState.currentOrg.id !== ''
-	}));
-
-	// Creates a new project and updates local query cache immediately.
-	const createProjectMutation = createMutation(() => ({
-		mutationFn: (payload: CreateProjectPayload) =>
-			api.post<Project>('/project', payload).then((res) => res.data),
-		onSuccess: (createdProject) => {
-			queryClient.setQueryData(getProjectsQueryKey(), (cachedProjects: Project[] | undefined) => {
-				if (!cachedProjects) return [createdProject];
-				return [createdProject, ...cachedProjects];
-			});
-
-			projectName = '';
-			projectDescription = '';
-			createDialogOpen = false;
-			toast.success('Project created successfully');
-		},
-		onError: (error) => axiosErr(error, 'Faild to create project')
-	}));
-
-	// Deletes a project and removes it from local query cache.
-	const deleteProjectMutation = createMutation(() => ({
-		mutationFn: (payload: DeleteProjectPayload) =>
-			api.delete<ApiRes>('/project', { data: payload }).then((res) => res.data),
-		onMutate: (payload) => {
-			deletingProjectId = payload.id;
-		},
-		onSuccess: (res, payload) => {
-			queryClient.setQueryData(getProjectsQueryKey(), (cachedProjects: Project[] | undefined) => {
-				if (!cachedProjects) return [];
-				return cachedProjects.filter((project) => project.id !== payload.id);
-			});
-
-			toast.success(res.message || 'Project deleted successfully');
-		},
-		onError: (error) => axiosErr(error, 'Faild to delete project'),
-		onSettled: () => {
-			deletingProjectId = '';
-		}
-	}));
+	const query = useProjectsQuery(() => currentOrg.id);
+	const createProjectMutation = useCreateProjectMutation();
+	const deleteProjectMutation = useDeleteProjectMutation();
 
 	const canCreateProject = $derived.by(() => {
-		return projectName.trim().length >= 3 && userState.currentOrg.id !== '';
+		return featureState.projectName.trim().length >= 3 && currentOrg.id !== '';
 	});
 
 	// Opens the create dialog only when an org is selected.
 	function openCreateProjectDialog() {
-		if (userState.currentOrg.id === '') return;
-		createDialogOpen = true;
+		if (currentOrg.id === '') return;
+		featureState.createDialogOpen = true;
 	}
 
 	// Closes the create dialog unless a create request is in-flight.
 	function closeCreateProjectDialog() {
 		if (createProjectMutation.isPending) return;
-		createDialogOpen = false;
+		featureState.createDialogOpen = false;
 	}
 
 	// Triggers project creation with sanitized form values.
@@ -109,8 +43,8 @@
 		if (!canCreateProject || createProjectMutation.isPending) return;
 
 		createProjectMutation.mutate({
-			project_name: projectName.trim(),
-			description: projectDescription.trim()
+			project_name: featureState.projectName.trim(),
+			description: featureState.projectDescription.trim()
 		});
 	}
 
@@ -143,10 +77,10 @@
 		/>
 		<Label class="absolute top-0 right-0 m-1 opacity-75" for="project-srch"><Search /></Label>
 	</div>
-	<CreateBtn onclick={openCreateProjectDialog} disabled={userState.currentOrg.id === ''} />
+	<CreateBtn onclick={openCreateProjectDialog} disabled={currentOrg.id === ''} />
 </nav>
 
-<Dialog.Root bind:open={createDialogOpen}>
+<Dialog.Root bind:open={featureState.createDialogOpen}>
 	<Dialog.Portal>
 		<Dialog.Overlay class="fixed inset-0 z-40 bg-black/40" />
 		<Dialog.Content
@@ -169,7 +103,7 @@
 					<Input
 						id="create-project-name"
 						placeholder="Project name"
-						bind:value={projectName}
+						bind:value={featureState.projectName}
 						required
 						minlength={3}
 						disabled={createProjectMutation.isPending}
@@ -182,7 +116,7 @@
 						id="create-project-description"
 						class="border-input bg-transparent ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring/50 flex min-h-24 w-full rounded-md border px-3 py-2 text-sm focus-visible:ring-3 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
 						placeholder="What is this project for?"
-						bind:value={projectDescription}
+						bind:value={featureState.projectDescription}
 						disabled={createProjectMutation.isPending}
 					></textarea>
 				</div>
@@ -242,7 +176,7 @@
 							disabled={deleteProjectMutation.isPending}
 							class="z-20"
 						>
-							{#if deleteProjectMutation.isPending && deletingProjectId === project.id}
+							{#if deleteProjectMutation.isPending && featureState.deletingProjectId === project.id}
 								Deleting...
 							{:else}
 								<Trash2 />
@@ -259,7 +193,7 @@
 	{:else}
 		<h3 class="text-muted-foreground size-full flex flex-col justify-center items-center gap-2">
 			<span>start a new project</span>
-			<CreateBtn onclick={openCreateProjectDialog} disabled={userState.currentOrg.id === ''} />
+			<CreateBtn onclick={openCreateProjectDialog} disabled={currentOrg.id === ''} />
 		</h3>
 	{/if}
 </section>

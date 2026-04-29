@@ -1,66 +1,19 @@
 <script lang="ts">
-	import { api, axiosErr } from '@/axios';
 	import { Button } from '@/components/ui/button';
 	import { Skeleton } from '@/components/ui/skeleton';
-	import { queryClient } from '@/query';
-	import type { ServiceDeployment } from '@/types.js';
-	import { createMutation, createQuery } from '@tanstack/svelte-query';
-	import { toast } from 'svelte-sonner';
+	import { useDeleteDeploymentMutation } from '@/features/deployments/mutation';
+	import { useServiceDeploymentsQuery } from '@/features/deployments/query';
+	import { getDeploymentsFeatureState } from '@/features/deployments/store.svelte';
 	import DeploymentLogs from './deployement_logs.svelte';
 
-	type DeleteDeploymentPayload = {
-		deployment_id: string;
-	};
-
-	type DeleteDeploymentResponse = {
-		message: string;
-	};
-
 	let { serviceId }: { serviceId: string } = $props();
-	let deletingDeploymentId = $state('');
-
-	const deploymentsQueryKey = $derived(['service-deployments', serviceId]);
+	const featureState = getDeploymentsFeatureState();
 
 	// AI summary: Query deployments by current service id, and update query cache on delete
 	// so the list updates immediately without waiting for a refetch.
-	const deploymentsQuery = createQuery(() => ({
-		queryKey: deploymentsQueryKey,
-		queryFn: async () => {
-			return api
-				.get<ServiceDeployment[]>('/service/deployment', {
-					params: { service_id: serviceId }
-				})
-				.then((res) => res.data);
-		},
-		enabled: serviceId !== ''
-	}));
+	const deploymentsQuery = useServiceDeploymentsQuery(() => serviceId);
 
-	const deleteDeploymentMutation = createMutation(() => ({
-		mutationFn: async ({ deployment_id }: DeleteDeploymentPayload) => {
-			return api
-				.delete<DeleteDeploymentResponse>('/service/deployment', {
-					data: { deployment_id }
-				})
-				.then((res) => res.data);
-		},
-		onMutate: ({ deployment_id }) => {
-			deletingDeploymentId = deployment_id;
-		},
-		onSuccess: (res, payload) => {
-			queryClient.setQueryData(
-				deploymentsQueryKey,
-				(cachedRows: ServiceDeployment[] | undefined) => {
-					if (!cachedRows) return [];
-					return cachedRows.filter((row) => row.id !== payload.deployment_id);
-				}
-			);
-			toast.success(res.message || 'Deployment deleted successfully');
-		},
-		onError: (error) => axiosErr(error, 'Failed to delete deployment'),
-		onSettled: () => {
-			deletingDeploymentId = '';
-		}
-	}));
+	const deleteDeploymentMutation = useDeleteDeploymentMutation(() => serviceId);
 
 	function deleteDeployment(deploymentId: string) {
 		if (deleteDeploymentMutation.isPending) return;
@@ -110,7 +63,7 @@
 							disabled={deleteDeploymentMutation.isPending}
 							onclick={() => deleteDeployment(deployment.id)}
 						>
-							{#if deleteDeploymentMutation.isPending && deletingDeploymentId === deployment.id}
+							{#if deleteDeploymentMutation.isPending && featureState.deletingDeploymentId === deployment.id}
 								Deleting...
 							{:else}
 								Delete

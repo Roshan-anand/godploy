@@ -7,14 +7,15 @@
 	import { Input } from '@/components/ui/input';
 	import { Label } from '@/components/ui/label';
 	import { Skeleton } from '@/components/ui/skeleton';
-	import type { Organization } from '@/composables/useAuth';
 	import { queryClient } from '@/query';
-	import { userState } from '@/store/user-state.svelte';
 	import { createMutation, createQuery } from '@tanstack/svelte-query';
 	import { Check, ChevronsUpDown } from '@lucide/svelte';
 	import { toast } from 'svelte-sonner';
 	import CreateBtn from './CreateBtn.svelte';
+	import { getUserState } from '@/features/global/store.svelte';
+	import type { Organization } from '@/features/auth/type';
 
+	const { email, setCurrentOrg, pushOrg, setOrg, currentOrg, orgs } = getUserState();
 	let orgMenuOpen = $state(false);
 	let createDialogOpen = $state(false);
 	let orgName = $state('');
@@ -27,7 +28,7 @@
 		name: string;
 	}
 
-	const getOrgsQueryKey = () => ['orgs', userState.email] as const;
+	const getOrgsQueryKey = () => ['orgs', email] as const;
 
 	// Keeps current org and org list in sync with on-demand query fetch plus switch/create mutations.
 	const getAllOrgsQuery = createQuery(() => ({
@@ -40,7 +41,7 @@
 		mutationFn: (payload: SwitchOrgPayload) =>
 			api.post<Organization>('/org/switch', payload).then((res) => res.data),
 		onSuccess: (org) => {
-			userState.currentOrg = org;
+			setCurrentOrg(org);
 			orgMenuOpen = false;
 			toast.success('Organization switched successfully');
 		},
@@ -57,7 +58,7 @@
 				return [createdOrg, ...cachedOrgs];
 			});
 
-			userState.orgs = [createdOrg, ...userState.orgs.filter((org) => org.id !== createdOrg.id)];
+			pushOrg(createdOrg);
 			orgName = '';
 			createDialogOpen = false;
 			toast.success('Organization created successfully');
@@ -72,7 +73,7 @@
 
 	$effect(() => {
 		if (!getAllOrgsQuery.data) return;
-		userState.orgs = getAllOrgsQuery.data;
+		setOrg(getAllOrgsQuery.data);
 	});
 
 	$effect(() => {
@@ -86,7 +87,7 @@
 	}
 
 	function switchOrg(orgId: string) {
-		if (!orgId || orgId === userState.currentOrg.id || switchOrgMutation.isPending) return;
+		if (!orgId || orgId === currentOrg.id || switchOrgMutation.isPending) return;
 
 		switchOrgMutation.mutate({ org_id: orgId });
 	}
@@ -113,11 +114,11 @@
 <div class="flex w-full flex-col gap-2">
 	<div class="flex w-full items-center gap-2">
 		<Avatar>
-			<AvatarFallback>{getAvatarText(userState.currentOrg.name)}</AvatarFallback>
+			<AvatarFallback>{getAvatarText(currentOrg.name)}</AvatarFallback>
 		</Avatar>
 
 		<div class="min-w-0 flex-1">
-			<p class="truncate font-medium">{userState.currentOrg.name || 'No organization selected'}</p>
+			<p class="truncate font-medium">{currentOrg.name || 'No organization selected'}</p>
 		</div>
 
 		<DropdownMenu.Root bind:open={orgMenuOpen}>
@@ -134,15 +135,15 @@
 					<div class="p-1"><Skeleton class="h-8 w-full" /></div>
 				{:else if getAllOrgsQuery.isError}
 					<p class="text-destructive px-2 py-1 text-sm">Failed to load organizations</p>
-				{:else if userState.orgs.length > 0}
+				{:else if orgs.length > 0}
 					<DropdownMenu.Group>
-						{#each userState.orgs as org (org.id)}
+						{#each orgs as org (org.id)}
 							<DropdownMenu.Item
 								onSelect={() => switchOrg(org.id)}
 								disabled={switchOrgMutation.isPending}
 							>
 								<span class="truncate">{org.name}</span>
-								{#if org.id === userState.currentOrg.id}
+								{#if org.id === currentOrg.id}
 									<Check class="ml-auto" />
 								{/if}
 							</DropdownMenu.Item>

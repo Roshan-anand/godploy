@@ -1,0 +1,40 @@
+// AI summary: Deployment mutation owns deletion lifecycle effects using feature-local state and cache updates.
+import { api, axiosErr } from '@/axios';
+import { queryClient } from '@/query';
+import { createMutation } from '@tanstack/svelte-query';
+import { toast } from 'svelte-sonner';
+import { getDeploymentsQueryKey } from './query';
+import { getDeploymentsFeatureState } from './store.svelte';
+import type { DeleteDeploymentPayload, DeleteDeploymentResponse } from './type';
+import type { ServiceDeployment } from '@/types';
+
+export function useDeleteDeploymentMutation(getServiceId: () => string) {
+	const featureState = getDeploymentsFeatureState();
+
+	return createMutation(() => ({
+		mutationFn: async ({ deployment_id }: DeleteDeploymentPayload) => {
+			return api
+				.delete<DeleteDeploymentResponse>('/service/deployment', {
+					data: { deployment_id }
+				})
+				.then((res) => res.data);
+		},
+		onMutate: (payload) => {
+			featureState.deletingDeploymentId = payload.deployment_id;
+		},
+		onSuccess: (response, payload) => {
+			queryClient.setQueryData(
+				getDeploymentsQueryKey(getServiceId()),
+				(cachedRows: ServiceDeployment[] | undefined) => {
+					if (!cachedRows) return [];
+					return cachedRows.filter((row) => row.id !== payload.deployment_id);
+				}
+			);
+			toast.success(response.message || 'Deployment deleted successfully');
+		},
+		onError: (error) => axiosErr(error as Error, 'Failed to delete deployment'),
+		onSettled: () => {
+			featureState.deletingDeploymentId = '';
+		}
+	}));
+}

@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { useLoginMutation } from '@/composables/useAuth';
 	import { createForm } from '@tanstack/svelte-form';
 	import { toast } from 'svelte-sonner';
 	import { z } from 'zod';
@@ -9,6 +8,7 @@
 	import { Checkbox } from '@/components/ui/checkbox';
 	import { Label } from '@/components/ui/label';
 	import { resolve } from '$app/paths';
+	import { useLoginMutation } from '@/features/auth/mutation';
 
 	const login = useLoginMutation();
 

@@ -1,14 +1,18 @@
 <script lang="ts">
-	import { api, axiosErr } from '@/axios';
 	import { Button } from '@/components/ui/button';
 	import * as Dialog from '@/components/ui/dialog';
 	import { Input } from '@/components/ui/input';
 	import { Label } from '@/components/ui/label';
 	import * as Select from '@/components/ui/select';
 	import { Textarea } from '@/components/ui/textarea';
+	import { gitProviders, serviceTypes } from '@/features/services/const';
+	import { useCreateServiceMutation, useGetReposMutation } from '@/features/services/mutation';
+	import { useGithubAppsQuery } from '@/features/services/query';
+	import { getServicesFeatureState } from '@/features/services/store.svelte';
+	import type { GithubApp, GitProviderKey, GitProviderOption } from '@/features/services/type';
+	import { useServiceCreateProjectsQuery } from '@/features/projects/query';
 	import { queryClient } from '@/query';
 	import { createForm, revalidateLogic } from '@tanstack/svelte-form';
-	import { createMutation, createQuery } from '@tanstack/svelte-query';
 	import Icon from '@iconify/svelte';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
@@ -16,8 +20,8 @@
 	import { toast } from 'svelte-sonner';
 	import { z } from 'zod';
 	import type { ServiceType } from '@/types';
-	import { userState } from '@/store/user-state.svelte';
 	import type { ServicePageUiState } from '@/components/services/context.svelte';
+	import { getUserState } from '@/features/global/store.svelte';
 
 	const {
 		pageUi
@@ -25,202 +29,35 @@
 		pageUi: ServicePageUiState;
 	} = $props();
 
-	interface Project {
-		id: string;
-		name: string;
-	}
-
-	interface CreateServiceResponse {
-		id: string;
-		type: ServiceType;
-	}
-
-	// type CreateServiceResponse = CreatePsqlServiceResponse | CreateAppServiceResponse;
-
-	type GitProviderKey = 'github' | 'gitlab' | 'bitbucket';
-	interface GitProviderOption {
-		key: GitProviderKey;
-		name: string;
-		icon: string;
-		api: string;
-	}
-
-	interface ApiMessageRes {
-		message: string;
-	}
-
-	interface GithubApp {
-		name: string;
-		app_id: number;
-		created_at: string;
-	}
-
-	interface GithubRepo {
-		id: number;
-		name: string;
-		full_name: string;
-		html_url: string;
-		repo_url: string;
-		private: boolean;
-		default_branch: string;
-	}
-
-	interface GetRepoResult {
-		status: number;
-		repos: GithubRepo[];
-		message: string;
-		provider: GitProviderKey;
-	}
-
-	interface CreateAppServiceBody {
-		project_id: string;
-		name: string;
-		description: string;
-		app_name: string;
-		git_provider: GitProviderKey;
-		gh_app_id: number;
-		git_repo_id: string;
-		git_repo_name: string;
-		git_repo_url: string;
-		git_branch: string;
-		build_path: string;
-	}
-
-	interface CreatePsqlServiceBody {
-		project_id: string;
-		name: string;
-		description: string;
-		app_name: string;
-		db_name: string;
-		db_user: string;
-		db_password: string;
-		image: string;
-	}
-
-	type CreateServicePayload =
-		| { type: 'app'; body: CreateAppServiceBody }
-		| { type: 'psql'; body: CreatePsqlServiceBody };
+	const { currentOrg } = getUserState();
+	const featureState = getServicesFeatureState();
 
 	const projectIdFromPath = $derived(page.params.id ?? '');
 	const isProjectScoped = $derived(projectIdFromPath !== '');
+	const projectsQuery = useServiceCreateProjectsQuery(
+		() => currentOrg.id,
+		() => isProjectScoped
+	);
 
-	const serviceTypes = [
-		{ value: 'app' as const, label: 'App Service' },
-		{ value: 'psql' as const, label: 'PostgreSQL Service' }
-	];
+	const githubAppsQuery = useGithubAppsQuery(() => currentOrg.id);
+	const getReposMutation = useGetReposMutation();
 
-	const gitProviders: GitProviderOption[] = [
-		{
-			key: 'github',
-			name: 'Github',
-			icon: 'meteor-icons:github',
-			api: '/provider/github/repo/list'
-		},
-		{
-			key: 'gitlab',
-			name: 'GitLab',
-			icon: 'material-icon-theme:gitlab',
-			api: ''
-		},
-		{
-			key: 'bitbucket',
-			name: 'BitBucket',
-			icon: 'material-icon-theme:bitbucket',
-			api: ''
-		}
-	];
+	featureState.setAfterCreateSuccess(async ({ id, type }) => {
+		await queryClient.invalidateQueries({ queryKey: ['services'] });
+		pageUi.closeCreateDialog();
+		resetGitRepoSelection();
+		form.reset();
 
-	const getProjectsQueryKey = () =>
-		['projects', userState.currentOrg.id, 'service-create'] as const;
+		toast.success('Service created successfully');
+		await goto(
+			resolve('/(core)/service/[service_type]/[service_id]?tab=deployment', {
+				service_type: type,
+				service_id: id
+			})
+		);
+	});
 
-	const projectsQuery = createQuery(() => ({
-		queryKey: getProjectsQueryKey(),
-		queryFn: async () => {
-			return api.get<Project[]>('/project/all').then((res) => res.data);
-		},
-		enabled: !isProjectScoped && userState.currentOrg.id !== ''
-	}));
-
-	const getGithubAppsQueryKey = () => ['github-apps', userState.currentOrg.id] as const;
-
-	const githubAppsQuery = createQuery(() => ({
-		queryKey: getGithubAppsQueryKey(),
-		queryFn: async () => {
-			try {
-				const response = await api.get<GithubApp[] | null>('/provider/github/app/list');
-				githubApps = response.data ?? [];
-				return githubApps;
-			} catch (error) {
-				const err = error instanceof Error ? error : new Error('Failed to load GitHub apps');
-				githubApps = [];
-				axiosErr(err, 'Failed to load GitHub apps');
-				return [];
-			}
-		},
-		enabled: false
-	}));
-
-	// Git options are cached locally; selected values are stored in the TanStack form state.
-	let githubApps = $state<GithubApp[]>([]);
-	let githubRepos = $state<GithubRepo[]>([]);
-
-	const getReposMutation = createMutation(() => ({
-		mutationFn: async ({
-			provider,
-			appId
-		}: {
-			provider: GitProviderOption;
-			appId: number;
-		}): Promise<GetRepoResult> => {
-			const response = await api.get<GithubRepo[] | ApiMessageRes>(provider.api, {
-				params: { app_id: appId },
-				validateStatus: (status) => status === 200 || status === 204 || status === 409
-			});
-
-			return {
-				status: response.status,
-				repos: response.status === 200 ? (response.data as GithubRepo[]) : [],
-				message: response.status === 409 ? ((response.data as ApiMessageRes)?.message ?? '') : '',
-				provider: provider.key
-			};
-		},
-		onSuccess: (result) => {
-			githubRepos = result.repos;
-
-			if (result.status === 409) {
-				toast.error(result.message || 'No github connected');
-			}
-		},
-		onError: (error) => {
-			githubRepos = [];
-			axiosErr(error, 'Failed to fetch repositories');
-		}
-	}));
-
-	const createServiceMutation = createMutation(() => ({
-		mutationFn: async (payload: CreateServicePayload) => {
-			const url = payload.type === 'app' ? '/service/app' : '/service/psql';
-			return api.post<CreateServiceResponse>(url, payload.body).then((res) => res.data);
-		},
-		onSuccess: async ({ id, type }) => {
-			await queryClient.invalidateQueries({ queryKey: ['services'] });
-			pageUi.closeCreateDialog();
-			resetGitRepoSelection();
-			form.reset();
-
-			toast.success('Service created successfully');
-			await goto(
-				resolve('/(core)/service/[service_type]/[service_id]?tab=deployment', {
-					service_type: type,
-					service_id: id
-				})
-			);
-		},
-		onError: (error) => {
-			console.error('Error creating service:', error);
-			axiosErr(error, 'Failed to create service');
-		}
-	}));
+	const createServiceMutation = useCreateServiceMutation();
 
 	// Dynamic validators gate service-specific fields without manual submit-time checks.
 	// TanStack Form handles one dynamic service form for both app and psql service creation.
@@ -275,7 +112,7 @@
 			}
 
 			if (value.type === 'app') {
-				const selectedGithubRepo = githubRepos.find(
+				const selectedGithubRepo = featureState.githubRepos.find(
 					(repo) => repo.id.toString() === value.git_repo_id
 				);
 
@@ -338,8 +175,8 @@
 		form.resetField('git_repo_id');
 		form.resetField('git_branch');
 		form.resetField('build_path');
-		githubApps = [];
-		githubRepos = [];
+		featureState.githubApps = [];
+		featureState.githubRepos = [];
 	}
 
 	function onServiceTypeChange(type: ServiceType) {
@@ -362,19 +199,15 @@
 	$effect(() => {
 		if (!pageUi.createDialogOpen) return;
 		if (form.getFieldValue('type') !== 'app') return;
-		if (userState.currentOrg.id === '') return;
+		if (currentOrg.id === '') return;
 		if (githubAppsQuery.isFetching) return;
-		if (githubApps.length > 0) return;
+		if (featureState.githubApps.length > 0) return;
 
 		void githubAppsQuery.refetch();
 	});
 
 	function selectGithubApp(app: GithubApp) {
-		if (
-			userState.currentOrg.id === '' ||
-			createServiceMutation.isPending ||
-			getReposMutation.isPending
-		)
+		if (currentOrg.id === '' || createServiceMutation.isPending || getReposMutation.isPending)
 			return;
 
 		const githubProvider = gitProviders.find((provider) => provider.key === 'github');
@@ -384,7 +217,7 @@
 		form.setFieldValue('git_app_id', app.app_id.toString());
 		form.setFieldValue('git_repo_id', '');
 		form.setFieldValue('git_branch', '');
-		githubRepos = [];
+		featureState.githubRepos = [];
 
 		getReposMutation.mutate({
 			provider: githubProvider,
@@ -393,29 +226,28 @@
 	}
 
 	function onGithubAppSelect(appId: string) {
-		const app = githubApps.find((item) => item.app_id.toString() === appId);
+		const app = featureState.githubApps.find((item) => item.app_id.toString() === appId);
 		if (!app) return;
 
 		selectGithubApp(app);
 	}
 
 	function fetchGitProvider(provider: GitProviderOption) {
-		if (provider.api === '' || userState.currentOrg.id === '' || createServiceMutation.isPending)
-			return;
+		if (provider.api === '' || currentOrg.id === '' || createServiceMutation.isPending) return;
 
 		form.setFieldValue('git_provider', provider.key);
 		form.setFieldValue('git_app_id', '');
 		form.setFieldValue('git_repo_id', '');
 		form.setFieldValue('git_branch', '');
-		githubRepos = [];
+		featureState.githubRepos = [];
 
-		if (provider.key === 'github' && githubApps.length === 0) {
+		if (provider.key === 'github' && featureState.githubApps.length === 0) {
 			void githubAppsQuery.refetch();
 		}
 	}
 
 	function onRepoSelect(repoId: string) {
-		const repo = githubRepos.find((r) => r.id.toString() === repoId);
+		const repo = featureState.githubRepos.find((r) => r.id.toString() === repoId);
 		if (!repo) return;
 
 		form.setFieldValue('git_repo_id', repoId);
@@ -427,16 +259,16 @@
 	}
 
 	function getRepoBranches(repoId: string): string[] {
-		const selectedRepo = githubRepos.find((repo) => repo.id.toString() === repoId);
+		const selectedRepo = featureState.githubRepos.find((repo) => repo.id.toString() === repoId);
 		return selectedRepo ? [selectedRepo.default_branch] : [];
 	}
 
 	function getGithubAppName(appId: string): string {
-		return githubApps.find((app) => app.app_id.toString() === appId)?.name ?? '';
+		return featureState.githubApps.find((app) => app.app_id.toString() === appId)?.name ?? '';
 	}
 
 	function getGithubRepoName(repoId: string): string {
-		return githubRepos.find((repo) => repo.id.toString() === repoId)?.full_name ?? '';
+		return featureState.githubRepos.find((repo) => repo.id.toString() === repoId)?.full_name ?? '';
 	}
 </script>
 
@@ -608,7 +440,7 @@
 															type="button"
 															variant="outline"
 															disabled={provider.api === '' ||
-																userState.currentOrg.id === '' ||
+																currentOrg.id === '' ||
 																getReposMutation.isPending ||
 																createServiceMutation.isPending}
 															onclick={() => {
@@ -647,7 +479,7 @@
 															{getGithubAppName(gitState.gitAppId) || 'Select GitHub app'}
 														</Select.Trigger>
 														<Select.Content>
-															{#each githubApps as app (app.app_id)}
+															{#each featureState.githubApps as app (app.app_id)}
 																<Select.Item value={app.app_id.toString()} label={app.name} />
 															{/each}
 														</Select.Content>
@@ -678,7 +510,7 @@
 															{getGithubRepoName(gitState.gitRepoId) || 'Select repository'}
 														</Select.Trigger>
 														<Select.Content>
-															{#each githubRepos as repo (repo.id)}
+															{#each featureState.githubRepos as repo (repo.id)}
 																<Select.Item value={repo.id.toString()} label={repo.full_name} />
 															{/each}
 														</Select.Content>

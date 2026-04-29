@@ -7,8 +7,8 @@
 	import { Input } from '@/components/ui/input';
 	import { Checkbox } from '@/components/ui/checkbox';
 	import { Label } from '@/components/ui/label';
-	import { useRegisterMutation } from '@/composables/useAuth';
 	import { resolve } from '$app/paths';
+	import { useRegisterMutation } from '@/features/auth/mutation';
 
 	const register = useRegisterMutation();
 

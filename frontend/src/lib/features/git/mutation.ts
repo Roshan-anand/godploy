@@ -1,0 +1,31 @@
+// AI summary: Feature-owned git mutation handles cache writes and notifications internally for github app deletion.
+import { api, axiosErr } from '@/axios';
+import { queryClient } from '@/query';
+import { getUserState } from '@/features/global/store.svelte';
+import { createMutation } from '@tanstack/svelte-query';
+import { toast } from 'svelte-sonner';
+import { getGithubAppsQueryKey } from './query';
+import type { DeleteGithubAppPayload, GithubApp } from './type';
+
+export function useDeleteGithubAppMutation() {
+	const { currentOrg } = getUserState();
+
+	return createMutation(() => ({
+		mutationFn: (payload: DeleteGithubAppPayload) =>
+			api.delete('/provider/github/app', { data: payload }).then((res) => res.data),
+		onSuccess: (_response, payload) => {
+			queryClient.setQueryData(
+				getGithubAppsQueryKey(currentOrg.id),
+				(cachedApps: GithubApp[] | null | undefined) => {
+					if (!cachedApps) return null;
+
+					const remainingApps = cachedApps.filter((app) => app.app_id !== payload.app_id);
+					return remainingApps.length > 0 ? remainingApps : null;
+				}
+			);
+
+			toast.success('Github app deleted successfully');
+		},
+		onError: (error) => axiosErr(error as Error, 'Failed to delete github app')
+	}));
+}

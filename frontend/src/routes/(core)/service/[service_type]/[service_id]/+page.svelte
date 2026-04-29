@@ -3,6 +3,7 @@
 	import ServiceDetailApp from '@/components/services/service-detail-app.svelte';
 	import ServiceDetailPsql from '@/components/services/service-detail-psql.svelte';
 	import { Skeleton } from '@/components/ui/skeleton';
+	import { setDeploymentsFeatureState } from '@/features/deployments/store.svelte';
 	import type { ServiceDetails } from '@/types.js';
 	import { createQuery } from '@tanstack/svelte-query';
 	import Nav from './nav.svelte';
@@ -12,6 +13,7 @@
 	const serviceType = $derived(data.serviceType);
 	const serviceId = $derived(data.serviceID);
 	const tab = $derived(data.tab);
+	setDeploymentsFeatureState();
 
 	// query to fetch service details based on service type and id
 	const serviceQuery = createQuery(() => ({

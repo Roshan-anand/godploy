@@ -1,8 +1,9 @@
 <script lang="ts">
 	import ServiceList from '@/components/services/service-list.svelte';
-	import { userState } from '@/store/user-state.svelte';
+	import { getUserState } from '@/features/global/store.svelte';
 
-	const currentOrgId = $derived(userState.currentOrg.id);
+	const { currentOrg } = getUserState();
+	const currentOrgId = $derived(currentOrg.id);
 </script>
 
 <ServiceList scopeType="org" scopeId={currentOrgId} />
