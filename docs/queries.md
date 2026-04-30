@@ -17,7 +17,7 @@
   - how to use JWT in production manner
   - what are best practices
 
-- [ ] wht is COLESCE in SQL
+- [ ] what is COLESCE in SQL
   - what is COALESCE in SQL
   - how it pairs with GROUP BY
 
@@ -42,3 +42,5 @@
 - [ ] feature-scoped query/mutation modules with page-local runes
   - move API contracts, payload types, and query keys into `src/lib/features/*`
   - keep `$state`/`$derived` form orchestration inside route components and pass reactive getters to query hooks
+
+- [ ] badger db how query all logs by prefix works

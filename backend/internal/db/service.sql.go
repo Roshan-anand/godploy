@@ -14,8 +14,8 @@ import (
 )
 
 const createAppService = `-- name: CreateAppService :one
-INSERT INTO app_service (id, project_id, type, name, app_name, description, git_provider, git_repo_id, git_repo_name, git_branch, build_path)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+INSERT INTO app_service (id, project_id, type, service_id, name, app_name, description, git_provider, git_repo_id, git_repo_name, git_branch, build_path)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 RETURNING id, type
 `
 
@@ -23,6 +23,7 @@ type CreateAppServiceParams struct {
 	ID          uuid.UUID         `json:"id"`
 	ProjectID   uuid.UUID         `json:"project_id"`
 	Type        types.ServiceType `json:"type"`
+	ServiceID   string            `json:"service_id"`
 	Name        string            `json:"name"`
 	AppName     string            `json:"app_name"`
 	Description string            `json:"description"`
@@ -43,6 +44,7 @@ func (q *Queries) CreateAppService(ctx context.Context, arg CreateAppServicePara
 		arg.ID,
 		arg.ProjectID,
 		arg.Type,
+		arg.ServiceID,
 		arg.Name,
 		arg.AppName,
 		arg.Description,
@@ -298,7 +300,7 @@ func (q *Queries) GetAllServicesByProjectId(ctx context.Context, projectid uuid.
 }
 
 const getAppServiceById = `-- name: GetAppServiceById :one
-SELECT id, project_id, type, name, app_name, description, git_provider, git_repo_id, git_repo_name, git_branch, build_path, created_at
+SELECT id, project_id, type, service_id, name, app_name, description, git_provider, git_repo_id, git_repo_name, git_branch, build_path, created_at
 FROM app_service
 WHERE id = ?
 `
@@ -310,6 +312,7 @@ func (q *Queries) GetAppServiceById(ctx context.Context, id uuid.UUID) (AppServi
 		&i.ID,
 		&i.ProjectID,
 		&i.Type,
+		&i.ServiceID,
 		&i.Name,
 		&i.AppName,
 		&i.Description,
@@ -416,6 +419,22 @@ func (q *Queries) GetPsqlServiceById(ctx context.Context, id uuid.UUID) (PsqlSer
 		&i.CreatedAt,
 	)
 	return i, err
+}
+
+const setAppServiceId = `-- name: SetAppServiceId :exec
+UPDATE app_service
+SET service_id = ?
+WHERE id = ?
+`
+
+type SetAppServiceIdParams struct {
+	ServiceID string    `json:"service_id"`
+	ID        uuid.UUID `json:"id"`
+}
+
+func (q *Queries) SetAppServiceId(ctx context.Context, arg SetAppServiceIdParams) error {
+	_, err := q.db.ExecContext(ctx, setAppServiceId, arg.ServiceID, arg.ID)
+	return err
 }
 
 const setPsqlServiceId = `-- name: SetPsqlServiceId :exec

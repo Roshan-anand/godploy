@@ -28,16 +28,6 @@ SELECT *
 FROM psql_service
 WHERE id = ?;
 
--- name: CreateAppService :one
-INSERT INTO app_service (id, project_id, type, name, app_name, description, git_provider, git_repo_id, git_repo_name, git_branch, build_path)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-RETURNING id, type;
-
--- name: GetAppServiceById :one
-SELECT *
-FROM app_service
-WHERE id = ?;
-
 -- name: SetPsqlServiceId :exec
 UPDATE psql_service
 SET service_id = ?
@@ -47,14 +37,29 @@ WHERE id = ?;
 DELETE FROM psql_service
 WHERE id = ?;
 
--- name: DeleteAppService :exec
-DELETE FROM app_service
-WHERE id = ?;
-
 -- name: GetAllPsqlServicesByProjectId :many
 SELECT *
 FROM psql_service
 WHERE project_id = ?;
+
+-- name: CreateAppService :one
+INSERT INTO app_service (id, project_id, type, service_id, name, app_name, description, git_provider, git_repo_id, git_repo_name, git_branch, build_path)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+RETURNING id, type;
+
+-- name: GetAppServiceById :one
+SELECT *
+FROM app_service
+WHERE id = ?;
+
+-- name: SetAppServiceId :exec
+UPDATE app_service
+SET service_id = ?
+WHERE id = ?;
+
+-- name: DeleteAppService :exec
+DELETE FROM app_service
+WHERE id = ?;
 
 -- name: CreateDeployment :one
 INSERT INTO deployments (id, service_id, name, status)

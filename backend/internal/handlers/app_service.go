@@ -52,6 +52,7 @@ func (h *ServiceHandler) CreateAppService(c *echo.Context) error {
 		ID:          lib.NewID(),
 		ProjectID:   b.ProjectID,
 		Type:        types.AppServiceType,
+		ServiceID:   "",
 		Name:        b.Name,
 		AppName:     b.AppName,
 		Description: b.Description,
