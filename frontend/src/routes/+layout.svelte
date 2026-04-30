@@ -6,8 +6,11 @@
 	import { QueryClientProvider } from '@tanstack/svelte-query';
 	import { queryClient } from '@/query';
 	import axios from 'axios';
+	import { setUserState } from '@/features/global/store.svelte';
 
 	let { children } = $props();
+	
+	setUserState()
 
 	if (import.meta.env.VITE_APP_ENV === 'production') {
 		axios

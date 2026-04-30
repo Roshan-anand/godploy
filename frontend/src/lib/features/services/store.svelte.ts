@@ -36,12 +36,8 @@ class ServiceStoreClass implements ServiceStore {
 
 const DEFAULT_KEY = 'services:feature:state';
 
-export const getServiceState = (key: string = DEFAULT_KEY) => {
-	return getContext<ServiceStore>(Symbol.for(key));
-};
+export const getServiceState = (key: string = DEFAULT_KEY) =>
+	getContext<ServiceStore>(Symbol.for(key));
 
-export const setServiceState = (key: string = DEFAULT_KEY) => {
-	const state = new ServiceStoreClass();
-	setContext(Symbol.for(key), state);
-	return state;
-};
+export const setServiceState = (key: string = DEFAULT_KEY) =>
+	setContext(Symbol.for(key), new ServiceStoreClass());

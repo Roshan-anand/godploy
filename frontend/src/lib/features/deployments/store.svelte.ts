@@ -12,9 +12,8 @@ class DeploymentsFeatureStateClass implements DeploymentsFeatureState {
 
 const DEFAULT_KEY = 'deployments:feature:state';
 
-export const getDeploymentsFeatureState = (key: string = DEFAULT_KEY) => {
-	return getContext<DeploymentsFeatureState>(Symbol.for(key));
-};
+export const getDeploymentsFeatureState = (key: string = DEFAULT_KEY) =>
+	getContext<DeploymentsFeatureState>(Symbol.for(key));
 
 export const setDeploymentsFeatureState = (key: string = DEFAULT_KEY) => {
 	setContext(Symbol.for(key), new DeploymentsFeatureStateClass());

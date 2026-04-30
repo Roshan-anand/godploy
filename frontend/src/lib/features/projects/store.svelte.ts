@@ -22,9 +22,8 @@ class ProjectStateClass implements ProjectState {
 
 const DEFAULT_KEY = 'projects:feature:state';
 
-export const getProjectState = (key: string = DEFAULT_KEY) => {
-	return getContext<ProjectState>(Symbol.for(key));
-};
+export const getProjectState = (key: string = DEFAULT_KEY) =>
+	getContext<ProjectState>(Symbol.for(key));
 
 export const setProjectState = (key: string = DEFAULT_KEY) => {
 	setContext(Symbol.for(key), new ProjectStateClass());

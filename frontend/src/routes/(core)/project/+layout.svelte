@@ -9,8 +9,6 @@
 
 	let { children } = $props();
 	const { currentOrg } = getUserState();
-
-	// shared UI state for this page (search, dialog open/close)
 	const serviceState = setServiceState();
 </script>
 

@@ -40,11 +40,8 @@ class UserStateClass implements UserState {
 
 const DEFAULT_KEY = 'user:state';
 
-export const getUserState = (key: string = DEFAULT_KEY) => {
-	return getContext<UserState>(Symbol.for(key));
-};
+export const getUserState = (key: string = DEFAULT_KEY) => getContext<UserState>(Symbol.for(key));
 
 export const setUserState = (key: string = DEFAULT_KEY) => {
-	const userState = new UserStateClass();
-	setContext(Symbol.for(key), userState);
+	setContext(Symbol.for(key), new UserStateClass());
 };
