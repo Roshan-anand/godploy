@@ -39,10 +39,7 @@
 			streamState = 'connected';
 		});
 
-		eventSource.onerror = () => {
-			logs.push('stream disconnected');
-			closeStream();
-		};
+		eventSource.onerror = () => closeStream();
 	}
 
 	$effect(() => {

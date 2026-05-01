@@ -25,6 +25,7 @@
 - [x] git provider page. [easy, ui]
 - [ ] tests for project lifecycle
 - [ ] tests for pqsl service lifecycle
+- [ ] tests for badgerDB operations
 - [ ] rememberMe functionality for login
 
 ## enhancements

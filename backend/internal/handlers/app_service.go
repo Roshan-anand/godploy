@@ -118,14 +118,22 @@ func (h *ServiceHandler) GetAppServiceById(c *echo.Context) error {
 // route: DELETE /api/service/app
 func (h *ServiceHandler) DeleteAppService(c *echo.Context) error {
 	b := new(ServiceReq)
+	q := h.Server.DB.Queries
 
 	if Res := BindAndValidate(b, c, h.Validate); Res != nil {
 		return c.JSON(http.StatusBadRequest, Res)
 	}
 
+	dIDs, err := q.GetAllDeploymentIdsByServiceID(h.qCtx, b.ServiceId)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, lib.Res{Message: "Failed to get deployments"})
+	}
+
 	if err := h.Server.DB.Queries.DeleteAppService(h.qCtx, b.ServiceId); err != nil {
 		return c.JSON(http.StatusInternalServerError, lib.Res{Message: "Failed to delete service"})
 	}
+
+	go h.Server.BadgerDB.DeleteAllLogsByDeploymentID(dIDs)
 
 	return c.JSON(http.StatusOK, lib.Res{Message: "Successsfully deleted service"})
 }

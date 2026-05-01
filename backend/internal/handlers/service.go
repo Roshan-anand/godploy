@@ -2,8 +2,6 @@ package handlers
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 
@@ -84,6 +82,8 @@ func (h *ServiceHandler) GetAllOrganizationServices(c *echo.Context) error {
 func (h *ServiceHandler) GetServiceDeployments(c *echo.Context) error {
 	q := h.Server.DB.Queries
 
+	// TODO : inlcude project_id and org_id to get all deployments of the project / org / service based on the query params.
+
 	serviceID, err := uuid.Parse(c.QueryParam("service_id"))
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, lib.Res{Message: "invalid service_id"})
@@ -112,6 +112,11 @@ func (h *ServiceHandler) DeleteServiceDeployment(c *echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, lib.Res{Message: "failed to delete deployment"})
 	}
 
+	// TODO : also delete all logs of the deployment.
+	if err := h.Server.BadgerDB.DeleteAllLogsByDeploymentID([]uuid.UUID{b.DeploymentID}); err != nil {
+		return c.JSON(http.StatusInternalServerError, lib.Res{Message: "failed to delete deployment logs"})
+	}
+
 	return c.JSON(http.StatusOK, lib.Res{Message: "deployment deleted successfully"})
 }
 
@@ -137,17 +142,17 @@ func (h *ServiceHandler) SubscribeServiceDeploymentLogs(c *echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, lib.Res{Message: "failed to get deployment status"})
 	}
 
+	userID := lib.NewID()
+
+	// if deployment is successful or failed, then stream logs from badgerDB
 	if status != types.DeploymentInProgress {
-		logs, err := h.Server.BadgerDB.GetAllLogsByDeploymentID(dID)
-		logsB, err := json.Marshal(logs)
-		if err != nil {
-			fmt.Println("Error marshalling logs to JSON:", err)
+		if err := h.Server.BadgerDB.StreamAllLogsByDeploymentID(dID, sse); err != nil {
+			return c.JSON(http.StatusInternalServerError, lib.Res{Message: "failed to stream logs"})
 		}
-		sse.SendSSE("logs", logsB)
 		return nil
 	}
 
-	userID := lib.NewID()
+	// subscribe to log broker queue to get real-time logs of the deployment
 	h.Server.LogBrokerQ.SubscribeLogs(userID, &logbrokerqueue.Subscriber{
 		SSE:          sse,
 		DeploymentID: dID,

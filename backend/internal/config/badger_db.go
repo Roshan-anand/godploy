@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/Roshan-anand/godploy/internal/lib/sse"
 	badger "github.com/dgraph-io/badger/v4"
 	"github.com/google/uuid"
 )
@@ -36,15 +37,27 @@ func (db *BadgerDB) CloseDb() error {
 	return db.Pool.Close()
 }
 
-func (db *BadgerDB) GetAllLogsByDeploymentID(dID uuid.UUID) ([]string, error) {
-	prefix := []byte(dID.String() + "_")
+func (db *BadgerDB) AddLogs(dID uuid.UUID, logs []string) {
+	txn := db.Pool.NewTransaction(true)
 
-	logs := []string{}
+	for i, log := range logs {
+		key := fmt.Sprintf("%s_%d", dID.String(), i)
+		if err := txn.Set([]byte(key), []byte(log)); err == badger.ErrTxnTooBig {
+			_ = txn.Commit()
+			txn = db.Pool.NewTransaction(true)
+			_ = txn.Set([]byte(key), []byte(log))
+		}
+	}
+	_ = txn.Commit()
+}
+
+// get all logs of a deployment by deployment id
+func (db *BadgerDB) StreamAllLogsByDeploymentID(dID uuid.UUID, sse *sse.SSE) error {
+	prefix := []byte(dID.String() + "_")
 
 	err := db.Pool.View(func(txn *badger.Txn) error {
 		opts := badger.DefaultIteratorOptions
 		opts.PrefetchValues = true
-		// Optional: narrows the iterator to this prefix
 		opts.Prefix = prefix
 
 		it := txn.NewIterator(opts)
@@ -52,18 +65,48 @@ func (db *BadgerDB) GetAllLogsByDeploymentID(dID uuid.UUID) ([]string, error) {
 
 		for it.Seek(prefix); it.ValidForPrefix(prefix); it.Next() {
 			item := it.Item()
-			key := item.KeyCopy(nil)
-			val, err := item.ValueCopy(nil)
-			if err != nil {
+			// k := item.Key()
+			if err := item.Value(func(val []byte) error {
+				sse.SendSSE("log", val)
+				return nil
+			}); err != nil {
 				return err
 			}
-
-			fmt.Printf("%s -> %s\n", key, val)
-			logs = append(logs, string(val))
 		}
-
 		return nil
 	})
 
-	return logs, err
+	return err
+}
+
+// delete all logs of a deployment by deployment id
+func (db *BadgerDB) DeleteAllLogsByDeploymentID(dIDs []uuid.UUID) error {
+	var err error
+	for _, id := range dIDs {
+
+		prefix := []byte(id.String() + "_")
+
+		if updErr := db.Pool.Update(func(txn *badger.Txn) error {
+			opts := badger.DefaultIteratorOptions
+			opts.PrefetchValues = false
+			opts.Prefix = prefix
+
+			it := txn.NewIterator(opts)
+			defer it.Close()
+
+			for it.Seek(prefix); it.ValidForPrefix(prefix); it.Next() {
+				key := it.Item().KeyCopy(nil)
+				if delErr := txn.Delete(key); delErr != nil {
+					return err
+				}
+			}
+
+			return nil
+		}); updErr != nil {
+			err = updErr
+			continue
+		}
+
+	}
+	return err
 }

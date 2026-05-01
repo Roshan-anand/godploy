@@ -8,7 +8,6 @@ import (
 	"github.com/Roshan-anand/godploy/internal/config"
 	"github.com/Roshan-anand/godploy/internal/db"
 	logbrokerqueue "github.com/Roshan-anand/godploy/internal/jobs/logbroker/queue"
-	"github.com/dgraph-io/badger/v4"
 	"github.com/google/uuid"
 )
 
@@ -40,6 +39,7 @@ func (job *LogsBroker) LogsBrokerJob(ctx context.Context, pub chan *logbrokerque
 			// check for subscribers
 			for _, sub := range job.Server.LogBrokerQ.Subscribers {
 				if sub.DeploymentID == p.ID {
+					// is new subscriber send all logs from buffer
 					if sub.IsNew {
 						logs := job.bufferGet(p.ID)
 						logsB, err := json.Marshal(logs)
@@ -50,6 +50,7 @@ func (job *LogsBroker) LogsBrokerJob(ctx context.Context, pub chan *logbrokerque
 						sub.SSE.SendSSE("logs", logsB)
 						sub.IsNew = false
 					}
+
 					sub.SSE.SendSSE("log", []byte(p.Msg))
 				}
 			}
@@ -66,18 +67,7 @@ func (job *LogsBroker) LogsBrokerJob(ctx context.Context, pub chan *logbrokerque
 
 			// push all logs from buffer to badgerDB
 			logs := job.bufferGet(dID)
-			badgerDB := job.Server.BadgerDB.Pool
-			txn := badgerDB.NewTransaction(true)
-
-			for i, log := range logs {
-				key := fmt.Sprintf("%s_%d", dID.String(), i)
-				if err := txn.Set([]byte(key), []byte(log)); err == badger.ErrTxnTooBig {
-					_ = txn.Commit()
-					txn = badgerDB.NewTransaction(true)
-					_ = txn.Set([]byte(key), []byte(log))
-				}
-			}
-			_ = txn.Commit()
+			job.Server.BadgerDB.AddLogs(dID, logs)
 
 			// update deployment status in database
 			if err := job.Server.DB.Queries.UpdateDeploymentStatus(context.Background(), db.UpdateDeploymentStatusParams{

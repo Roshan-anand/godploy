@@ -12,10 +12,10 @@
 - [ ] Worker pool to execute build & create image.
 - [ ] Worker pool to execute deploy using docker stack.
 - [x] setup BadgerDB.
-- [ ] logbroker to publish logs.
-  - [ ] setup buffer to store logs in memory.
-  - [ ] send logs to SSE clients.
+- [x] logbroker to publish logs.
+  - [x] setup buffer to store logs in memory.
+  - [x] send logs to SSE clients.
     - look for all subs for current log_id
     - also if client is new then send all logs from BadgerDB then buffer then current log.
-  - [ ] send logs to BadgerDB.
+  - [x] send logs to BadgerDB.
     - certain amt of logs in buffer trigger DB uploads
