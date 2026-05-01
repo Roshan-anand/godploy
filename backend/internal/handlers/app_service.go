@@ -57,6 +57,7 @@ func (h *ServiceHandler) CreateAppService(c *echo.Context) error {
 		AppName:     b.AppName,
 		Description: b.Description,
 		GitProvider: b.GitProvider,
+		GhAppID:     ghApp.AppID,
 		GitRepoID:   b.GitRepoID,
 		GitRepoName: b.GitRepoName,
 		GitBranch:   b.GitBranch,

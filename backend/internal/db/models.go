@@ -21,6 +21,7 @@ type AppService struct {
 	AppName     string            `json:"app_name"`
 	Description string            `json:"description"`
 	GitProvider string            `json:"git_provider"`
+	GhAppID     int64             `json:"gh_app_id"`
 	GitRepoID   string            `json:"git_repo_id"`
 	GitRepoName string            `json:"git_repo_name"`
 	GitBranch   string            `json:"git_branch"`

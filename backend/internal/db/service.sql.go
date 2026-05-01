@@ -14,8 +14,8 @@ import (
 )
 
 const createAppService = `-- name: CreateAppService :one
-INSERT INTO app_service (id, project_id, type, service_id, name, app_name, description, git_provider, git_repo_id, git_repo_name, git_branch, build_path)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+INSERT INTO app_service (id, project_id, type, service_id, name, app_name, description, git_provider, gh_app_id, git_repo_id, git_repo_name, git_branch, build_path)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 RETURNING id, type
 `
 
@@ -28,6 +28,7 @@ type CreateAppServiceParams struct {
 	AppName     string            `json:"app_name"`
 	Description string            `json:"description"`
 	GitProvider string            `json:"git_provider"`
+	GhAppID     int64             `json:"gh_app_id"`
 	GitRepoID   string            `json:"git_repo_id"`
 	GitRepoName string            `json:"git_repo_name"`
 	GitBranch   string            `json:"git_branch"`
@@ -49,6 +50,7 @@ func (q *Queries) CreateAppService(ctx context.Context, arg CreateAppServicePara
 		arg.AppName,
 		arg.Description,
 		arg.GitProvider,
+		arg.GhAppID,
 		arg.GitRepoID,
 		arg.GitRepoName,
 		arg.GitBranch,
@@ -300,7 +302,7 @@ func (q *Queries) GetAllServicesByProjectId(ctx context.Context, projectid uuid.
 }
 
 const getAppServiceById = `-- name: GetAppServiceById :one
-SELECT id, project_id, type, service_id, name, app_name, description, git_provider, git_repo_id, git_repo_name, git_branch, build_path, created_at
+SELECT id, project_id, type, service_id, name, app_name, description, git_provider, gh_app_id, git_repo_id, git_repo_name, git_branch, build_path, created_at
 FROM app_service
 WHERE id = ?
 `
@@ -317,6 +319,7 @@ func (q *Queries) GetAppServiceById(ctx context.Context, id uuid.UUID) (AppServi
 		&i.AppName,
 		&i.Description,
 		&i.GitProvider,
+		&i.GhAppID,
 		&i.GitRepoID,
 		&i.GitRepoName,
 		&i.GitBranch,
