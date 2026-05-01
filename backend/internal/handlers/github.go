@@ -182,13 +182,16 @@ func (h *GitHandler) CreateGithubAppCallback(c *echo.Context) error {
 	}
 
 	// update the session with github app id
-	q.UpdateRedirectSession(h.qCtx, db.UpdateRedirectSessionParams{
+	if err := q.UpdateRedirectSession(h.qCtx, db.UpdateRedirectSessionParams{
 		GhAppID: sql.NullInt64{
 			Int64: ghAppId,
 			Valid: true,
 		},
 		State: state,
-	})
+	}); err != nil {
+		fmt.Println("Error updating redirect session with github app id:", err)
+		return c.Redirect(http.StatusFound, "/?github_error=internal")
+	}
 	// go removeSession(query, state)
 
 	installUrl := fmt.Sprintf("https://github.com/apps/%s/installations/new", convRes.Slug)

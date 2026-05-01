@@ -61,31 +61,6 @@ func (q *Queries) CreateAppService(ctx context.Context, arg CreateAppServicePara
 	return i, err
 }
 
-const createDeployment = `-- name: CreateDeployment :one
-INSERT INTO deployments (id, service_id, name, status)
-VALUES (?, ?, ?, ?)
-RETURNING id
-`
-
-type CreateDeploymentParams struct {
-	ID        uuid.UUID              `json:"id"`
-	ServiceID uuid.UUID              `json:"service_id"`
-	Name      string                 `json:"name"`
-	Status    types.DeploymentStatus `json:"status"`
-}
-
-func (q *Queries) CreateDeployment(ctx context.Context, arg CreateDeploymentParams) (uuid.UUID, error) {
-	row := q.db.QueryRowContext(ctx, createDeployment,
-		arg.ID,
-		arg.ServiceID,
-		arg.Name,
-		arg.Status,
-	)
-	var id uuid.UUID
-	err := row.Scan(&id)
-	return id, err
-}
-
 const createPsqlService = `-- name: CreatePsqlService :one
 INSERT INTO psql_service (id, project_id, type, service_id, name, app_name, description, db_name, db_user, db_password, image, internal_url)
 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -139,16 +114,6 @@ WHERE id = ?
 
 func (q *Queries) DeleteAppService(ctx context.Context, id uuid.UUID) error {
 	_, err := q.db.ExecContext(ctx, deleteAppService, id)
-	return err
-}
-
-const deleteDeploymentByID = `-- name: DeleteDeploymentByID :exec
-DELETE FROM deployments
-WHERE id = ?
-`
-
-func (q *Queries) DeleteDeploymentByID(ctx context.Context, id uuid.UUID) error {
-	_, err := q.db.ExecContext(ctx, deleteDeploymentByID, id)
 	return err
 }
 
@@ -329,74 +294,6 @@ func (q *Queries) GetAppServiceById(ctx context.Context, id uuid.UUID) (AppServi
 	return i, err
 }
 
-const getDeploymentByID = `-- name: GetDeploymentByID :one
-SELECT id, service_id, name, status, created_at
-FROM deployments
-WHERE id = ?
-`
-
-func (q *Queries) GetDeploymentByID(ctx context.Context, id uuid.UUID) (Deployment, error) {
-	row := q.db.QueryRowContext(ctx, getDeploymentByID, id)
-	var i Deployment
-	err := row.Scan(
-		&i.ID,
-		&i.ServiceID,
-		&i.Name,
-		&i.Status,
-		&i.CreatedAt,
-	)
-	return i, err
-}
-
-const getDeploymentStatus = `-- name: GetDeploymentStatus :one
-SELECT status
-FROM deployments
-WHERE id = ?
-`
-
-func (q *Queries) GetDeploymentStatus(ctx context.Context, id uuid.UUID) (types.DeploymentStatus, error) {
-	row := q.db.QueryRowContext(ctx, getDeploymentStatus, id)
-	var status types.DeploymentStatus
-	err := row.Scan(&status)
-	return status, err
-}
-
-const getDeploymentsByServiceID = `-- name: GetDeploymentsByServiceID :many
-SELECT id, service_id, name, status, created_at
-FROM deployments
-WHERE service_id = ?
-ORDER BY created_at DESC
-`
-
-func (q *Queries) GetDeploymentsByServiceID(ctx context.Context, serviceID uuid.UUID) ([]Deployment, error) {
-	rows, err := q.db.QueryContext(ctx, getDeploymentsByServiceID, serviceID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []Deployment
-	for rows.Next() {
-		var i Deployment
-		if err := rows.Scan(
-			&i.ID,
-			&i.ServiceID,
-			&i.Name,
-			&i.Status,
-			&i.CreatedAt,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
 const getPsqlServiceById = `-- name: GetPsqlServiceById :one
 SELECT id, project_id, type, service_id, name, app_name, description, db_name, db_user, db_password, image, internal_url, created_at
 FROM psql_service
@@ -453,21 +350,5 @@ type SetPsqlServiceIdParams struct {
 
 func (q *Queries) SetPsqlServiceId(ctx context.Context, arg SetPsqlServiceIdParams) error {
 	_, err := q.db.ExecContext(ctx, setPsqlServiceId, arg.ServiceID, arg.ID)
-	return err
-}
-
-const updateDeploymentStatus = `-- name: UpdateDeploymentStatus :exec
-UPDATE deployments
-SET status = ?
-WHERE id = ?
-`
-
-type UpdateDeploymentStatusParams struct {
-	Status types.DeploymentStatus `json:"status"`
-	ID     uuid.UUID              `json:"id"`
-}
-
-func (q *Queries) UpdateDeploymentStatus(ctx context.Context, arg UpdateDeploymentStatusParams) error {
-	_, err := q.db.ExecContext(ctx, updateDeploymentStatus, arg.Status, arg.ID)
 	return err
 }

@@ -11,7 +11,6 @@ import (
 
 // responsible for pulling code and storing it local
 func (w *worker) BuildWorker(ctx context.Context, data chan *deploymentqueue.BuildJobData) {
-	fmt.Println("BuildWorker: started")
 	for {
 		select {
 		case d, ok := <-data:

@@ -62,7 +62,7 @@ CREATE TABLE app_service (
     app_name TEXT NOT NULL UNIQUE,
     description TEXT NOT NULL,
     git_provider TEXT NOT NULL,
-    gh_app_id INTEGER NOT NULL REFERENCES github_app(id) ON DELETE CASCADE,
+    gh_app_id INTEGER NOT NULL REFERENCES github_app(app_id) ON DELETE CASCADE,
     git_repo_id TEXT NOT NULL,
     git_repo_name TEXT NOT NULL,
     git_branch TEXT NOT NULL,
@@ -82,13 +82,13 @@ CREATE TABLE redirect_session (
     state TEXT PRIMARY KEY,
     user_id uuid NOT NULL REFERENCES user(id) ON DELETE CASCADE,
     org_id uuid NOT NULL REFERENCES organization(id) ON DELETE CASCADE,
-    gh_app_id INTEGER REFERENCES github_app(id) ON DELETE CASCADE,
+    gh_app_id INTEGER REFERENCES github_app(app_id) ON DELETE CASCADE,
     expires_at DATETIME NOT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 
 CREATE TABLE github_app (
-    id uuid PRIMARY KEY,
+    id uuid NOT NULL,
     name TEXT NOT NULL,
     organization_id uuid NOT NULL REFERENCES organization(id) ON DELETE CASCADE,
     app_id INTEGER NOT NULL PRIMARY KEY,
