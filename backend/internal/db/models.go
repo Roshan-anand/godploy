@@ -26,6 +26,7 @@ type AppService struct {
 	GitRepoName string            `json:"git_repo_name"`
 	GitBranch   string            `json:"git_branch"`
 	BuildPath   string            `json:"build_path"`
+	WatchPath   string            `json:"watch_path"`
 	CreatedAt   time.Time         `json:"created_at"`
 }
 

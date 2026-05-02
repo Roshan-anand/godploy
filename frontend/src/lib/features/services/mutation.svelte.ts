@@ -7,7 +7,8 @@ import type {
 	CreateServiceResponse,
 	GetRepoResult,
 	GithubRepo,
-	GitProviderOption
+	GitProviderOption,
+	UpdateAppServiceBody
 } from './type';
 import { getServiceState } from './store.svelte';
 
@@ -61,6 +62,17 @@ export function useCreateServiceMutation() {
 		onError: (error) => {
 			console.error('Error creating service:', error);
 			axiosErr(error as Error, 'Failed to create service');
+		}
+	}));
+}
+
+export function useUpdateAppServiceMutation() {
+	return createMutation(() => ({
+		mutationFn: async (payload: UpdateAppServiceBody) => {
+			return api.post<ApiMessageRes>('/service/app/update', payload).then((res) => res.data);
+		},
+		onError: (error) => {
+			axiosErr(error as Error, 'Failed to update app service');
 		}
 	}));
 }

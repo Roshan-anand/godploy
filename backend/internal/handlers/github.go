@@ -50,13 +50,14 @@ type DeleteGithubAppReq struct {
 }
 
 type GetGithubRepoListRes struct {
-	ID            int64  `json:"id"`
-	Name          string `json:"name"`
-	FullName      string `json:"full_name"`
-	Private       bool   `json:"private"`
-	DefaultBranch string `json:"default_branch"`
-	HtmlURL       string `json:"html_url"`
-	RepoURL       string `json:"repo_url"`
+	ID            int64    `json:"id"`
+	Name          string   `json:"name"`
+	FullName      string   `json:"full_name"`
+	Private       bool     `json:"private"`
+	DefaultBranch string   `json:"default_branch"`
+	Branches      []string `json:"branches"`
+	HtmlURL       string   `json:"html_url"`
+	RepoURL       string   `json:"repo_url"`
 }
 
 func InitGitHandlers(s *config.Server) *GitHandler {
@@ -337,12 +338,37 @@ func (h *GitHandler) GetGithubRepoList(c *echo.Context) error {
 		}
 
 		for _, repo := range pageRepos.Repositories {
+			owner := repo.GetOwner().GetLogin()
+			repoName := repo.GetName()
+			if owner == "" || repoName == "" {
+				continue
+			}
+			branchNames := make([]string, 0)
+
+			branchOpts := &github.BranchListOptions{ListOptions: github.ListOptions{PerPage: 100, Page: 1}}
+			for {
+				branches, branchResp, branchErr := ghClient.Repositories.ListBranches(h.ghCtx, owner, repoName, branchOpts)
+				if branchErr != nil {
+					return c.JSON(http.StatusInternalServerError, lib.Res{Message: "Failed to get github repo branches"})
+				}
+
+				for _, branch := range branches {
+					branchNames = append(branchNames, branch.GetName())
+				}
+
+				if branchResp.NextPage == 0 {
+					break
+				}
+				branchOpts.Page = branchResp.NextPage
+			}
+
 			repos = append(repos, GetGithubRepoListRes{
 				ID:            repo.GetID(),
 				Name:          repo.GetName(),
 				FullName:      repo.GetFullName(),
 				Private:       repo.GetPrivate(),
 				DefaultBranch: repo.GetDefaultBranch(),
+				Branches:      branchNames,
 				HtmlURL:       repo.GetHTMLURL(),
 				RepoURL:       repo.GetCloneURL(),
 			})

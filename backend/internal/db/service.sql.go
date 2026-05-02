@@ -14,8 +14,8 @@ import (
 )
 
 const createAppService = `-- name: CreateAppService :one
-INSERT INTO app_service (id, project_id, type, service_id, name, app_name, description, git_provider, gh_app_id, git_repo_id, git_repo_name, git_branch, build_path)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+INSERT INTO app_service (id, project_id, type, service_id, name, app_name, description, git_provider, gh_app_id, git_repo_id, git_repo_name, git_branch, build_path, watch_path)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 RETURNING id, type
 `
 
@@ -33,6 +33,7 @@ type CreateAppServiceParams struct {
 	GitRepoName string            `json:"git_repo_name"`
 	GitBranch   string            `json:"git_branch"`
 	BuildPath   string            `json:"build_path"`
+	WatchPath   string            `json:"watch_path"`
 }
 
 type CreateAppServiceRow struct {
@@ -55,6 +56,7 @@ func (q *Queries) CreateAppService(ctx context.Context, arg CreateAppServicePara
 		arg.GitRepoName,
 		arg.GitBranch,
 		arg.BuildPath,
+		arg.WatchPath,
 	)
 	var i CreateAppServiceRow
 	err := row.Scan(&i.ID, &i.Type)
@@ -267,7 +269,7 @@ func (q *Queries) GetAllServicesByProjectId(ctx context.Context, projectid uuid.
 }
 
 const getAppServiceById = `-- name: GetAppServiceById :one
-SELECT id, project_id, type, service_id, name, app_name, description, git_provider, gh_app_id, git_repo_id, git_repo_name, git_branch, build_path, created_at
+SELECT id, project_id, type, service_id, name, app_name, description, git_provider, gh_app_id, git_repo_id, git_repo_name, git_branch, build_path, watch_path, created_at
 FROM app_service
 WHERE id = ?
 `
@@ -289,6 +291,7 @@ func (q *Queries) GetAppServiceById(ctx context.Context, id uuid.UUID) (AppServi
 		&i.GitRepoName,
 		&i.GitBranch,
 		&i.BuildPath,
+		&i.WatchPath,
 		&i.CreatedAt,
 	)
 	return i, err
@@ -350,5 +353,42 @@ type SetPsqlServiceIdParams struct {
 
 func (q *Queries) SetPsqlServiceId(ctx context.Context, arg SetPsqlServiceIdParams) error {
 	_, err := q.db.ExecContext(ctx, setPsqlServiceId, arg.ServiceID, arg.ID)
+	return err
+}
+
+const updateAppServiceDetails = `-- name: UpdateAppServiceDetails :exec
+UPDATE app_service
+SET git_provider = ?,
+    gh_app_id = ?,
+    git_repo_id = ?,
+    git_repo_name = ?,
+    git_branch = ?,
+    build_path = ?,
+    watch_path = ?
+WHERE id = ?
+`
+
+type UpdateAppServiceDetailsParams struct {
+	GitProvider string    `json:"git_provider"`
+	GhAppID     int64     `json:"gh_app_id"`
+	GitRepoID   string    `json:"git_repo_id"`
+	GitRepoName string    `json:"git_repo_name"`
+	GitBranch   string    `json:"git_branch"`
+	BuildPath   string    `json:"build_path"`
+	WatchPath   string    `json:"watch_path"`
+	ID          uuid.UUID `json:"id"`
+}
+
+func (q *Queries) UpdateAppServiceDetails(ctx context.Context, arg UpdateAppServiceDetailsParams) error {
+	_, err := q.db.ExecContext(ctx, updateAppServiceDetails,
+		arg.GitProvider,
+		arg.GhAppID,
+		arg.GitRepoID,
+		arg.GitRepoName,
+		arg.GitBranch,
+		arg.BuildPath,
+		arg.WatchPath,
+		arg.ID,
+	)
 	return err
 }

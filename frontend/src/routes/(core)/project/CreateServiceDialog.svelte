@@ -1,11 +1,13 @@
 <script lang="ts">
 	import { Button } from '@/components/ui/button';
 	import * as Dialog from '@/components/ui/dialog';
+	import GitProviderField from '@/components/services/git-provider-field.svelte';
 	import { Input } from '@/components/ui/input';
 	import { Label } from '@/components/ui/label';
 	import * as Select from '@/components/ui/select';
 	import { Textarea } from '@/components/ui/textarea';
 	import { gitProviders, serviceTypes } from '@/features/services/const';
+	import { normalizePathValue, validateAppGitForm } from '@/features/services/form';
 	import {
 		useCreateServiceMutation,
 		useGetReposMutation
@@ -16,7 +18,6 @@
 	import { useServiceCreateProjectsQuery } from '@/features/projects/query.svelte';
 	import { queryClient } from '@/query';
 	import { createForm, revalidateLogic } from '@tanstack/svelte-form';
-	import Icon from '@iconify/svelte';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
@@ -55,8 +56,6 @@
 
 	const createServiceMutation = useCreateServiceMutation();
 
-	// Dynamic validators gate service-specific fields without manual submit-time checks.
-	// TanStack Form handles one dynamic service form for both app and psql service creation.
 	const form = createForm(() => ({
 		defaultValues: {
 			project_id: '',
@@ -69,6 +68,7 @@
 			git_repo_id: '',
 			git_branch: '',
 			build_path: '/',
+			watch_path: '/',
 			db_name: '',
 			db_user: '',
 			db_password: '',
@@ -81,13 +81,7 @@
 
 				switch (value.type) {
 					case 'app':
-						if (value.git_provider === '') fields.git_provider = 'Git provider is required';
-						if (value.git_provider === 'github') {
-							if (value.git_app_id === '') fields.git_app_id = 'GitHub app is required';
-							if (value.git_repo_id === '') fields.git_repo_id = 'Repository is required';
-							if (value.git_branch === '') fields.git_branch = 'Branch is required';
-							if (value.build_path.trim() === '') fields.build_path = 'Build path is required';
-						}
+						Object.assign(fields, validateAppGitForm(value) ?? {});
 						break;
 
 					case 'psql':
@@ -123,7 +117,8 @@
 					return;
 				}
 
-				const buildPath = value.build_path.trim() === '' ? '/' : value.build_path.trim();
+				const buildPath = normalizePathValue(value.build_path);
+				const watchPath = normalizePathValue(value.watch_path);
 
 				createServiceMutation.mutate({
 					type: 'app',
@@ -138,7 +133,8 @@
 						git_repo_name: selectedGithubRepo.full_name,
 						git_repo_url: selectedGithubRepo.repo_url,
 						git_branch: value.git_branch,
-						build_path: buildPath
+						build_path: buildPath,
+						watch_path: watchPath
 					}
 				});
 				return;
@@ -171,6 +167,7 @@
 		form.resetField('git_repo_id');
 		form.resetField('git_branch');
 		form.resetField('build_path');
+		form.resetField('watch_path');
 		featureState.githubApps = [];
 		featureState.githubRepos = [];
 	};
@@ -256,7 +253,10 @@
 
 	const getRepoBranches = (repoId: string): string[] => {
 		const selectedRepo = featureState.githubRepos.find((repo) => repo.id.toString() === repoId);
-		return selectedRepo ? [selectedRepo.default_branch] : [];
+		if (!selectedRepo) return [];
+		return selectedRepo.branches.length > 0
+			? selectedRepo.branches
+			: [selectedRepo.default_branch];
 	};
 
 	const getGithubAppName = (appId: string): string => {
@@ -430,26 +430,16 @@
 										<form.Field name="git_provider">
 											{#snippet children(field)}
 												<Label>Git</Label>
-												<div class="flex items-center gap-3 w-full">
-													{#each gitProviders as provider (provider.key)}
-														<Button
-															type="button"
-															variant="outline"
-															disabled={provider.api === '' ||
-																currentOrg.id === '' ||
-																getReposMutation.isPending ||
-																createServiceMutation.isPending}
-															onclick={() => {
-																field.handleChange(provider.key);
-																fetchGitProvider(provider);
-															}}
-															class="flex-1"
-														>
-															<Icon icon={provider.icon} width="20" height="20" />
-															<p>{provider.name}</p>
-														</Button>
-													{/each}
-												</div>
+												<GitProviderField
+													value={field.state.value}
+													disabled={currentOrg.id === '' ||
+														getReposMutation.isPending ||
+														createServiceMutation.isPending}
+													onSelect={(provider) => {
+														field.handleChange(provider.key);
+														fetchGitProvider(provider);
+													}}
+												/>
 												{#if field.state.meta.errors.length}
 													<p class="text-sm font-medium text-destructive">
 														{field.state.meta.errors[0]}
@@ -573,6 +563,36 @@
 											{#snippet children(field)}
 												<div class="space-y-1.5">
 													<Label for={field.name}>Build Path</Label>
+													<Input
+														id={field.name}
+														placeholder="/"
+														value={field.state.value}
+														onblur={field.handleBlur}
+														oninput={(e) => field.handleChange(e.currentTarget.value)}
+														disabled={createServiceMutation.isPending}
+													/>
+													{#if field.state.meta.errors.length}
+														<p class="text-sm font-medium text-destructive">
+															{field.state.meta.errors[0]}
+														</p>
+													{/if}
+												</div>
+											{/snippet}
+										</form.Field>
+
+										<form.Field
+											name="watch_path"
+											validators={{
+												onChange: z.string().min(1, 'Watch path is required'),
+												onDynamic: ({ value, fieldApi }) => {
+													if (fieldApi.form.getFieldValue('type') !== 'app') return undefined;
+													return value.trim() === '' ? 'Watch path is required' : undefined;
+												}
+											}}
+										>
+											{#snippet children(field)}
+												<div class="space-y-1.5">
+													<Label for={field.name}>Watch Path</Label>
 													<Input
 														id={field.name}
 														placeholder="/"

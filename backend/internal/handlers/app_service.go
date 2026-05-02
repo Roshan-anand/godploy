@@ -25,6 +25,18 @@ type CreateAppServiceReq struct {
 	GitRepoURL  string    `json:"git_repo_url" validate:"required"`
 	GitBranch   string    `json:"git_branch" validate:"required"`
 	BuildPath   string    `json:"build_path" validate:"required"`
+	WatchPath   string    `json:"watch_path" validate:"required"`
+}
+
+type UpdateAppServiceReq struct {
+	ServiceID   uuid.UUID `json:"service_id" validate:"required"`
+	GitProvider string    `json:"git_provider" validate:"required"`
+	GhAppID     int64     `json:"gh_app_id" validate:"required"`
+	GitRepoID   string    `json:"git_repo_id" validate:"required"`
+	GitRepoName string    `json:"git_repo_name" validate:"required"`
+	GitBranch   string    `json:"git_branch" validate:"required"`
+	BuildPath   string    `json:"build_path" validate:"required"`
+	WatchPath   string    `json:"watch_path" validate:"required"`
 }
 
 // create a new app service
@@ -62,11 +74,12 @@ func (h *ServiceHandler) CreateAppService(c *echo.Context) error {
 		GitRepoName: b.GitRepoName,
 		GitBranch:   b.GitBranch,
 		BuildPath:   b.BuildPath,
+		WatchPath:   b.WatchPath,
 	})
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, lib.Res{Message: "Failed to create service"})
 	}
-
+	
 	// create a new deployment for the app service
 	deploymentName := fmt.Sprintf("%s-%s", b.AppName, lib.GenerateRandomID(6))
 	dID, err := q.CreateDeployment(h.qCtx, db.CreateDeploymentParams{
@@ -136,4 +149,37 @@ func (h *ServiceHandler) DeleteAppService(c *echo.Context) error {
 	go h.Server.BadgerDB.DeleteAllLogsByDeploymentID(dIDs)
 
 	return c.JSON(http.StatusOK, lib.Res{Message: "Successsfully deleted service"})
+}
+
+// route: POST /api/service/app/update
+func (h *ServiceHandler) UpdateAppService(c *echo.Context) error {
+	b := new(UpdateAppServiceReq)
+	q := h.Server.DB.Queries
+
+	if Res := BindAndValidate(b, c, h.Validate); Res != nil {
+		return c.JSON(http.StatusBadRequest, Res)
+	}
+
+	ghApp, err := q.GetGhAppByAppId(h.qCtx, b.GhAppID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return c.JSON(http.StatusBadRequest, lib.Res{Message: "invalid github app"})
+		}
+		return c.JSON(http.StatusInternalServerError, lib.Res{Message: "failed to verify github app"})
+	}
+
+	if err := q.UpdateAppServiceDetails(h.qCtx, db.UpdateAppServiceDetailsParams{
+		GitProvider: b.GitProvider,
+		GhAppID:     ghApp.AppID,
+		GitRepoID:   b.GitRepoID,
+		GitRepoName: b.GitRepoName,
+		GitBranch:   b.GitBranch,
+		BuildPath:   b.BuildPath,
+		WatchPath:   b.WatchPath,
+		ID:          b.ServiceID,
+	}); err != nil {
+		return c.JSON(http.StatusInternalServerError, lib.Res{Message: "failed to update app service"})
+	}
+
+	return c.JSON(http.StatusOK, lib.Res{Message: "app service updated successfully"})
 }

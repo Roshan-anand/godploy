@@ -1,10 +1,10 @@
-CREATE TABLE organization (
+CREATE TABLE IF NOT EXISTS organization (
     id uuid PRIMARY KEY,
     name TEXT NOT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 
-CREATE TABLE user (
+CREATE TABLE IF NOT EXISTS user (
     id uuid PRIMARY KEY,
     name TEXT NOT NULL,
     email TEXT UNIQUE NOT NULL,
@@ -14,14 +14,14 @@ CREATE TABLE user (
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 
-CREATE TABLE user_organization (
+CREATE TABLE IF NOT EXISTS user_organization (
     user_email TEXT NOT NULL REFERENCES user(email) ON DELETE CASCADE,
     organization_id uuid NOT NULL REFERENCES organization(id) ON DELETE CASCADE,
     joined_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (user_email, organization_id)
 );
 
-CREATE TABLE session (
+CREATE TABLE IF NOT EXISTS session (
     id uuid PRIMARY KEY,
     user_id uuid NOT NULL REFERENCES user(id) ON DELETE CASCADE,
     token TEXT UNIQUE NOT NULL,
@@ -29,7 +29,7 @@ CREATE TABLE session (
     expires_at DATETIME NOT NULL
 );
 
-CREATE TABLE project (
+CREATE TABLE IF NOT EXISTS project (
     id uuid PRIMARY KEY,
     name TEXT NOT NULL,
     description TEXT NOT NULL,
@@ -37,7 +37,7 @@ CREATE TABLE project (
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 
-CREATE TABLE psql_service (
+CREATE TABLE IF NOT EXISTS psql_service (
     id uuid PRIMARY KEY,
     project_id uuid NOT NULL REFERENCES project(id) ON DELETE CASCADE,
     type TEXT NOT NULL,
@@ -53,7 +53,7 @@ CREATE TABLE psql_service (
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 
-CREATE TABLE app_service (
+CREATE TABLE IF NOT EXISTS app_service (
     id uuid PRIMARY KEY,
     project_id uuid NOT NULL REFERENCES project(id) ON DELETE CASCADE,
     type TEXT NOT NULL,
@@ -67,10 +67,11 @@ CREATE TABLE app_service (
     git_repo_name TEXT NOT NULL,
     git_branch TEXT NOT NULL,
     build_path TEXT NOT NULL,
+    watch_path TEXT NOT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 
-CREATE TABLE deployments (
+CREATE TABLE IF NOT EXISTS deployments (
     id uuid PRIMARY KEY,
     service_id uuid NOT NULL REFERENCES app_service(id) ON DELETE CASCADE,
     name TEXT NOT NULL,
@@ -78,7 +79,7 @@ CREATE TABLE deployments (
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 
-CREATE TABLE redirect_session (
+CREATE TABLE IF NOT EXISTS redirect_session (
     state TEXT PRIMARY KEY,
     user_id uuid NOT NULL REFERENCES user(id) ON DELETE CASCADE,
     org_id uuid NOT NULL REFERENCES organization(id) ON DELETE CASCADE,
@@ -87,7 +88,7 @@ CREATE TABLE redirect_session (
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 
-CREATE TABLE github_app (
+CREATE TABLE IF NOT EXISTS github_app (
     id uuid NOT NULL,
     name TEXT NOT NULL,
     organization_id uuid NOT NULL REFERENCES organization(id) ON DELETE CASCADE,

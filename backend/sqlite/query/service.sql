@@ -43,8 +43,8 @@ FROM psql_service
 WHERE project_id = ?;
 
 -- name: CreateAppService :one
-INSERT INTO app_service (id, project_id, type, service_id, name, app_name, description, git_provider, gh_app_id, git_repo_id, git_repo_name, git_branch, build_path)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+INSERT INTO app_service (id, project_id, type, service_id, name, app_name, description, git_provider, gh_app_id, git_repo_id, git_repo_name, git_branch, build_path, watch_path)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 RETURNING id, type;
 
 -- name: GetAppServiceById :one
@@ -59,4 +59,15 @@ WHERE id = ?;
 
 -- name: DeleteAppService :exec
 DELETE FROM app_service
+WHERE id = ?;
+
+-- name: UpdateAppServiceDetails :exec
+UPDATE app_service
+SET git_provider = ?,
+    gh_app_id = ?,
+    git_repo_id = ?,
+    git_repo_name = ?,
+    git_branch = ?,
+    build_path = ?,
+    watch_path = ?
 WHERE id = ?;

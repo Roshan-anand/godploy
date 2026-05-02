@@ -14,7 +14,6 @@ export interface ServiceStore {
 }
 
 class ServiceStoreClass implements ServiceStore {
-	// AI-generated: consolidate service UI/feature state into one context class.
 	githubApps = $state<GithubApp[]>([]);
 	githubRepos = $state<GithubRepo[]>([]);
 	searchQuery = $state('');
