@@ -10,6 +10,10 @@ Lightweight, single-binary, self-hosted alternative to Dokploy, Coolify, Netlify
 - **DB:** SQLite (metadata)
 - **UI:** sveltekit (SPA, served from binary)
 
+## Architecture :
+<img width="4375" height="6491" alt="image" src="https://github.com/user-attachments/assets/5f99c8c9-de6f-47b4-911b-893fbd93b27c" />
+
+
 ## current status :
 
 check out the [Roadmap](https://github.com/Roshan-anand/godploy/blob/main/docs/mvp_roadmap.md)
