@@ -46,19 +46,15 @@
 		</div>
 	{:else if serviceQuery.isError || !serviceQuery.data}
 		<p class="text-red-500">Failed to load service details</p>
-	{:else if tab === ''}
-		{#if serviceQuery.data.type === 'psql'}
-			<ServiceDetailPsql service={serviceQuery.data} />
-		{:else}
-			<ServiceDetailApp service={serviceQuery.data} />
-		{/if}
 	{:else if tab === 'logs'}
 		<p class="text-muted-foreground">Logs tab content goes here</p>
 	{:else if tab === 'deployment'}
 		<Deployment {serviceId} />
 	{:else if tab === 'env'}
 		<p class="text-muted-foreground">Environment variables tab content goes here</p>
+	{:else if serviceQuery.data.type === 'psql'}
+		<ServiceDetailPsql service={serviceQuery.data} />
 	{:else}
-		<p class="text-muted-foreground">Invalid tab in URL</p>
+		<ServiceDetailApp service={serviceQuery.data} />
 	{/if}
 </section>

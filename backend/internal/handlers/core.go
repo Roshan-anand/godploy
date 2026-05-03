@@ -8,7 +8,6 @@ type Handler struct {
 	Service     *ServiceHandler
 	PsqlService *PsqlServiceHandler
 	Git         *GitHandler
-	Project     *ProjectHandler
 	Org         *OrgHandler
 }
 
@@ -19,7 +18,6 @@ func NewHandeler(srv *config.Server) *Handler {
 		Service:     InitServiceHandlers(srv),
 		PsqlService: InitPsqlServiceHandlers(srv),
 		Git:         InitGitHandlers(srv),
-		Project:     InitProjectHandlers(srv),
 		Org:         InitOrgHandlers(srv),
 	}
 }

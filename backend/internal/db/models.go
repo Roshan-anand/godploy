@@ -13,22 +13,22 @@ import (
 )
 
 type AppService struct {
-	ID          uuid.UUID         `json:"id"`
-	ProjectID   uuid.UUID         `json:"project_id"`
-	Type        types.ServiceType `json:"type"`
-	ServiceID   string            `json:"service_id"`
-	Name        string            `json:"name"`
-	AppName     string            `json:"app_name"`
-	Description string            `json:"description"`
-	GitProvider string            `json:"git_provider"`
-	GhAppID     int64             `json:"gh_app_id"`
-	GitRepoID   string            `json:"git_repo_id"`
-	GitRepoName string            `json:"git_repo_name"`
-	GitRepoUrl  string            `json:"git_repo_url"`
-	GitBranch   string            `json:"git_branch"`
-	BuildPath   string            `json:"build_path"`
-	WatchPath   string            `json:"watch_path"`
-	CreatedAt   time.Time         `json:"created_at"`
+	ID             uuid.UUID         `json:"id"`
+	OrganizationID uuid.UUID         `json:"organization_id"`
+	Type           types.ServiceType `json:"type"`
+	ServiceID      string            `json:"service_id"`
+	Name           string            `json:"name"`
+	AppName        string            `json:"app_name"`
+	Description    string            `json:"description"`
+	GitProvider    string            `json:"git_provider"`
+	GhAppID        int64             `json:"gh_app_id"`
+	GitRepoID      string            `json:"git_repo_id"`
+	GitRepoName    string            `json:"git_repo_name"`
+	GitRepoUrl     string            `json:"git_repo_url"`
+	GitBranch      string            `json:"git_branch"`
+	BuildPath      string            `json:"build_path"`
+	WatchPath      string            `json:"watch_path"`
+	CreatedAt      time.Time         `json:"created_at"`
 }
 
 type Deployment struct {
@@ -57,28 +57,20 @@ type Organization struct {
 	CreatedAt time.Time `json:"created_at"`
 }
 
-type Project struct {
-	ID             uuid.UUID `json:"id"`
-	Name           string    `json:"name"`
-	Description    string    `json:"description"`
-	OrganizationID uuid.UUID `json:"organization_id"`
-	CreatedAt      time.Time `json:"created_at"`
-}
-
 type PsqlService struct {
-	ID          uuid.UUID         `json:"id"`
-	ProjectID   uuid.UUID         `json:"project_id"`
-	Type        types.ServiceType `json:"type"`
-	ServiceID   string            `json:"service_id"`
-	Name        string            `json:"name"`
-	AppName     string            `json:"app_name"`
-	Description string            `json:"description"`
-	DbName      string            `json:"db_name"`
-	DbUser      string            `json:"db_user"`
-	DbPassword  string            `json:"db_password"`
-	Image       string            `json:"image"`
-	InternalUrl string            `json:"internal_url"`
-	CreatedAt   time.Time         `json:"created_at"`
+	ID             uuid.UUID         `json:"id"`
+	OrganizationID uuid.UUID         `json:"organization_id"`
+	Type           types.ServiceType `json:"type"`
+	ServiceID      string            `json:"service_id"`
+	Name           string            `json:"name"`
+	AppName        string            `json:"app_name"`
+	Description    string            `json:"description"`
+	DbName         string            `json:"db_name"`
+	DbUser         string            `json:"db_user"`
+	DbPassword     string            `json:"db_password"`
+	Image          string            `json:"image"`
+	InternalUrl    string            `json:"internal_url"`
+	CreatedAt      time.Time         `json:"created_at"`
 }
 
 type RedirectSession struct {

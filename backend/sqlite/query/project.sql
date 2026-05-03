@@ -1,36 +1,58 @@
--- name: CheckProjectExist :one
-SELECT CAST(EXISTS(
-    SELECT 1
-    FROM project p
-    JOIN user u ON u.current_org_id = p.organization_id
-    WHERE u.email = ? AND p.name = @project_name
-) AS BOOLEAN );
+-- name: GetAllServices :many
+SELECT ps.id, ps.type, ps.name, ps.description, ps.created_at
+FROM psql_service ps
+WHERE ps.organization_id = @org_id
+UNION ALL
+SELECT aps.id, aps.type, aps.name, aps.description, aps.created_at
+FROM app_service aps
+WHERE aps.organization_id = @org_id;
 
--- name: GetAllProjects :many
-SELECT p.id,p.name,p.description
-FROM project p
-JOIN user u ON u.current_org_id = p.organization_id
-WHERE u.email = ?;
+-- name: CreatePsqlService :one
+INSERT INTO psql_service (id, organization_id, type, service_id, name, app_name, description, db_name, db_user, db_password, image, internal_url)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+RETURNING id, type;
 
--- name: CreateProject :one
-INSERT INTO project (id,name,description,organization_id)
-SELECT ?, ?, ?, u.current_org_id
-FROM user u
-WHERE u.email = ?
-LIMIT 1
-RETURNING id,name,description;
-
--- name: DeleteProject :exec
-DELETE FROM project
+-- name: GetPsqlServiceById :one
+SELECT *
+FROM psql_service
 WHERE id = ?;
 
--- name: CheckProjectHasServices :one
-SELECT CAST(EXISTS(
-    SELECT 1
-    FROM psql_service ps
-    WHERE ps.project_id = @project_id
-    UNION
-    SELECT 1
-    FROM app_service aps
-    WHERE aps.project_id = @project_id
-) AS BOOLEAN);
+-- name: SetPsqlServiceId :exec
+UPDATE psql_service
+SET service_id = ?
+WHERE id = ?;
+
+-- name: DeletePsqlService :exec
+DELETE FROM psql_service
+WHERE id = ?;
+
+-- name: CreateAppService :one
+INSERT INTO app_service (id, organization_id, type, service_id, name, app_name, description, git_provider, gh_app_id, git_repo_id, git_repo_name, git_repo_url, git_branch, build_path, watch_path)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+RETURNING id, type;
+
+-- name: GetAppServiceById :one
+SELECT *
+FROM app_service
+WHERE id = ?;
+
+-- name: SetAppServiceId :exec
+UPDATE app_service
+SET service_id = ?
+WHERE id = ?;
+
+-- name: DeleteAppService :exec
+DELETE FROM app_service
+WHERE id = ?;
+
+-- name: UpdateAppServiceDetails :exec
+UPDATE app_service
+SET git_provider = ?,
+    gh_app_id = ?,
+    git_repo_id = ?,
+    git_repo_name = ?,
+    git_repo_url = ?,
+    git_branch = ?,
+    build_path = ?,
+    watch_path = ?
+WHERE id = ?;

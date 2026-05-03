@@ -5,6 +5,23 @@ export type CreateServiceResponse = {
 	type: ServiceType;
 };
 
+export type ServiceRow = {
+	id: string;
+	type: ServiceType;
+	name: string;
+	description: string;
+	created_at: string;
+};
+
+export type ServiceListResponse = {
+	services: ServiceRow[];
+};
+
+export type DeleteServicePayload = {
+	service_id: string;
+	type: ServiceType;
+};
+
 export type GitProviderKey = 'github' | 'gitlab' | 'bitbucket';
 
 export type GitProviderOption = {
@@ -43,7 +60,7 @@ export type GetRepoResult = {
 };
 
 export type CreateAppServiceBody = {
-	project_id: string;
+	org_id: string;
 	name: string;
 	description: string;
 	app_name: string;
@@ -70,7 +87,7 @@ export type UpdateAppServiceBody = {
 };
 
 export type CreatePsqlServiceBody = {
-	project_id: string;
+	org_id: string;
 	name: string;
 	description: string;
 	app_name: string;

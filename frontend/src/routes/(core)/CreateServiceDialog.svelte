@@ -15,12 +15,10 @@
 	import { useGithubAppsQuery } from '@/features/services/query.svelte';
 	import { getServiceState } from '@/features/services/store.svelte';
 	import type { GithubApp, GitProviderKey, GitProviderOption } from '@/features/services/type';
-	import { useServiceCreateProjectsQuery } from '@/features/projects/query.svelte';
 	import { queryClient } from '@/query';
 	import { createForm, revalidateLogic } from '@tanstack/svelte-form';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
-	import { page } from '$app/state';
 	import { toast } from 'svelte-sonner';
 	import { z } from 'zod';
 	import type { ServiceType } from '@/types';
@@ -29,14 +27,7 @@
 	const { currentOrg } = getUserState();
 	const featureState = getServiceState();
 
-	const projectIdFromPath = $derived(page.params.id ?? '');
-	const isProjectScoped = $derived(projectIdFromPath !== '');
-	const projectsQuery = useServiceCreateProjectsQuery(
-		() => currentOrg.id,
-		() => isProjectScoped
-	);
-
-	const githubAppsQuery = useGithubAppsQuery(() => currentOrg.id);
+	const githubAppsQuery = useGithubAppsQuery();
 	const getReposMutation = useGetReposMutation();
 
 	featureState.setAfterCreateSuccess(async ({ id, type }) => {
@@ -47,7 +38,7 @@
 
 		toast.success('Service created successfully');
 		await goto(
-			resolve('/(core)/service/[service_type]/[service_id]?tab=deployment', {
+			resolve('/(core)/[service_type]/[service_id]?tab=deployment', {
 				service_type: type,
 				service_id: id
 			})
@@ -58,7 +49,6 @@
 
 	const form = createForm(() => ({
 		defaultValues: {
-			project_id: '',
 			name: '',
 			description: '',
 			type: 'app',
@@ -95,9 +85,8 @@
 			}
 		},
 		onSubmit: ({ value }) => {
-			const projectId = projectIdFromPath || value.project_id;
-			if (projectId === '') {
-				toast.error('Please select a project');
+			if (currentOrg.id === '') {
+				toast.error('Please select an organization');
 				return;
 			}
 
@@ -123,7 +112,7 @@
 				createServiceMutation.mutate({
 					type: 'app',
 					body: {
-						project_id: projectId,
+						org_id: currentOrg.id,
 						name: value.name.trim(),
 						description: value.description.trim(),
 						app_name: value.app_name.trim(),
@@ -143,7 +132,7 @@
 			createServiceMutation.mutate({
 				type: 'psql',
 				body: {
-					project_id: projectId,
+					org_id: currentOrg.id,
 					name: value.name.trim(),
 					description: value.description.trim(),
 					app_name: value.app_name.trim(),
@@ -254,9 +243,7 @@
 	const getRepoBranches = (repoId: string): string[] => {
 		const selectedRepo = featureState.githubRepos.find((repo) => repo.id.toString() === repoId);
 		if (!selectedRepo) return [];
-		return selectedRepo.branches.length > 0
-			? selectedRepo.branches
-			: [selectedRepo.default_branch];
+		return selectedRepo.branches.length > 0 ? selectedRepo.branches : [selectedRepo.default_branch];
 	};
 
 	const getGithubAppName = (appId: string): string => {
@@ -274,9 +261,9 @@
 		<Dialog.Content
 			class="fixed z-50 top-1/2 left-1/2 w-[92vw] max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-xl border bg-background p-5 shadow-lg"
 		>
-			<Dialog.Title class="text-lg font-semibold">Create Service</Dialog.Title>
+			<Dialog.Title class="text-lg font-semibold">Create Project</Dialog.Title>
 			<Dialog.Description class="text-sm text-muted-foreground"
-				>Create a new service for your project.</Dialog.Description
+				>Create a project.</Dialog.Description
 			>
 
 			<form
@@ -287,45 +274,6 @@
 					form.handleSubmit();
 				}}
 			>
-				{#if isProjectScoped}
-					<input type="hidden" name="project_id" value={projectIdFromPath} />
-				{/if}
-
-				{#if !isProjectScoped}
-					<form.Field
-						name="project_id"
-						validators={{ onChange: z.string().min(1, 'Project is required') }}
-					>
-						{#snippet children(field)}
-							<div class="space-y-1.5">
-								<Label for={field.name}>Project</Label>
-								<Select.Root
-									type="single"
-									value={field.state.value}
-									onValueChange={(value) => field.handleChange(value)}
-								>
-									<Select.Trigger class="w-full" id={field.name}>
-										{field.state.value
-											? projectsQuery.data?.find((project) => project.id === field.state.value)
-													?.name
-											: projectsQuery.isPending
-												? 'Loading projects...'
-												: 'Select project'}
-									</Select.Trigger>
-									<Select.Content>
-										{#each projectsQuery.data ?? [] as project (project.id)}
-											<Select.Item value={project.id} label={project.name} />
-										{/each}
-									</Select.Content>
-								</Select.Root>
-								{#if field.state.meta.errors.length}
-									<p class="text-sm font-medium text-destructive">{field.state.meta.errors[0]}</p>
-								{/if}
-							</div>
-						{/snippet}
-					</form.Field>
-				{/if}
-
 				<form.Field
 					name="name"
 					validators={{ onChange: z.string().min(3, 'Service name must be at least 3 characters') }}
@@ -453,9 +401,14 @@
 												<div class="space-y-1.5">
 													<Label for="github-app-select">GitHub App</Label>
 													{#if featureState.githubApps.length === 0}
-														<div class="rounded-md border border-dashed p-3 text-sm text-muted-foreground">
+														<div
+															class="rounded-md border border-dashed p-3 text-sm text-muted-foreground"
+														>
 															No app connected.
-															<a href={resolve('/(core)/git')} class="ml-1 underline underline-offset-4">
+															<a
+																href={resolve('/(core)/git')}
+																class="ml-1 underline underline-offset-4"
+															>
 																Go to Git
 															</a>
 														</div>

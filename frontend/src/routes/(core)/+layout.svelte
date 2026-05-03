@@ -4,11 +4,9 @@
 	import ModeToggle from '@/components/mode-toggle.svelte';
 	import { getUserState } from '@/features/global/store.svelte';
 	import { GetAuthUserData } from './query';
-	import { setProjectState } from '@/features/projects/store.svelte';
 
 	let { children } = $props();
 
-	setProjectState();
 	const userData = GetAuthUserData();
 	if (userData) {
 		const { setUser } = getUserState();

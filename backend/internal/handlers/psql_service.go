@@ -28,7 +28,7 @@ type PsqlServiceHandler struct {
 }
 
 type CreatePsqlServiceReq struct {
-	ProjectID   uuid.UUID `json:"project_id" validate:"required"`
+	OrgID       uuid.UUID `json:"org_id" validate:"required"`
 	Name        string    `json:"name" validate:"required"`
 	AppName     string    `json:"app_name" validate:"required"`
 	Description string    `json:"description"`
@@ -61,18 +61,18 @@ func (h *ServiceHandler) CreatePsqlService(c *echo.Context) error {
 	b.AppName += lib.GenerateRandomID(6)
 
 	service, err := h.Server.DB.Queries.CreatePsqlService(h.qCtx, db.CreatePsqlServiceParams{
-		ID:          lib.NewID(),
-		ProjectID:   b.ProjectID,
-		Type:        types.PsqlServiceType,
-		ServiceID:   "",
-		Name:        b.Name,
-		AppName:     b.AppName,
-		Description: b.Description,
-		DbName:      b.DbName,
-		DbUser:      b.DbUser,
-		DbPassword:  b.DbPassword, // TODO : make is hased
-		Image:       b.Image,
-		InternalUrl: "", // TODO : create internal URl
+		ID:             lib.NewID(),
+		OrganizationID: b.OrgID,
+		Type:           types.PsqlServiceType,
+		ServiceID:      "",
+		Name:           b.Name,
+		AppName:        b.AppName,
+		Description:    b.Description,
+		DbName:         b.DbName,
+		DbUser:         b.DbUser,
+		DbPassword:     b.DbPassword, // TODO : make is hased
+		Image:          b.Image,
+		InternalUrl:    "", // TODO : create internal URl
 	})
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, lib.Res{Message: "Failed to create service"})

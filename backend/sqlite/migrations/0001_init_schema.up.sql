@@ -29,17 +29,9 @@ CREATE TABLE IF NOT EXISTS session (
     expires_at DATETIME NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS project (
-    id uuid PRIMARY KEY,
-    name TEXT NOT NULL,
-    description TEXT NOT NULL,
-    organization_id uuid NOT NULL REFERENCES organization(id) ON DELETE CASCADE,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL
-);
-
 CREATE TABLE IF NOT EXISTS psql_service (
     id uuid PRIMARY KEY,
-    project_id uuid NOT NULL REFERENCES project(id) ON DELETE CASCADE,
+    organization_id uuid NOT NULL REFERENCES organization(id) ON DELETE CASCADE,
     type TEXT NOT NULL,
     service_id TEXT NOT NULL,
     name TEXT NOT NULL,
@@ -55,7 +47,7 @@ CREATE TABLE IF NOT EXISTS psql_service (
 
 CREATE TABLE IF NOT EXISTS app_service (
     id uuid PRIMARY KEY,
-    project_id uuid NOT NULL REFERENCES project(id) ON DELETE CASCADE,
+    organization_id uuid NOT NULL REFERENCES organization(id) ON DELETE CASCADE,
     type TEXT NOT NULL,
     service_id TEXT NOT NULL,
     name TEXT NOT NULL,

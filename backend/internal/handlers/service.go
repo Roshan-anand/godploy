@@ -33,31 +33,10 @@ func InitServiceHandlers(s *config.Server) *ServiceHandler {
 	}
 }
 
-// get all services of a project
-//
-// route: GET /api/service/project?project_id
-func (h *ServiceHandler) GetAllProjectServices(c *echo.Context) error {
-	q := h.Server.DB.Queries
-
-	projectId, err := uuid.Parse(c.QueryParam("project_id"))
-	if err != nil {
-		return c.JSON(http.StatusBadRequest, lib.Res{Message: "invalid project_id"})
-	}
-
-	services, err := q.GetAllServicesByProjectId(h.qCtx, projectId)
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError, lib.Res{Message: "failed to get services"})
-	}
-
-	return c.JSON(http.StatusOK, map[string]interface{}{
-		"services": services,
-	})
-}
-
 // get all services of a organization
 //
-// route: GET /api/service/org
-func (h *ServiceHandler) GetAllOrganizationServices(c *echo.Context) error {
+// route: GET /api/service
+func (h *ServiceHandler) GetAllServices(c *echo.Context) error {
 	u := c.Get(h.Server.Config.EchoCtxUserKey).(lib.AuthUser)
 	q := h.Server.DB.Queries
 
@@ -66,7 +45,7 @@ func (h *ServiceHandler) GetAllOrganizationServices(c *echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, lib.Res{Message: "failed to get user's current org"})
 	}
 
-	services, err := q.GetAllServicesByOrgId(h.qCtx, orgID)
+	services, err := q.GetAllServices(h.qCtx, orgID)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, lib.Res{Message: "failed to get services"})
 	}
@@ -82,7 +61,7 @@ func (h *ServiceHandler) GetAllOrganizationServices(c *echo.Context) error {
 func (h *ServiceHandler) GetServiceDeployments(c *echo.Context) error {
 	q := h.Server.DB.Queries
 
-	// TODO : inlcude project_id and org_id to get all deployments of the project / org / service based on the query params.
+	// TODO : inlcude org_id to get all deployments of the org / service based on the query params.
 
 	serviceID, err := uuid.Parse(c.QueryParam("service_id"))
 	if err != nil {

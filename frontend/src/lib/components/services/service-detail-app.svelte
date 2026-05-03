@@ -23,7 +23,7 @@
 	let { service } = $props<{ service: ServiceBase & AppService }>();
 	const { currentOrg } = getUserState();
 	const featureState = getServiceState();
-	const githubAppsQuery = useGithubAppsQuery(() => currentOrg.id);
+	const githubAppsQuery = useGithubAppsQuery();
 	const getReposMutation = useGetReposMutation();
 	const updateServiceMutation = useUpdateAppServiceMutation();
 
@@ -151,9 +151,7 @@
 	const getRepoBranches = (repoId: string): string[] => {
 		const selectedRepo = featureState.githubRepos.find((repo) => repo.id.toString() === repoId);
 		if (!selectedRepo) return repoId === service.git_repo_id ? [service.git_branch] : [];
-		return selectedRepo.branches.length > 0
-			? selectedRepo.branches
-			: [selectedRepo.default_branch];
+		return selectedRepo.branches.length > 0 ? selectedRepo.branches : [selectedRepo.default_branch];
 	};
 
 	const getGithubAppName = (appId: string): string => {

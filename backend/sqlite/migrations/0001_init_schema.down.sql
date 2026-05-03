@@ -1,7 +1,6 @@
 DROP TABLE IF EXISTS user;
 DROP TABLE IF EXISTS organization;
 DROP TABLE IF EXISTS user_organization;
-DROP TABLE IF EXISTS project;
 DROP TABLE IF EXISTS service;
 DROP TABLE IF EXISTS psql_service;
 DROP TABLE IF EXISTS app_service;

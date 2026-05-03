@@ -7,7 +7,6 @@
 - [ ] i want to install Godploy on my vps in one cmd.
 - [x] i want to register/login using email and password.
 - [x] i want to CRUD organizations.
-- [x] i want to CRUD projects.
 - [x] i want to connect to Github.
 - [x] i want to select a repo and branch.
 - [ ] i want to CRUD services.
@@ -37,7 +36,6 @@
 
 - **ORG/project**
   - [x] CRUD for Org.
-  - [x] CRUD for Projects.
 
 - **Services**
   - [ ] CRUD for Services.

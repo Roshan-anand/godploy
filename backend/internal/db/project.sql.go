@@ -7,117 +7,164 @@ package db
 
 import (
 	"context"
+	"time"
 
+	"github.com/Roshan-anand/godploy/internal/lib/types"
 	"github.com/google/uuid"
 )
 
-const checkProjectExist = `-- name: CheckProjectExist :one
-SELECT CAST(EXISTS(
-    SELECT 1
-    FROM project p
-    JOIN user u ON u.current_org_id = p.organization_id
-    WHERE u.email = ? AND p.name = ?
-) AS BOOLEAN )
+const createAppService = `-- name: CreateAppService :one
+INSERT INTO app_service (id, organization_id, type, service_id, name, app_name, description, git_provider, gh_app_id, git_repo_id, git_repo_name, git_repo_url, git_branch, build_path, watch_path)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+RETURNING id, type
 `
 
-type CheckProjectExistParams struct {
-	Email       string `json:"email"`
-	ProjectName string `json:"project_name"`
+type CreateAppServiceParams struct {
+	ID             uuid.UUID         `json:"id"`
+	OrganizationID uuid.UUID         `json:"organization_id"`
+	Type           types.ServiceType `json:"type"`
+	ServiceID      string            `json:"service_id"`
+	Name           string            `json:"name"`
+	AppName        string            `json:"app_name"`
+	Description    string            `json:"description"`
+	GitProvider    string            `json:"git_provider"`
+	GhAppID        int64             `json:"gh_app_id"`
+	GitRepoID      string            `json:"git_repo_id"`
+	GitRepoName    string            `json:"git_repo_name"`
+	GitRepoUrl     string            `json:"git_repo_url"`
+	GitBranch      string            `json:"git_branch"`
+	BuildPath      string            `json:"build_path"`
+	WatchPath      string            `json:"watch_path"`
 }
 
-func (q *Queries) CheckProjectExist(ctx context.Context, arg CheckProjectExistParams) (bool, error) {
-	row := q.db.QueryRowContext(ctx, checkProjectExist, arg.Email, arg.ProjectName)
-	var column_1 bool
-	err := row.Scan(&column_1)
-	return column_1, err
+type CreateAppServiceRow struct {
+	ID   uuid.UUID         `json:"id"`
+	Type types.ServiceType `json:"type"`
 }
 
-const checkProjectHasServices = `-- name: CheckProjectHasServices :one
-SELECT CAST(EXISTS(
-    SELECT 1
-    FROM psql_service ps
-    WHERE ps.project_id = ?1
-    UNION
-    SELECT 1
-    FROM app_service aps
-    WHERE aps.project_id = ?1
-) AS BOOLEAN)
-`
-
-func (q *Queries) CheckProjectHasServices(ctx context.Context, projectID uuid.UUID) (bool, error) {
-	row := q.db.QueryRowContext(ctx, checkProjectHasServices, projectID)
-	var column_1 bool
-	err := row.Scan(&column_1)
-	return column_1, err
-}
-
-const createProject = `-- name: CreateProject :one
-INSERT INTO project (id,name,description,organization_id)
-SELECT ?, ?, ?, u.current_org_id
-FROM user u
-WHERE u.email = ?
-LIMIT 1
-RETURNING id,name,description
-`
-
-type CreateProjectParams struct {
-	ID          uuid.UUID `json:"id"`
-	Name        string    `json:"name"`
-	Description string    `json:"description"`
-	Email       string    `json:"email"`
-}
-
-type CreateProjectRow struct {
-	ID          uuid.UUID `json:"id"`
-	Name        string    `json:"name"`
-	Description string    `json:"description"`
-}
-
-func (q *Queries) CreateProject(ctx context.Context, arg CreateProjectParams) (CreateProjectRow, error) {
-	row := q.db.QueryRowContext(ctx, createProject,
+func (q *Queries) CreateAppService(ctx context.Context, arg CreateAppServiceParams) (CreateAppServiceRow, error) {
+	row := q.db.QueryRowContext(ctx, createAppService,
 		arg.ID,
+		arg.OrganizationID,
+		arg.Type,
+		arg.ServiceID,
 		arg.Name,
+		arg.AppName,
 		arg.Description,
-		arg.Email,
+		arg.GitProvider,
+		arg.GhAppID,
+		arg.GitRepoID,
+		arg.GitRepoName,
+		arg.GitRepoUrl,
+		arg.GitBranch,
+		arg.BuildPath,
+		arg.WatchPath,
 	)
-	var i CreateProjectRow
-	err := row.Scan(&i.ID, &i.Name, &i.Description)
+	var i CreateAppServiceRow
+	err := row.Scan(&i.ID, &i.Type)
 	return i, err
 }
 
-const deleteProject = `-- name: DeleteProject :exec
-DELETE FROM project
+const createPsqlService = `-- name: CreatePsqlService :one
+INSERT INTO psql_service (id, organization_id, type, service_id, name, app_name, description, db_name, db_user, db_password, image, internal_url)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+RETURNING id, type
+`
+
+type CreatePsqlServiceParams struct {
+	ID             uuid.UUID         `json:"id"`
+	OrganizationID uuid.UUID         `json:"organization_id"`
+	Type           types.ServiceType `json:"type"`
+	ServiceID      string            `json:"service_id"`
+	Name           string            `json:"name"`
+	AppName        string            `json:"app_name"`
+	Description    string            `json:"description"`
+	DbName         string            `json:"db_name"`
+	DbUser         string            `json:"db_user"`
+	DbPassword     string            `json:"db_password"`
+	Image          string            `json:"image"`
+	InternalUrl    string            `json:"internal_url"`
+}
+
+type CreatePsqlServiceRow struct {
+	ID   uuid.UUID         `json:"id"`
+	Type types.ServiceType `json:"type"`
+}
+
+func (q *Queries) CreatePsqlService(ctx context.Context, arg CreatePsqlServiceParams) (CreatePsqlServiceRow, error) {
+	row := q.db.QueryRowContext(ctx, createPsqlService,
+		arg.ID,
+		arg.OrganizationID,
+		arg.Type,
+		arg.ServiceID,
+		arg.Name,
+		arg.AppName,
+		arg.Description,
+		arg.DbName,
+		arg.DbUser,
+		arg.DbPassword,
+		arg.Image,
+		arg.InternalUrl,
+	)
+	var i CreatePsqlServiceRow
+	err := row.Scan(&i.ID, &i.Type)
+	return i, err
+}
+
+const deleteAppService = `-- name: DeleteAppService :exec
+DELETE FROM app_service
 WHERE id = ?
 `
 
-func (q *Queries) DeleteProject(ctx context.Context, id uuid.UUID) error {
-	_, err := q.db.ExecContext(ctx, deleteProject, id)
+func (q *Queries) DeleteAppService(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.ExecContext(ctx, deleteAppService, id)
 	return err
 }
 
-const getAllProjects = `-- name: GetAllProjects :many
-SELECT p.id,p.name,p.description
-FROM project p
-JOIN user u ON u.current_org_id = p.organization_id
-WHERE u.email = ?
+const deletePsqlService = `-- name: DeletePsqlService :exec
+DELETE FROM psql_service
+WHERE id = ?
 `
 
-type GetAllProjectsRow struct {
-	ID          uuid.UUID `json:"id"`
-	Name        string    `json:"name"`
-	Description string    `json:"description"`
+func (q *Queries) DeletePsqlService(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.ExecContext(ctx, deletePsqlService, id)
+	return err
 }
 
-func (q *Queries) GetAllProjects(ctx context.Context, email string) ([]GetAllProjectsRow, error) {
-	rows, err := q.db.QueryContext(ctx, getAllProjects, email)
+const getAllServices = `-- name: GetAllServices :many
+SELECT ps.id, ps.type, ps.name, ps.description, ps.created_at
+FROM psql_service ps
+WHERE ps.organization_id = ?1
+UNION ALL
+SELECT aps.id, aps.type, aps.name, aps.description, aps.created_at
+FROM app_service aps
+WHERE aps.organization_id = ?1
+`
+
+type GetAllServicesRow struct {
+	ID          uuid.UUID         `json:"id"`
+	Type        types.ServiceType `json:"type"`
+	Name        string            `json:"name"`
+	Description string            `json:"description"`
+	CreatedAt   time.Time         `json:"created_at"`
+}
+
+func (q *Queries) GetAllServices(ctx context.Context, orgID uuid.UUID) ([]GetAllServicesRow, error) {
+	rows, err := q.db.QueryContext(ctx, getAllServices, orgID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []GetAllProjectsRow
+	var items []GetAllServicesRow
 	for rows.Next() {
-		var i GetAllProjectsRow
-		if err := rows.Scan(&i.ID, &i.Name, &i.Description); err != nil {
+		var i GetAllServicesRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Type,
+			&i.Name,
+			&i.Description,
+			&i.CreatedAt,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -129,4 +176,133 @@ func (q *Queries) GetAllProjects(ctx context.Context, email string) ([]GetAllPro
 		return nil, err
 	}
 	return items, nil
+}
+
+const getAppServiceById = `-- name: GetAppServiceById :one
+SELECT id, organization_id, type, service_id, name, app_name, description, git_provider, gh_app_id, git_repo_id, git_repo_name, git_repo_url, git_branch, build_path, watch_path, created_at
+FROM app_service
+WHERE id = ?
+`
+
+func (q *Queries) GetAppServiceById(ctx context.Context, id uuid.UUID) (AppService, error) {
+	row := q.db.QueryRowContext(ctx, getAppServiceById, id)
+	var i AppService
+	err := row.Scan(
+		&i.ID,
+		&i.OrganizationID,
+		&i.Type,
+		&i.ServiceID,
+		&i.Name,
+		&i.AppName,
+		&i.Description,
+		&i.GitProvider,
+		&i.GhAppID,
+		&i.GitRepoID,
+		&i.GitRepoName,
+		&i.GitRepoUrl,
+		&i.GitBranch,
+		&i.BuildPath,
+		&i.WatchPath,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const getPsqlServiceById = `-- name: GetPsqlServiceById :one
+SELECT id, organization_id, type, service_id, name, app_name, description, db_name, db_user, db_password, image, internal_url, created_at
+FROM psql_service
+WHERE id = ?
+`
+
+func (q *Queries) GetPsqlServiceById(ctx context.Context, id uuid.UUID) (PsqlService, error) {
+	row := q.db.QueryRowContext(ctx, getPsqlServiceById, id)
+	var i PsqlService
+	err := row.Scan(
+		&i.ID,
+		&i.OrganizationID,
+		&i.Type,
+		&i.ServiceID,
+		&i.Name,
+		&i.AppName,
+		&i.Description,
+		&i.DbName,
+		&i.DbUser,
+		&i.DbPassword,
+		&i.Image,
+		&i.InternalUrl,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const setAppServiceId = `-- name: SetAppServiceId :exec
+UPDATE app_service
+SET service_id = ?
+WHERE id = ?
+`
+
+type SetAppServiceIdParams struct {
+	ServiceID string    `json:"service_id"`
+	ID        uuid.UUID `json:"id"`
+}
+
+func (q *Queries) SetAppServiceId(ctx context.Context, arg SetAppServiceIdParams) error {
+	_, err := q.db.ExecContext(ctx, setAppServiceId, arg.ServiceID, arg.ID)
+	return err
+}
+
+const setPsqlServiceId = `-- name: SetPsqlServiceId :exec
+UPDATE psql_service
+SET service_id = ?
+WHERE id = ?
+`
+
+type SetPsqlServiceIdParams struct {
+	ServiceID string    `json:"service_id"`
+	ID        uuid.UUID `json:"id"`
+}
+
+func (q *Queries) SetPsqlServiceId(ctx context.Context, arg SetPsqlServiceIdParams) error {
+	_, err := q.db.ExecContext(ctx, setPsqlServiceId, arg.ServiceID, arg.ID)
+	return err
+}
+
+const updateAppServiceDetails = `-- name: UpdateAppServiceDetails :exec
+UPDATE app_service
+SET git_provider = ?,
+    gh_app_id = ?,
+    git_repo_id = ?,
+    git_repo_name = ?,
+    git_repo_url = ?,
+    git_branch = ?,
+    build_path = ?,
+    watch_path = ?
+WHERE id = ?
+`
+
+type UpdateAppServiceDetailsParams struct {
+	GitProvider string    `json:"git_provider"`
+	GhAppID     int64     `json:"gh_app_id"`
+	GitRepoID   string    `json:"git_repo_id"`
+	GitRepoName string    `json:"git_repo_name"`
+	GitRepoUrl  string    `json:"git_repo_url"`
+	GitBranch   string    `json:"git_branch"`
+	BuildPath   string    `json:"build_path"`
+	WatchPath   string    `json:"watch_path"`
+	ID          uuid.UUID `json:"id"`
+}
+
+func (q *Queries) UpdateAppServiceDetails(ctx context.Context, arg UpdateAppServiceDetailsParams) error {
+	_, err := q.db.ExecContext(ctx, updateAppServiceDetails,
+		arg.GitProvider,
+		arg.GhAppID,
+		arg.GitRepoID,
+		arg.GitRepoName,
+		arg.GitRepoUrl,
+		arg.GitBranch,
+		arg.BuildPath,
+		arg.WatchPath,
+		arg.ID,
+	)
+	return err
 }

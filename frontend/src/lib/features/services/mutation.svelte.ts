@@ -1,16 +1,20 @@
 import { api, axiosErr } from '@/axios';
+import { queryClient } from '@/query';
 import { createMutation } from '@tanstack/svelte-query';
 import { toast } from 'svelte-sonner';
 import type {
 	ApiMessageRes,
 	CreateServicePayload,
 	CreateServiceResponse,
+	DeleteServicePayload,
 	GetRepoResult,
 	GithubRepo,
 	GitProviderOption,
+	ServiceRow,
 	UpdateAppServiceBody
 } from './type';
 import { getServiceState } from './store.svelte';
+import { getOrgServicesQueryKey } from './query.svelte';
 
 export function useGetReposMutation() {
 	const featureState = getServiceState();
@@ -62,6 +66,40 @@ export function useCreateServiceMutation() {
 		onError: (error) => {
 			console.error('Error creating service:', error);
 			axiosErr(error as Error, 'Failed to create service');
+		}
+	}));
+}
+
+export function useDeleteServiceMutation(
+	getOrgId: () => string,
+	handlers?: {
+		onMutate?: (payload: DeleteServicePayload) => void;
+		onSettled?: () => void;
+	}
+) {
+	return createMutation(() => ({
+		mutationFn: async ({ service_id, type }: DeleteServicePayload) => {
+			const url = type === 'psql' ? '/service/psql' : '/service/app';
+			return api.delete<ApiMessageRes>(url, { data: { service_id } }).then((res) => res.data);
+		},
+		onMutate: (payload) => {
+			handlers?.onMutate?.(payload);
+		},
+		onSuccess: (response, payload) => {
+			queryClient.setQueryData(
+				getOrgServicesQueryKey(getOrgId()),
+				(cachedRows: ServiceRow[] | undefined) => {
+					if (!cachedRows) return [];
+					return cachedRows.filter((row) => row.id !== payload.service_id);
+				}
+			);
+			toast.success(response.message || 'Service deleted successfully');
+		},
+		onError: (error) => {
+			axiosErr(error as Error, 'Failed to delete service');
+		},
+		onSettled: () => {
+			handlers?.onSettled?.();
 		}
 	}));
 }

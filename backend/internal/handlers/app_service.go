@@ -15,7 +15,7 @@ import (
 )
 
 type CreateAppServiceReq struct {
-	ProjectID   uuid.UUID `json:"project_id" validate:"required"`
+	OrgID       uuid.UUID `json:"org_id" validate:"required"`
 	Name        string    `json:"name" validate:"required"`
 	AppName     string    `json:"app_name" validate:"required"`
 	Description string    `json:"description"`
@@ -70,21 +70,21 @@ func (h *ServiceHandler) CreateAppService(c *echo.Context) error {
 	// create a new app service
 	b.AppName += lib.GenerateRandomID(6)
 	service, err := q.CreateAppService(h.qCtx, db.CreateAppServiceParams{
-		ID:          lib.NewID(),
-		ProjectID:   b.ProjectID,
-		Type:        types.AppServiceType,
-		ServiceID:   "",
-		Name:        b.Name,
-		AppName:     b.AppName,
-		Description: b.Description,
-		GitProvider: b.GitProvider,
-		GhAppID:     ghApp.AppID,
-		GitRepoID:   b.GitRepoID,
-		GitRepoName: b.GitRepoName,
-		GitRepoUrl:  url,
-		GitBranch:   b.GitBranch,
-		BuildPath:   b.BuildPath,
-		WatchPath:   b.WatchPath,
+		ID:             lib.NewID(),
+		OrganizationID: b.OrgID,
+		Type:           types.AppServiceType,
+		ServiceID:      "",
+		Name:           b.Name,
+		AppName:        b.AppName,
+		Description:    b.Description,
+		GitProvider:    b.GitProvider,
+		GhAppID:        ghApp.AppID,
+		GitRepoID:      b.GitRepoID,
+		GitRepoName:    b.GitRepoName,
+		GitRepoUrl:     url,
+		GitBranch:      b.GitBranch,
+		BuildPath:      b.BuildPath,
+		WatchPath:      b.WatchPath,
 	})
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, lib.Res{Message: "Failed to create service"})

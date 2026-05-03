@@ -23,7 +23,6 @@
 - [ ] setup rate limiting middleware [medium, backend]
 - [ ] delete project btn sould show popup to confirm deletion. [easy, ui]
 - [x] git provider page. [easy, ui]
-- [ ] tests for project lifecycle
 - [ ] tests for pqsl service lifecycle
 - [ ] tests for badgerDB operations
 - [ ] rememberMe functionality for login
@@ -32,7 +31,6 @@
 
 - [ ] use dynamic imports in client side
 - create service form
-  - [ ] the `app name` field should be prefixed with project name and should be non editable. [easy, ui]
   - [x] the git provider github shoudl be auto fetched if the selected service is app. [easy, query]
   - [x] select field for selecting git-provider-app after **git-provider-selection**.
   - [ ] select field for selecting branch after **repo-selection**.
@@ -50,3 +48,4 @@
 - [ ] the github app is stored linked to org_ig, what if user fails on instllation then data still ramins. so retry fails because there is multiple github app store in singe org.
 - [ ] delete github app only deletes app from the DB and not from the github.
 - [ ] form errors pops up as [object object]
+- [ ] create and list org not working

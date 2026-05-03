@@ -17,14 +17,14 @@ Godploy aims to be the middle ground — a minimal, easy-to-run tool that handle
 
 ## Tech Stack
 
-| Layer       | Technology                          |
-| ----------- | ----------------------------------- |
-| Server      | Go (Echo framework)                 |
-| Frontend    | sveltekit SPA (embedded into the binary)|
-| Database    | SQLite (metadata only, via sqlc)    |
-| Runtime     | Docker (container lifecycle)        |
-| Ingress     | Traefik (routing, TLS, subdomains)  |
-| Auth        | JWT + session-based                 |
+| Layer    | Technology                               |
+| -------- | ---------------------------------------- |
+| Server   | Go (Echo framework)                      |
+| Frontend | sveltekit SPA (embedded into the binary) |
+| Database | SQLite (metadata only, via sqlc)         |
+| Runtime  | Docker (container lifecycle)             |
+| Ingress  | Traefik (routing, TLS, subdomains)       |
+| Auth     | JWT + session-based                      |
 
 The sveltekit frontend is compiled and embedded into the Go binary at build time — so the final output is a single executable with no external dependencies beyond Docker and Traefik.
 
@@ -44,7 +44,6 @@ User Browser
 [ Docker Engine ]
   ├── App containers (user services)
   ├── Predefined services (Postgres, MongoDB, etc.)
-  └── Isolated networks per project
 ```
 
 ## MVP Scope
@@ -52,30 +51,36 @@ User Browser
 The MVP focuses on getting a working deployment pipeline end-to-end. Here are the 7 core areas:
 
 ### 1. Traefik Ingress
+
 Setup Traefik as the main entrypoint — handle subdomain/domain routing, automatic TLS via Let's Encrypt, and route traffic to the right containers.
 
 ### 2. Git Provider Integration
+
 OAuth-based connection to GitHub, GitLab, or Bitbucket. Fetch repos/branches, set up webhooks for auto-deploy on push.
 
 ### 3. OCI Image Building
+
 Build container images from user repos using Dockerfile, Nixpacks, or Buildpacks. Includes build logs, queue management, and predefined service templates (Postgres, MongoDB, etc.).
 
 ### 4. Container Management
-Full container lifecycle — start, stop, restart, remove. Manage Docker networks (isolated per project), volumes, secrets, resource limits, and real-time log streaming.
+
+Full container lifecycle — start, stop, restart, remove. Manage Docker networks, volumes, secrets, resource limits, and real-time log streaming.
 
 ### 5. Monitoring & Logging
+
 Container health checks, resource usage metrics (CPU, memory, network), and deployment history tracking.
 
 ### 6. User Authorization
-Organizations, projects, teams, and role-based access control (RBAC).
+
+Organizations, teams, and role-based access control (RBAC).
 
 ### 7. Installation
+
 Shell scripts to install/setup Godploy + Traefik on a fresh server, and to cleanly uninstall everything.
 
 ## User Stories
 
 - Login to the dashboard
-- Create / delete / view projects
 - Create predefined services (Postgres, MongoDB)
 - Connect a Git provider and select a repository
 - Build and deploy a service from a repo
@@ -85,7 +90,7 @@ Shell scripts to install/setup Godploy + Traefik on a fresh server, and to clean
 ## Current Status
 
 - Auth system is implemented (register, login, JWT + sessions)
-- SQLite schema covers users, orgs, projects, services, sessions
+- SQLite schema covers users, orgs, services, sessions
 - Basic API structure with Echo
 - Traefik config is in staging
 - sveltekit frontend is scaffolded

@@ -2,7 +2,7 @@
 
 ## Docker Swarm
 
-- moved from "github.com/docker/docker/client" **(depricated)** to  "github.com/moby/moby/client"
+- moved from "github.com/docker/docker/client" **(depricated)** to "github.com/moby/moby/client"
 
 **Docker Swarm** [ core orchestrator of the applicaiton ]
 
