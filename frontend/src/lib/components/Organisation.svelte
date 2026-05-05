@@ -181,7 +181,7 @@
 				}}
 			>
 				<div class="space-y-1.5">
-					<Label for="create-org-name">Name</Label>
+					<Label class="my-3" for="create-org-name">Name</Label>
 					<Input
 						id="create-org-name"
 						placeholder="Organization name"

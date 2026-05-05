@@ -4,23 +4,27 @@
 	import GitProviderField from '@/components/services/git-provider-field.svelte';
 	import { Input } from '@/components/ui/input';
 	import { Label } from '@/components/ui/label';
-	import { Textarea } from '@/components/ui/textarea';
 	import * as Select from '@/components/ui/select';
 	import { gitProviders, serviceTypes } from '@/features/services/const';
-	import { normalizePathValue } from '@/features/services/form';
+	import { normalizePathValue } from '@/utils';
 	import {
 		useCreateServiceMutation,
 		useGetReposMutation
 	} from '@/features/services/mutation.svelte';
 	import { getServiceState } from '@/features/services/store.svelte';
 	import type { CreateServiceForm, GithubApp, GitProviderOption } from '@/features/services/type';
-	import { createForm } from '@tanstack/svelte-form';
 	import { resolve } from '$app/paths';
 	import { toast } from 'svelte-sonner';
 	import { z } from 'zod';
 	import { getUserState } from '@/features/global/store.svelte';
 	import FormError from './FormError.svelte';
 	import { useGithubAppsQuery } from '@/features/git/query.svelte';
+	import * as Collapsible from '@/components/ui/collapsible';
+	import { ChevronRight, ChevronDown } from '@lucide/svelte';
+	import SecretTextarea from './secret-textarea.svelte';
+	import { createForm } from '@tanstack/svelte-form';
+
+	let environmentOpen = $state(false);
 
 	const { currentOrg } = getUserState();
 	const featureState = getServiceState();
@@ -160,7 +164,7 @@
 	<Dialog.Portal>
 		<Dialog.Overlay class="fixed inset-0 z-40 bg-background" />
 		<Dialog.Content
-			class="fixed z-50 top-1/2 left-1/2 w-[90vw] max-w-150 -translate-x-1/2 -translate-y-1/2 rounded-xl border bg-background p-5 shadow-lg"
+			class="fixed z-50 top-1/2 left-1/2 max-h-[80vh] overflow-y-auto w-[80vw] md:max-w-160 -translate-x-1/2 -translate-y-1/2 rounded-xl border bg-background p-5 shadow-lg"
 		>
 			<Dialog.Title class="text-lg font-semibold">Create Project</Dialog.Title>
 			<Dialog.Description class="text-sm text-muted-foreground"
@@ -168,7 +172,7 @@
 			>
 
 			<form
-				class="mt-4 flex flex-col gap-6"
+				class="mt-4 flex flex-col gap-3"
 				onsubmit={(e) => {
 					e.preventDefault();
 					e.stopPropagation();
@@ -181,7 +185,7 @@
 				>
 					{#snippet children(field)}
 						<div class="space-y-1.5">
-							<Label for={field.name}>Service Name</Label>
+							<Label class="my-3" for={field.name}>Service Name</Label>
 							<Input
 								id={field.name}
 								placeholder="Payments Database"
@@ -198,7 +202,7 @@
 				<form.Field name="type">
 					{#snippet children(field)}
 						<div class="space-y-1.5">
-							<Label for={field.name}>Service Type</Label>
+							<Label class="my-3" for={field.name}>Service Type</Label>
 							<Select.Root
 								type="single"
 								value={field.state.value}
@@ -223,10 +227,10 @@
 				</form.Field>
 
 				{#if form.getFieldValue('type') === 'app'}
-					<div class="space-y-2">
+					<div class="space-y-2 flex flex-col gap-1">
 						<form.Field name="git_provider">
 							{#snippet children(field)}
-								<Label>Git</Label>
+								<Label class="my-3">Git</Label>
 								<GitProviderField
 									value={field.state.value}
 									disabled={currentOrg.id === '' ||
@@ -243,7 +247,7 @@
 						<form.Field name="gh_app_id">
 							{#snippet children(field)}
 								<div class="space-y-1.5">
-									<Label for="github-app-select">GitHub App</Label>
+									<Label class="my-3" for="github-app-select">GitHub App</Label>
 									{#if featureState.githubApps.length === 0}
 										<div class="rounded-md border border-dashed p-3 text-sm text-muted-foreground">
 											No app connected.
@@ -279,7 +283,7 @@
 						<form.Field name="git_repo_id">
 							{#snippet children(field)}
 								<div class="space-y-1.5">
-									<Label for="git-repo-select">Repository</Label>
+									<Label class="my-3" for="git-repo-select">Repository</Label>
 									<Select.Root
 										type="single"
 										value={field.state.value}
@@ -311,7 +315,7 @@
 						>
 							{#snippet children(field)}
 								<div class="space-y-1.5">
-									<Label for={field.name}>Build Path</Label>
+									<Label class="my-3" for={field.name}>Build Path</Label>
 									<Input
 										id={field.name}
 										placeholder="/"
@@ -333,7 +337,7 @@
 						>
 							{#snippet children(field)}
 								<div class="space-y-1.5">
-									<Label for={field.name}>Watch Path</Label>
+									<Label class="my-3" for={field.name}>Watch Path</Label>
 									<Input
 										id={field.name}
 										placeholder="/"
@@ -347,59 +351,56 @@
 							{/snippet}
 						</form.Field>
 
-						<form.Field name="env">
-							{#snippet children(field)}
-								<div class="space-y-1.5">
-									<Label for={field.name}>Environment</Label>
-									<Textarea
-										id={field.name}
-										spellcheck={false}
-										placeholder="KEY=value"
-										value={field.state.value}
-										onblur={field.handleBlur}
-										oninput={(e) => field.handleChange(e.currentTarget.value)}
-										disabled={createServiceMutation.isPending}
-									/>
-									<FormError errors={field.state.meta.errors} />
-								</div>
-							{/snippet}
-						</form.Field>
+						<Collapsible.Root bind:open={environmentOpen} class="rounded-md border shadow-sm">
+							<Collapsible.Trigger class="flex w-full items-center gap-2 font-medium p-2">
+								{#if environmentOpen}
+									<ChevronDown class="h-4 w-4" />
+								{:else}
+									<ChevronRight class="h-4 w-4" />
+								{/if}
+								Environment
+							</Collapsible.Trigger>
+							<Collapsible.Content class="space-y-4 p-2">
+								<form.Field name="env">
+									{#snippet children(field)}
+										<SecretTextarea
+											title="Environment Variables"
+											name={field.name}
+											value={field.state.value}
+											onblur={field.handleBlur}
+											oninput={(e) => field.handleChange(e.currentTarget.value)}
+											submitPending={createServiceMutation.isPending}
+										/>
+									{/snippet}
+								</form.Field>
 
-						<form.Field name="build_args">
-							{#snippet children(field)}
-								<div class="space-y-1.5">
-									<Label for={field.name}>Build Args</Label>
-									<Textarea
-										id={field.name}
-										spellcheck={false}
-										placeholder="KEY=value"
-										value={field.state.value}
-										onblur={field.handleBlur}
-										oninput={(e) => field.handleChange(e.currentTarget.value)}
-										disabled={createServiceMutation.isPending}
-									/>
-									<FormError errors={field.state.meta.errors} />
-								</div>
-							{/snippet}
-						</form.Field>
+								<form.Field name="build_args">
+									{#snippet children(field)}
+										<SecretTextarea
+											title="Build Args"
+											name={field.name}
+											value={field.state.value}
+											onblur={field.handleBlur}
+											oninput={(e) => field.handleChange(e.currentTarget.value)}
+											submitPending={createServiceMutation.isPending}
+										/>
+									{/snippet}
+								</form.Field>
 
-						<form.Field name="build_secrets">
-							{#snippet children(field)}
-								<div class="space-y-1.5">
-									<Label for={field.name}>Build Secrets</Label>
-									<Textarea
-										id={field.name}
-										spellcheck={false}
-										placeholder="KEY=value"
-										value={field.state.value}
-										onblur={field.handleBlur}
-										oninput={(e) => field.handleChange(e.currentTarget.value)}
-										disabled={createServiceMutation.isPending}
-									/>
-									<FormError errors={field.state.meta.errors} />
-								</div>
-							{/snippet}
-						</form.Field>
+								<form.Field name="build_secrets">
+									{#snippet children(field)}
+										<SecretTextarea
+											title="Build Secrets"
+											name={field.name}
+											value={field.state.value}
+											onblur={field.handleBlur}
+											oninput={(e) => field.handleChange(e.currentTarget.value)}
+											submitPending={createServiceMutation.isPending}
+										/>
+									{/snippet}
+								</form.Field>
+							</Collapsible.Content>
+						</Collapsible.Root>
 					</div>
 				{/if}
 
@@ -412,7 +413,7 @@
 					>
 						{#snippet children(field)}
 							<div class="space-y-1.5">
-								<Label for={field.name}>Database Name</Label>
+								<Label class="my-3" for={field.name}>Database Name</Label>
 								<Input
 									id={field.name}
 									placeholder="payments"
@@ -434,7 +435,7 @@
 					>
 						{#snippet children(field)}
 							<div class="space-y-1.5">
-								<Label for={field.name}>Database User</Label>
+								<Label class="my-3" for={field.name}>Database User</Label>
 								<Input
 									id={field.name}
 									placeholder="postgres"
@@ -456,7 +457,7 @@
 					>
 						{#snippet children(field)}
 							<div class="space-y-1.5">
-								<Label for={field.name}>Database Password</Label>
+								<Label class="my-3" for={field.name}>Database Password</Label>
 								<Input
 									id={field.name}
 									type="password"
@@ -479,7 +480,7 @@
 					>
 						{#snippet children(field)}
 							<div class="space-y-1.5">
-								<Label for={field.name}>Image</Label>
+								<Label class="my-3" for={field.name}>Image</Label>
 								<Input
 									id={field.name}
 									placeholder="postgres:16"

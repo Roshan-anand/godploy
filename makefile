@@ -21,8 +21,13 @@ format-web:
 
 format: format-server format-web
 
-check:
-	cd frontend && bun check
+check-web:
+	cd frontend && bun run check
+
+check-server:
+	cd backend && go vet ./...
+
+check: check-web check-server
 
 build-web:
 	cd frontend && \
