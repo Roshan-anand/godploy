@@ -9,8 +9,6 @@ export function useGetServicesQuery() {
 	const { org_id } = GetUserData();
 	return createQuery(() => ({
 		queryKey: getOrgServicesQueryKey(org_id),
-		queryFn: async () => {
-			return api.get<ServiceListResponse[]>('/service').then((res) => res.data);
-		}
+		queryFn: async () => api.get<ServiceListResponse[]>('/service').then((res) => res.data)
 	}));
 }

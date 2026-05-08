@@ -10,12 +10,7 @@
 		useCreateServiceMutation,
 		useGetReposMutation
 	} from '@/features/services/mutation.svelte';
-	import { setServiceState } from '@/features/services/store.svelte';
-	import type {
-		CreateAppServiceForm,
-		GithubApp,
-		GitProviderOption
-	} from '@/features/services/type';
+	import type { CreateAppServiceForm, GitProviderKey } from '@/features/services/type';
 	import { resolve } from '$app/paths';
 	import { toast } from 'svelte-sonner';
 	import { z } from 'zod';
@@ -26,12 +21,12 @@
 	import SecretTextarea from '@/components/services/secret-textarea.svelte';
 	import { createForm } from '@tanstack/svelte-form';
 	import { GetUserData } from '@/features/global/query';
+	import Icon from '@iconify/svelte';
 
 	let environmentOpen = $state(false);
 	let buildSettingOpen = $state(false);
 
 	const { org_id } = GetUserData();
-	const featureState = setServiceState();
 
 	const githubAppsQuery = useGithubAppsQuery();
 	const getReposMutation = useGetReposMutation();
@@ -41,7 +36,7 @@
 		defaultValues: {
 			name: '',
 			git_provider: 'github',
-			gh_app_id: '',
+			gh_app_id: 0,
 			gh_repo_id: '',
 			gh_repo_name: '',
 			gh_repo_url: '',
@@ -63,7 +58,7 @@
 				return;
 			}
 
-			const selectedGithubRepo = featureState.githubRepos.find(
+			const selectedGithubRepo = getReposMutation.data?.find(
 				(repo) => repo.id.toString() === value.gh_repo_id
 			);
 
@@ -72,11 +67,12 @@
 				return;
 			}
 
-			if (value.gh_app_id === '') {
+			if (value.gh_app_id === 0) {
 				toast.error('Please select a GitHub app');
 				return;
 			}
 
+			console.log('gh app id ', value.gh_app_id);
 			const buildPath = normalizePathValue(value.build_path);
 			const watchPath = normalizePathValue(value.watch_path);
 
@@ -103,55 +99,44 @@
 		}
 	}));
 
-	const selectGithubApp = (app: GithubApp) => {
+	// trigger the getrepo for the slected github app
+	const onGithubAppSelect = (appId: string) => {
+		const app = githubAppsQuery.data?.find((item) => item.app_id.toString() === appId);
+		if (!app) return;
 		if (org_id === '' || createServiceMutation.isPending || getReposMutation.isPending) return;
 
-		const githubProvider = gitProviders.find((provider) => provider.key === 'github');
+		const githubProvider = gitProviders.get('github');
 		if (!githubProvider) return;
 
-		form.setFieldValue('git_provider', 'github');
-		form.setFieldValue('gh_app_id', app.app_id.toString());
-		form.setFieldValue('gh_repo_id', '');
-		featureState.githubRepos = [];
-
 		getReposMutation.mutate({
-			provider: githubProvider,
-			appId: app.app_id
+			appId: app.app_id,
+			provider: githubProvider
 		});
 	};
 
-	const onGithubAppSelect = (appId: string) => {
-		const app = featureState.githubApps.find((item) => item.app_id.toString() === appId);
-		if (!app) return;
+	// reset and refetch app list of the selected git provider
+	const fetchGitProvider = (key: GitProviderKey) => {
+		if (org_id === '' || createServiceMutation.isPending) return;
+		const provider = gitProviders.get(key);
+		if (!provider) return;
 
-		selectGithubApp(app);
-	};
-
-	const fetchGitProvider = (provider: GitProviderOption) => {
-		if (provider.api === '' || org_id === '' || createServiceMutation.isPending) return;
-
-		form.setFieldValue('git_provider', provider.key);
-		form.setFieldValue('gh_app_id', '');
+		form.setFieldValue('gh_app_id', 0);
 		form.setFieldValue('gh_repo_id', '');
-		featureState.githubRepos = [];
 
-		if (provider.key === 'github' && featureState.githubApps.length === 0) {
-			void githubAppsQuery.refetch();
-		}
+		if (key === 'github' && githubAppsQuery.data?.length === 0) void githubAppsQuery.refetch();
 	};
 
 	const onRepoSelect = (repoId: string) => {
-		const repo = featureState.githubRepos.find((r) => r.id.toString() === repoId);
+		const repo = getReposMutation.data?.find((r) => r.id.toString() === repoId);
 		if (!repo) return;
 
 		form.setFieldValue('gh_repo_id', repoId);
+		const repoName = getReposMutation.data?.find((repo) => repo.id.toString() == repoId)?.name;
+		form.setFieldValue('name', repoName || '');
 	};
 
-	const getGithubAppName = (appId: string): string =>
-		featureState.githubApps.find((app) => app.app_id.toString() === appId)?.name ?? '';
-
-	const getGithubRepoName = (repoId: string): string =>
-		featureState.githubRepos.find((repo) => repo.id.toString() === repoId)?.full_name ?? '';
+	const getGithubAppName = (appId: number) =>
+		githubAppsQuery.data?.find((app) => app.app_id === appId)?.name;
 </script>
 
 <section class="mx-auto w-full max-w-3xl p-4 md:p-6">
@@ -171,9 +156,9 @@
 				<GitProviderField
 					value={field.state.value}
 					disabled={org_id === '' || getReposMutation.isPending || createServiceMutation.isPending}
-					onSelect={(provider) => {
-						field.handleChange(provider.key);
-						fetchGitProvider(provider);
+					onSelect={(key) => {
+						field.handleChange(key);
+						fetchGitProvider(key);
 					}}
 				/>
 			{/snippet}
@@ -183,7 +168,7 @@
 			{#snippet children(field)}
 				<div class="space-y-1.5">
 					<Label class="my-1" for="github-app-select">GitHub App</Label>
-					{#if featureState.githubApps.length === 0}
+					{#if githubAppsQuery.data && githubAppsQuery.data.length === 0}
 						<div class="rounded-md border border-dashed p-3 text-sm text-muted-foreground">
 							No app connected.
 							<a
@@ -196,18 +181,18 @@
 					{:else}
 						<Select.Root
 							type="single"
-							value={field.state.value}
+							value={field.state.value.toString()}
 							onValueChange={(value) => {
-								field.handleChange(value);
+								field.handleChange(parseInt(value));
 								onGithubAppSelect(value);
 							}}
 							disabled={createServiceMutation.isPending}
 						>
 							<Select.Trigger class="w-full" id="github-app-select">
-								{getGithubAppName(form.getFieldValue('gh_app_id')) || 'Select GitHub app'}
+								{getGithubAppName(field.state.value) || 'Select GitHub app'}
 							</Select.Trigger>
 							<Select.Content>
-								{#each featureState.githubApps as app (app.app_id)}
+								{#each githubAppsQuery.data as app (app.app_id)}
 									<Select.Item value={app.app_id.toString()} label={app.name} />
 								{/each}
 							</Select.Content>
@@ -218,52 +203,96 @@
 			{/snippet}
 		</form.Field>
 
-		<form.Field name="gh_repo_id">
-			{#snippet children(field)}
-				<div class="space-y-1.5">
-					<Label class="my-1" for="git-repo-select">Repository</Label>
-					<Select.Root
-						type="single"
-						value={field.state.value}
-						onValueChange={(value) => {
-							field.handleChange(value);
-							onRepoSelect(value);
-						}}
-						disabled={form.getFieldValue('gh_app_id') === ''}
-					>
-						<Select.Trigger class="w-full" id="git-repo-select">
-							{getGithubRepoName(form.getFieldValue('gh_repo_id')) || 'Select repository'}
-						</Select.Trigger>
-						<Select.Content>
-							{#each featureState.githubRepos as repo (repo.id)}
-								<Select.Item value={repo.id.toString()} label={repo.full_name} />
-							{/each}
-						</Select.Content>
-					</Select.Root>
-					<FormError errors={field.state.meta.errors} />
-				</div>
-			{/snippet}
-		</form.Field>
-
-		<form.Field
-			name="name"
-			validators={{ onChange: z.string().min(3, 'Service name must be at least 3 characters') }}
+		<form.Subscribe
+			selector={(state) => ({
+				ghAppID: state.values.gh_app_id,
+				gitProvider: state.values.git_provider,
+				ghRepoID: state.values.gh_repo_id
+			})}
 		>
-			{#snippet children(field)}
-				<div class="space-y-1.5">
-					<Label class="my-1" for={field.name}>Service Name</Label>
-					<Input
-						id={field.name}
-						placeholder="Payments API"
-						value={field.state.value}
-						onblur={field.handleBlur}
-						oninput={(e) => field.handleChange(e.currentTarget.value)}
-						disabled={createServiceMutation.isPending}
-					/>
-					<FormError errors={field.state.meta.errors} />
-				</div>
+			{#snippet children({ ghAppID, gitProvider })}
+				<form.Field name="gh_repo_id">
+					{#snippet children(field)}
+						<div class="space-y-1.5">
+							<Label class="my-1" for="git-repo-select">Repository</Label>
+							<Select.Root
+								type="single"
+								value={field.state.value}
+								onValueChange={(value) => {
+									field.handleChange(value);
+									onRepoSelect(value);
+								}}
+								disabled={ghAppID === 0}
+							>
+								<Select.Trigger class="w-full h-fit" id="git-repo-select">
+									{#if getReposMutation.data}
+										<div class="flex items-center gap-3 p-2 py-4">
+											<Icon
+												icon={gitProviders.get(gitProvider)?.icon || 'icon-park-outline:dot'}
+												width="20"
+												height="20"
+												class="size-4"
+											/>
+											{#if field.state.value == ''}
+												<span>Select repository</span>
+											{/if}
+											{#each getReposMutation.data as repo (repo.id)}
+												{#if repo.id.toString() === field.state.value}
+													<span class="text-sm text-muted-foreground">
+														{repo.full_name}
+													</span>
+													<span class="flex items-center gap-1 text-muted-foreground">
+														<Icon
+															icon="meteor-icons:git-branch"
+															width="20"
+															height="20"
+															class="size-4"
+														/>
+														{repo.default_branch}
+													</span>
+												{/if}
+											{/each}
+										</div>
+									{:else}
+										<span class="text-sm text-muted-foreground">
+											{getReposMutation.isPending ? 'Loading repos...' : 'Select repository'}
+										</span>
+									{/if}
+								</Select.Trigger>
+								<Select.Content>
+									{#if getReposMutation.data}
+										{#each getReposMutation.data as repo (repo.id)}
+											<Select.Item value={repo.id.toString()} label={repo.full_name} />
+										{/each}
+									{/if}
+								</Select.Content>
+							</Select.Root>
+							<FormError errors={field.state.meta.errors} />
+						</div>
+					{/snippet}
+				</form.Field>
+
+				<form.Field
+					name="name"
+					validators={{ onChange: z.string().min(3, 'Service name must be at least 3 characters') }}
+				>
+					{#snippet children(field)}
+						<div class="space-y-1.5">
+							<Label class="my-1" for={field.name}>Service Name</Label>
+							<Input
+								id={field.name}
+								placeholder="Payments API"
+								value={field.state.value}
+								onblur={field.handleBlur}
+								oninput={(e) => field.handleChange(e.currentTarget.value)}
+								disabled={createServiceMutation.isPending}
+							/>
+							<FormError errors={field.state.meta.errors} />
+						</div>
+					{/snippet}
+				</form.Field>
 			{/snippet}
-		</form.Field>
+		</form.Subscribe>
 
 		<form.Field
 			name="build_path"

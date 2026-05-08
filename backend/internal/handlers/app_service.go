@@ -28,9 +28,9 @@ type CreateAppServiceReq struct {
 	Name          string          `json:"name" validate:"required"`
 	GitProvider   string          `json:"git_provider" validate:"required"`
 	GhAppID       int64           `json:"gh_app_id" validate:"required"`
-	GitRepoID     string          `json:"git_repo_id" validate:"required"`
-	GitRepoName   string          `json:"git_repo_name" validate:"required"`
-	GitRepoURL    string          `json:"git_repo_url" validate:"required"`
+	GhRepoID      string          `json:"gh_repo_id" validate:"required"`
+	GhRepoName    string          `json:"gh_repo_name" validate:"required"`
+	GhRepoURL     string          `json:"gh_repo_url" validate:"required"`
 	DefaultBranch string          `json:"default_branch" validate:"required"`
 	BuildPath     string          `json:"build_path" validate:"required"`
 	WatchPath     string          `json:"watch_path" validate:"required"`
@@ -81,7 +81,7 @@ func (h *ServiceHandler) CreateAppService(c *echo.Context) error {
 	}
 
 	// parse url
-	u, err := url.Parse(b.GitRepoURL)
+	u, err := url.Parse(b.GhRepoURL)
 	if err != nil {
 		panic(err)
 	}
@@ -106,8 +106,8 @@ func (h *ServiceHandler) CreateAppService(c *echo.Context) error {
 		Name:           b.Name,
 		GitProvider:    b.GitProvider,
 		GhAppID:        ghApp.AppID,
-		GhRepoID:       b.GitRepoID,
-		GhRepoName:     b.GitRepoName,
+		GhRepoID:       b.GhRepoID,
+		GhRepoName:     b.GhRepoName,
 		GhRepoUrl:      url,
 		BuildPath:      b.BuildPath,
 		WatchPath:      b.WatchPath,

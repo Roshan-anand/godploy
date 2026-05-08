@@ -6,12 +6,10 @@ import type {
 	ApiMessageRes,
 	CreateServicePayload,
 	DeleteServicePayload,
-	GetRepoResult,
+	GetReposPayload,
 	GithubRepo,
-	GitProviderOption,
 	ServiceListResponse
 } from './type';
-import { getServiceState } from './store.svelte';
 import { getOrgServicesQueryKey } from './query.svelte';
 import { goto } from '$app/navigation';
 import { resolve } from '$app/paths';
@@ -19,38 +17,14 @@ import type { ServiceType } from '@/types';
 import { GetUserData } from '../global/query';
 
 export function useGetReposMutation() {
-	const featureState = getServiceState();
-
 	return createMutation(() => ({
-		mutationFn: async ({
-			provider,
-			appId
-		}: {
-			provider: GitProviderOption;
-			appId: number;
-		}): Promise<GetRepoResult> => {
-			const response = await api.get<GithubRepo[] | ApiMessageRes>(provider.api, {
-				params: { app_id: appId },
-				validateStatus: (status) => status === 200 || status === 204 || status === 409
-			});
-
-			return {
-				status: response.status,
-				repos: response.status === 200 ? (response.data as GithubRepo[]) : [],
-				message: response.status === 409 ? ((response.data as ApiMessageRes)?.message ?? '') : '',
-				provider: provider.key
-			};
-		},
-		onSuccess: (result) => {
-			featureState.githubRepos = result.repos;
-			if (result.status === 409) {
-				toast.error(result.message || 'No github connected');
-			}
-		},
-		onError: (error) => {
-			featureState.githubRepos = [];
-			axiosErr(error as Error, 'Failed to fetch repositories');
-		}
+		mutationFn: async ({ provider, appId }: GetReposPayload) =>
+			api
+				.get<GithubRepo[]>(provider.api, {
+					params: { app_id: appId }
+				})
+				.then((res) => res.data),
+		onError: (error) => axiosErr(error as Error, 'Failed to fetch repositories')
 	}));
 }
 
@@ -67,10 +41,7 @@ export function useCreateServiceMutation() {
 				})
 			);
 		},
-		onError: (error) => {
-			console.error('Error creating service:', error);
-			axiosErr(error as Error, 'Failed to create service');
-		}
+		onError: (error) => axiosErr(error as Error, 'Failed to create service')
 	}));
 }
 
@@ -93,8 +64,6 @@ export function useDeleteServiceMutation() {
 			);
 			toast.success(response.message || 'Service deleted successfully');
 		},
-		onError: (error) => {
-			axiosErr(error as Error, 'Failed to delete service');
-		}
+		onError: (error) => axiosErr(error as Error, 'Failed to delete service')
 	}));
 }

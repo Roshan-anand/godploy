@@ -31,7 +31,7 @@ export type DeleteServicePayload = {
 export type GitProviderKey = 'github' | 'gitlab' | 'bitbucket';
 
 export type GitProviderOption = {
-	key: GitProviderKey;
+	// key: GitProviderKey;
 	name: string;
 	icon: string;
 	api: string;
@@ -57,17 +57,12 @@ export type GithubRepo = {
 	default_branch: string;
 };
 
-export type GetRepoResult = {
-	status: number;
-	repos: GithubRepo[];
-	message: string;
-	provider: GitProviderKey;
-};
+export type GetReposPayload = { provider: GitProviderOption; appId: number };
 
 export type CreateAppServiceBody = {
 	name: string;
 	git_provider: GitProviderKey;
-	gh_app_id: string;
+	gh_app_id: number;
 	gh_repo_id: string;
 	gh_repo_name: string;
 	gh_repo_url: string;

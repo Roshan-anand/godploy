@@ -50,12 +50,12 @@
 				<div
 					class="grid grid-cols-[1.5fr_1fr_1fr_auto] items-center gap-2 border-b px-3 py-2 text-sm last:border-b-0"
 				>
-					<p class="truncate">{deployment.name}</p>
+					<p class="truncate">{deployment.commit_msg}</p>
 					<p class="capitalize">{deployment.status}</p>
 					<p>{new Date(deployment.created_at).toLocaleString()}</p>
 
 					<div class="flex items-center justify-end gap-2">
-						<DeploymentLogs deploymentId={deployment.id} deploymentName={deployment.name} />
+						<DeploymentLogs deploymentId={deployment.id} deploymentName={deployment.id} />
 						<Button
 							variant="destructive"
 							size="sm"

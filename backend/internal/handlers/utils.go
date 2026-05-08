@@ -40,6 +40,7 @@ func removeSession(query *db.Queries, state string) {
 func BindAndValidate(b any, c *echo.Context, v *validator.Validate) *types.Res {
 
 	if err := c.Bind(b); err != nil {
+		fmt.Printf("Error binding request data: %v\n", err)
 		return &types.Res{Message: "Invalid Data"}
 	}
 

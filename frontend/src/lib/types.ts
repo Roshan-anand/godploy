@@ -29,8 +29,8 @@ export type ServiceDetails = ServiceBase & (PsqlService | AppService);
 
 export type ServiceDeployment = {
 	id: string;
-	service_id: string;
-	name: string;
 	status: string;
+	commit_msg: string;
+	branch_name: string;
 	created_at: string;
 };

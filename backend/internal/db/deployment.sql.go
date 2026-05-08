@@ -91,7 +91,7 @@ SELECT d.id, d.status, d.commit_msg, b.branch_name, d.created_at
 FROM deployments d
 JOIN app_service_branch b ON d.branch_id = b.id
 WHERE b.service_id = ?
-ORDER BY created_at DESC
+ORDER BY d.created_at DESC
 `
 
 type GetDeploymentsByServiceIDRow struct {
