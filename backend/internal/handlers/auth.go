@@ -63,18 +63,18 @@ func (h *AuthHandler) AuthUser(c *echo.Context) error {
 	if !ok {
 		exists, err := q.AdminExists(h.qCtx)
 		if err != nil {
-			return c.JSON(http.StatusInternalServerError, lib.Res{Message: "Internal Sever Error"})
+			return c.JSON(http.StatusInternalServerError, types.Res{Message: "Internal Sever Error"})
 		}
 
 		if !exists {
-			return c.JSON(http.StatusForbidden, lib.Res{Message: "No admin registered"})
+			return c.JSON(http.StatusForbidden, types.Res{Message: "No admin registered"})
 		}
-		return c.JSON(http.StatusUnauthorized, lib.Res{Message: "Unauthorized"})
+		return c.JSON(http.StatusUnauthorized, types.Res{Message: "Unauthorized"})
 	}
 
 	org, err := q.GetCurrentOrg(h.qCtx, u.Email)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, lib.Res{Message: "Internal Sever Error"})
+		return c.JSON(http.StatusInternalServerError, types.Res{Message: "Internal Sever Error"})
 	}
 
 	return c.JSON(http.StatusOK, AuthRes{
@@ -100,30 +100,30 @@ func (h *AuthHandler) AppRegiter(c *echo.Context) error {
 
 	// check if admin user already exists
 	if exist, err := q.AdminExists(h.qCtx); err != nil {
-		return c.JSON(http.StatusInternalServerError, lib.Res{Message: "Internal Server Error"})
+		return c.JSON(http.StatusInternalServerError, types.Res{Message: "Internal Server Error"})
 	} else if exist {
-		return c.JSON(http.StatusBadRequest, lib.Res{Message: "Admin User Already Exists"})
+		return c.JSON(http.StatusBadRequest, types.Res{Message: "Admin User Already Exists"})
 	}
 
 	// hash password
 	hPass, err := lib.HashPassword(b.Password)
 	if err != nil {
 		fmt.Println(err)
-		return c.JSON(http.StatusInternalServerError, lib.Res{Message: "Internal Server Error"})
+		return c.JSON(http.StatusInternalServerError, types.Res{Message: "Internal Server Error"})
 	}
 
 	// create organization first (user needs orgId at insert time)
 	org, err := q.CreateOrg(h.qCtx, db.CreateOrgParams{
-		ID:   lib.NewID(),
+		ID:   lib.GeneratePrimaryKey(),
 		Name: b.OrgName,
 	})
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, lib.Res{Message: "Internal Server Error"})
+		return c.JSON(http.StatusInternalServerError, types.Res{Message: "Internal Server Error"})
 	}
 
 	// register new admin user
 	uId, err := q.CreateUser(h.qCtx, db.CreateUserParams{
-		ID:           lib.NewID(),
+		ID:           lib.GeneratePrimaryKey(),
 		Name:         b.Name,
 		Email:        b.Email,
 		HashPass:     hPass,
@@ -131,7 +131,7 @@ func (h *AuthHandler) AppRegiter(c *echo.Context) error {
 		CurrentOrgID: org.ID,
 	})
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, lib.Res{Message: "Internal Server Error"})
+		return c.JSON(http.StatusInternalServerError, types.Res{Message: "Internal Server Error"})
 	}
 
 	// link user with organization
@@ -140,7 +140,7 @@ func (h *AuthHandler) AppRegiter(c *echo.Context) error {
 		OrganizationID: org.ID,
 	}); err != nil {
 		fmt.Println("Link User N Org Error:", err)
-		return c.JSON(http.StatusInternalServerError, lib.Res{Message: "Internal Server Error"})
+		return c.JSON(http.StatusInternalServerError, types.Res{Message: "Internal Server Error"})
 	}
 
 	// set cookies
@@ -170,12 +170,12 @@ func (h *AuthHandler) AppLogin(c *echo.Context) error {
 	// get the user
 	u, err := h.Server.DB.Queries.GetUserByEmail(h.qCtx, b.Email)
 	if err != nil {
-		return c.JSON(http.StatusUnauthorized, lib.Res{Message: "user not found"})
+		return c.JSON(http.StatusUnauthorized, types.Res{Message: "user not found"})
 	}
 
 	// check password
 	if !lib.CheckPasswordHash(b.Password, u.HashPass) {
-		return c.JSON(http.StatusUnauthorized, lib.Res{Message: "invalid credentials"})
+		return c.JSON(http.StatusUnauthorized, types.Res{Message: "invalid credentials"})
 	}
 
 	// set cookies

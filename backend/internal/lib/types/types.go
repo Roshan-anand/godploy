@@ -31,3 +31,8 @@ const (
 	DeploymentInactive DeploymentStatus = "inactive" // service is not using this image (can be rollbacked)
 	DeploymentPruned   DeploymentStatus = "pruned"   // image is not available
 )
+
+type Res struct {
+	Message string                 `json:"message" validate:"required"`
+	Data    map[string]interface{} `json:"data"`
+}

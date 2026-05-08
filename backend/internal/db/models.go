@@ -45,7 +45,7 @@ type Deployment struct {
 	BranchID  uuid.UUID              `json:"branch_id"`
 	Status    types.DeploymentStatus `json:"status"`
 	CommitMsg string                 `json:"commit_msg"`
-	ImageID   sql.NullString         `json:"image_id"`
+	ImageName sql.NullString         `json:"image_name"`
 	CreatedAt time.Time              `json:"created_at"`
 }
 

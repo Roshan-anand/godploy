@@ -25,6 +25,7 @@
 	import { createForm } from '@tanstack/svelte-form';
 
 	let environmentOpen = $state(false);
+	let buildSettingOpen = $state(false);
 
 	const { currentOrg } = getUserState();
 	const featureState = getServiceState();
@@ -46,6 +47,9 @@
 			build_path: '/',
 			watch_path: '/',
 			env: '',
+			docker_file_path: '',
+			docker_context_path: '',
+			docker_build_stage: '',
 			build_args: '',
 			build_secrets: ''
 		} as CreateServiceForm,
@@ -87,8 +91,13 @@
 						build_path: buildPath,
 						watch_path: watchPath,
 						env: value.env,
-						build_args: value.build_args,
-						build_secrets: value.build_secrets
+						docker_build: {
+							file_path: value.docker_file_path,
+							context_path: value.docker_context_path,
+							build_stage: value.docker_build_stage,
+							build_args: value.build_args,
+							build_secrets: value.build_secrets
+						}
 					}
 				});
 				return;
@@ -397,6 +406,66 @@
 											oninput={(e) => field.handleChange(e.currentTarget.value)}
 											submitPending={createServiceMutation.isPending}
 										/>
+									{/snippet}
+								</form.Field>
+							</Collapsible.Content>
+						</Collapsible.Root>
+
+						<Collapsible.Root bind:open={buildSettingOpen} class="rounded-md border shadow-sm">
+							<Collapsible.Trigger class="flex w-full items-center gap-2 font-medium p-2">
+								{#if buildSettingOpen}
+									<ChevronDown class="h-4 w-4" />
+								{:else}
+									<ChevronRight class="h-4 w-4" />
+								{/if}
+								Build setting
+							</Collapsible.Trigger>
+							<Collapsible.Content class="space-y-4 p-2">
+								<form.Field name="docker_file_path">
+									{#snippet children(field)}
+										<div class="space-y-1.5">
+											<Label class="my-3" for={field.name}>Docker File Path</Label>
+											<Input
+												id={field.name}
+												type="text"
+												value={field.state.value}
+												onblur={field.handleBlur}
+												oninput={(e) => field.handleChange(e.currentTarget.value)}
+												disabled={createServiceMutation.isPending}
+											/>
+										</div>
+									{/snippet}
+								</form.Field>
+
+								<form.Field name="docker_context_path">
+									{#snippet children(field)}
+										<div class="space-y-1.5">
+											<Label class="my-3" for={field.name}>Docker Context Path</Label>
+											<Input
+												id={field.name}
+												type="text"
+												value={field.state.value}
+												onblur={field.handleBlur}
+												oninput={(e) => field.handleChange(e.currentTarget.value)}
+												disabled={createServiceMutation.isPending}
+											/>
+										</div>
+									{/snippet}
+								</form.Field>
+
+								<form.Field name="docker_build_stage">
+									{#snippet children(field)}
+										<div class="space-y-1.5">
+											<Label class="my-3" for={field.name}>Docker Build Stage</Label>
+											<Input
+												id={field.name}
+												type="text"
+												value={field.state.value}
+												onblur={field.handleBlur}
+												oninput={(e) => field.handleChange(e.currentTarget.value)}
+												disabled={createServiceMutation.isPending}
+											/>
+										</div>
 									{/snippet}
 								</form.Field>
 							</Collapsible.Content>

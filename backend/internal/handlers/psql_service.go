@@ -61,15 +61,15 @@ func (h *ServiceHandler) CreatePsqlService(c *echo.Context) error {
 		OrgID: b.OrgID,
 		Name:  b.Name,
 	}); err != nil {
-		return c.JSON(http.StatusInternalServerError, lib.Res{Message: "Failed to check service name"})
+		return c.JSON(http.StatusInternalServerError, types.Res{Message: "Failed to check service name"})
 	} else if exists {
-		return c.JSON(http.StatusConflict, lib.Res{Message: "Service name already exists"})
+		return c.JSON(http.StatusConflict, types.Res{Message: "Service name already exists"})
 	}
 
 	serviceName := fmt.Sprintf("%s-%s", b.Name, b.OrgID)
 
 	service, err := h.Server.DB.Queries.CreatePsqlService(h.qCtx, db.CreatePsqlServiceParams{
-		ID:               lib.NewID(),
+		ID:               lib.GeneratePrimaryKey(),
 		OrganizationID:   b.OrgID,
 		Type:             types.PsqlServiceType,
 		SwarmServiceName: serviceName,
@@ -80,7 +80,7 @@ func (h *ServiceHandler) CreatePsqlService(c *echo.Context) error {
 		InternalUrl:      "",           // TODO : create internal URl
 	})
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, lib.Res{Message: "Failed to create service"})
+		return c.JSON(http.StatusInternalServerError, types.Res{Message: "Failed to create service"})
 	}
 
 	return c.JSON(http.StatusOK, service)
@@ -92,12 +92,12 @@ func (h *ServiceHandler) CreatePsqlService(c *echo.Context) error {
 func (h *ServiceHandler) GetPsqlServiceById(c *echo.Context) error {
 	serviceID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, lib.Res{Message: "invalid service id"})
+		return c.JSON(http.StatusBadRequest, types.Res{Message: "invalid service id"})
 	}
 
 	service, err := h.Server.DB.Queries.GetPsqlServiceById(h.qCtx, serviceID)
 	if err != nil {
-		return c.JSON(http.StatusNotFound, lib.Res{Message: "service not found"})
+		return c.JSON(http.StatusNotFound, types.Res{Message: "service not found"})
 	}
 
 	return c.JSON(http.StatusOK, service)
@@ -118,7 +118,7 @@ func (h *ServiceHandler) DeployPsqlService(c *echo.Context) error {
 
 	service, err := q.GetPsqlServiceById(h.qCtx, b.ServiceId)
 	if err != nil {
-		return c.JSON(http.StatusNotFound, lib.Res{Message: "service not found"})
+		return c.JSON(http.StatusNotFound, types.Res{Message: "service not found"})
 	}
 
 	// create a volume for the service
@@ -172,7 +172,7 @@ func (h *ServiceHandler) DeployPsqlService(c *echo.Context) error {
 	// depoly the service
 	sRes, err := docker.ServiceCreate(h.qCtx, spec)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, lib.Res{Message: "Failed to deploy service"})
+		return c.JSON(http.StatusInternalServerError, types.Res{Message: "Failed to deploy service"})
 	}
 
 	// update the service ID
@@ -184,7 +184,7 @@ func (h *ServiceHandler) DeployPsqlService(c *echo.Context) error {
 		ID: service.ID,
 	}); err != nil {
 		docker.ServiceRemove(h.qCtx, sRes.ID, client.ServiceRemoveOptions{})
-		return c.JSON(http.StatusInternalServerError, lib.Res{Message: "Failed to update service with service id"})
+		return c.JSON(http.StatusInternalServerError, types.Res{Message: "Failed to update service with service id"})
 	}
 
 	return c.JSON(http.StatusOK, map[string]string{
@@ -207,14 +207,14 @@ func (h *ServiceHandler) StopPsqlService(c *echo.Context) error {
 
 	service, err := q.GetPsqlServiceById(h.qCtx, b.ServiceId)
 	if err != nil {
-		return c.JSON(http.StatusNotFound, lib.Res{Message: "service not found"})
+		return c.JSON(http.StatusNotFound, types.Res{Message: "service not found"})
 	}
 
 	if _, err := docker.ServiceRemove(h.qCtx, service.SwarmServiceID.String, client.ServiceRemoveOptions{}); err != nil {
-		return c.JSON(http.StatusInternalServerError, lib.Res{Message: "error removing service"})
+		return c.JSON(http.StatusInternalServerError, types.Res{Message: "error removing service"})
 	}
 
-	return c.JSON(http.StatusOK, lib.Res{Message: "successfully removed the service"})
+	return c.JSON(http.StatusOK, types.Res{Message: "successfully removed the service"})
 }
 
 // stops and delete the psql service
@@ -232,21 +232,21 @@ func (h *ServiceHandler) DeletePsqlService(c *echo.Context) error {
 
 	service, err := q.GetPsqlServiceById(h.qCtx, b.ServiceId)
 	if err != nil {
-		return c.JSON(http.StatusConflict, lib.Res{Message: "Failed to fetch service details"})
+		return c.JSON(http.StatusConflict, types.Res{Message: "Failed to fetch service details"})
 	}
 
 	// check and stop the service if it is running
 	if s, _ := docker.ServiceInspect(h.qCtx, service.SwarmServiceID.String, client.ServiceInspectOptions{}); s.Service.ID != "" {
 		if _, err := docker.ServiceRemove(h.qCtx, service.SwarmServiceID.String, client.ServiceRemoveOptions{}); err != nil {
-			return c.JSON(http.StatusInternalServerError, lib.Res{Message: fmt.Sprintln("error removing service :", err)})
+			return c.JSON(http.StatusInternalServerError, types.Res{Message: fmt.Sprintln("error removing service :", err)})
 		}
 	}
 
 	if err := q.DeletePsqlService(h.qCtx, b.ServiceId); err != nil {
-		return c.JSON(http.StatusInternalServerError, lib.Res{Message: "Failed to create service"})
+		return c.JSON(http.StatusInternalServerError, types.Res{Message: "Failed to create service"})
 	}
 
-	return c.JSON(http.StatusOK, lib.Res{
+	return c.JSON(http.StatusOK, types.Res{
 		Message: "Successsfully deleted service",
 	})
 }

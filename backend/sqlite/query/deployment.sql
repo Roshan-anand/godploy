@@ -26,9 +26,9 @@ UPDATE deployments
 SET status = ?
 WHERE id = ?;
 
--- name: SetDeploymentImageID :exec
+-- name: SetDeploymentImageName :exec
 UPDATE deployments
-SET image_id = ?
+SET image_name = ?
 WHERE id = ?;
 
 -- name: DeleteDeploymentByID :exec

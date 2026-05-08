@@ -6,7 +6,7 @@ import (
 	"net/http"
 
 	"github.com/Roshan-anand/godploy/internal/config"
-	"github.com/Roshan-anand/godploy/internal/lib"
+	"github.com/Roshan-anand/godploy/internal/lib/types"
 	"github.com/go-playground/validator/v10"
 	"github.com/labstack/echo/v5"
 )
@@ -35,14 +35,14 @@ func InitHealthHandlers(s *config.Server) *HealthHandler {
 func (h *HealthHandler) HealthCheck(c *echo.Context) error {
 	switch {
 	case h.Server.DB == nil:
-		return c.JSON(500, lib.Res{Message: "database not initialized"})
+		return c.JSON(500, types.Res{Message: "database not initialized"})
 	case h.Server.BadgerDB == nil:
-		return c.JSON(500, lib.Res{Message: "badger database not initialized"})
+		return c.JSON(500, types.Res{Message: "badger database not initialized"})
 	case h.Server.Docker == nil:
-		return c.JSON(500, lib.Res{Message: "docker client not initialized"})
+		return c.JSON(500, types.Res{Message: "docker client not initialized"})
 	}
 
-	return c.JSON(200, lib.Res{Message: "ok"})
+	return c.JSON(200, types.Res{Message: "ok"})
 }
 
 func (h *HealthHandler) SetUrl(c *echo.Context) error {

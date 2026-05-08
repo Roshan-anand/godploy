@@ -43,13 +43,13 @@ func (h *ServiceHandler) GetAllServices(c *echo.Context) error {
 
 	orgID, err := q.GetUserCurrentOrg(h.qCtx, u.Email)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, lib.Res{Message: "failed to get user's current org"})
+		return c.JSON(http.StatusInternalServerError, types.Res{Message: "failed to get user's current org"})
 	}
 
 	services, err := q.GetAllService(h.qCtx, orgID)
 	if err != nil {
 		fmt.Printf("error getting services for org_id: %v, error: %v\n", orgID, err)
-		return c.JSON(http.StatusInternalServerError, lib.Res{Message: "failed to get services"})
+		return c.JSON(http.StatusInternalServerError, types.Res{Message: "failed to get services"})
 	}
 
 	return c.JSON(http.StatusOK, services)
@@ -65,12 +65,12 @@ func (h *ServiceHandler) GetServiceDeployments(c *echo.Context) error {
 
 	serviceID, err := uuid.Parse(c.QueryParam("service_id"))
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, lib.Res{Message: "invalid service_id"})
+		return c.JSON(http.StatusBadRequest, types.Res{Message: "invalid service_id"})
 	}
 
 	deployemnts, err := q.GetDeploymentsByServiceID(h.qCtx, serviceID)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, lib.Res{Message: "failed to get deployments"})
+		return c.JSON(http.StatusInternalServerError, types.Res{Message: "failed to get deployments"})
 	}
 
 	return c.JSON(http.StatusOK, deployemnts)
@@ -88,15 +88,15 @@ func (h *ServiceHandler) DeleteServiceDeployment(c *echo.Context) error {
 	}
 
 	if err := q.DeleteDeploymentByID(h.qCtx, b.DeploymentID); err != nil {
-		return c.JSON(http.StatusInternalServerError, lib.Res{Message: "failed to delete deployment"})
+		return c.JSON(http.StatusInternalServerError, types.Res{Message: "failed to delete deployment"})
 	}
 
 	// TODO : also delete all logs of the deployment.
 	if err := h.Server.BadgerDB.DeleteAllLogsByDeploymentID([]uuid.UUID{b.DeploymentID}); err != nil {
-		return c.JSON(http.StatusInternalServerError, lib.Res{Message: "failed to delete deployment logs"})
+		return c.JSON(http.StatusInternalServerError, types.Res{Message: "failed to delete deployment logs"})
 	}
 
-	return c.JSON(http.StatusOK, lib.Res{Message: "deployment deleted successfully"})
+	return c.JSON(http.StatusOK, types.Res{Message: "deployment deleted successfully"})
 }
 
 // subscribe to service deployment logs event
@@ -106,7 +106,7 @@ func (h *ServiceHandler) SubscribeServiceDeploymentLogs(c *echo.Context) error {
 	q := h.Server.DB.Queries
 	dID, err := uuid.Parse(c.QueryParam("deployment_id"))
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, lib.Res{Message: "invalid deployment_id"})
+		return c.JSON(http.StatusBadRequest, types.Res{Message: "invalid deployment_id"})
 	}
 
 	w := c.Response()
@@ -118,15 +118,15 @@ func (h *ServiceHandler) SubscribeServiceDeploymentLogs(c *echo.Context) error {
 
 	status, err := q.GetDeploymentStatus(h.qCtx, dID)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, lib.Res{Message: "failed to get deployment status"})
+		return c.JSON(http.StatusInternalServerError, types.Res{Message: "failed to get deployment status"})
 	}
 
-	userID := lib.NewID()
+	userID := lib.GeneratePrimaryKey()
 
 	// if deployment is successful or failed, then stream logs from badgerDB
 	if status == types.DeploymentReady || status == types.DeploymentError {
 		if err := h.Server.BadgerDB.StreamAllLogsByDeploymentID(dID, sse); err != nil {
-			return c.JSON(http.StatusInternalServerError, lib.Res{Message: "failed to stream logs"})
+			return c.JSON(http.StatusInternalServerError, types.Res{Message: "failed to stream logs"})
 		}
 		return nil
 	}

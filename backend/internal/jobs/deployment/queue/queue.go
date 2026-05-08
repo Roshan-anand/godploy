@@ -3,23 +3,33 @@ package deploymentqueue
 import "github.com/google/uuid"
 
 type PullJobData struct {
-	DeploymentID uuid.UUID
-	Token        string
-	Url          string
-	Branch       string
-	StorePath    string
-	BuildPath    string
+	DeploymentID      uuid.UUID
+	Token             string
+	Url               string
+	Branch            string
+	SwarmServiceName  string
+	BuildPath         string
+	DockerFilePath    string
+	DockerContextPath string
+	DockerBuildStage  string
+	ImgName           string
 }
 
 type BuildJobData struct {
-	DeploymentID uuid.UUID
-	BuildPath    string
-	StorePath    string
+	DeploymentID      uuid.UUID
+	BuildPath         string
+	SwarmServiceName  string
+	StorePath         string
+	DockerFilePath    string
+	DockerContextPath string
+	DockerBuildStage  string
+	ImgName           string
 }
 
 type DeployJobData struct {
-	DeploymentID uuid.UUID
-	StorePath    string
+	DeploymentID     uuid.UUID
+	SwarmServiceName string
+	ImgName          string
 }
 
 type JobQueue struct {

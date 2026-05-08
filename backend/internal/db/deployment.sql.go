@@ -131,19 +131,19 @@ func (q *Queries) GetDeploymentsByServiceID(ctx context.Context, serviceID uuid.
 	return items, nil
 }
 
-const setDeploymentImageID = `-- name: SetDeploymentImageID :exec
+const setDeploymentImageName = `-- name: SetDeploymentImageName :exec
 UPDATE deployments
-SET image_id = ?
+SET image_name = ?
 WHERE id = ?
 `
 
-type SetDeploymentImageIDParams struct {
-	ImageID sql.NullString `json:"image_id"`
-	ID      uuid.UUID      `json:"id"`
+type SetDeploymentImageNameParams struct {
+	ImageName sql.NullString `json:"image_name"`
+	ID        uuid.UUID      `json:"id"`
 }
 
-func (q *Queries) SetDeploymentImageID(ctx context.Context, arg SetDeploymentImageIDParams) error {
-	_, err := q.db.ExecContext(ctx, setDeploymentImageID, arg.ImageID, arg.ID)
+func (q *Queries) SetDeploymentImageName(ctx context.Context, arg SetDeploymentImageNameParams) error {
+	_, err := q.db.ExecContext(ctx, setDeploymentImageName, arg.ImageName, arg.ID)
 	return err
 }
 

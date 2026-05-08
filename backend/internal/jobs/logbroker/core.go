@@ -80,6 +80,7 @@ func (job *LogsBroker) LogsBrokerJob(ctx context.Context, pub chan *logbrokerque
 			// remove subscribers of the deployment
 			for userID, sub := range job.Server.LogBrokerQ.Subscribers {
 				if sub.DeploymentID == dID {
+					sub.SSE.SendSSE("logs", []byte("something went wrong !!"))
 					job.Server.LogBrokerQ.UnsubscribeLogs(userID)
 				}
 			}

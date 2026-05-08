@@ -7,7 +7,7 @@ import (
 	"fmt"
 
 	"github.com/Roshan-anand/godploy/internal/db"
-	"github.com/Roshan-anand/godploy/internal/lib"
+	"github.com/Roshan-anand/godploy/internal/lib/types"
 	"github.com/go-playground/validator/v10"
 	"github.com/labstack/echo/v5"
 )
@@ -37,14 +37,14 @@ func removeSession(query *db.Queries, state string) {
 }
 
 // binds and validate the given data
-func BindAndValidate(b any, c *echo.Context, v *validator.Validate) *lib.Res {
+func BindAndValidate(b any, c *echo.Context, v *validator.Validate) *types.Res {
 
 	if err := c.Bind(b); err != nil {
-		return &lib.Res{Message: "Invalid Data"}
+		return &types.Res{Message: "Invalid Data"}
 	}
 
 	if err := v.Struct(b); err != nil {
-		return &lib.Res{Message: fmt.Sprintf("validation error : %v", err)}
+		return &types.Res{Message: fmt.Sprintf("validation error : %v", err)}
 	}
 
 	return nil

@@ -26,6 +26,7 @@
 - [ ] tests for pqsl service lifecycle
 - [ ] tests for badgerDB operations
 - [ ] rememberMe functionality for login
+- [ ] make separate create page for app and DB service.
 
 ## enhancements
 

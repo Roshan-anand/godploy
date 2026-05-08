@@ -158,7 +158,7 @@ WHERE ps.organization_id = ?1
 UNION ALL
 SELECT aps.id, aps.type, aps.name, aps.gh_repo_url, aps.gh_repo_url, aps.git_provider, b.branch_name, aps.created_at
 FROM app_service aps
-JOIN app_service_branch b ON aps.default_branch_id = b.id
+JOIN app_service_branch b ON aps.id = b.service_id AND b.is_default_branch = 1
 WHERE aps.organization_id = ?1
 `
 
