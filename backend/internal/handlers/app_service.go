@@ -26,18 +26,15 @@ type DockerBuildReq struct {
 }
 
 type CreateAppServiceReq struct {
-	OrgID         uuid.UUID       `json:"org_id" validate:"required"`
-	Name          string          `json:"name" validate:"required,min=3,max=50"`
-	GitProvider   string          `json:"git_provider" validate:"required"`
-	GhAppID       int64           `json:"gh_app_id" validate:"required"`
-	GhRepoID      string          `json:"gh_repo_id" validate:"required"`
-	GhRepoName    string          `json:"gh_repo_name" validate:"required"`
-	GhRepoURL     string          `json:"gh_repo_url" validate:"required"`
-	DefaultBranch string          `json:"default_branch" validate:"required"`
-	BuildPath     string          `json:"build_path" validate:"required"`
-	WatchPath     string          `json:"watch_path" validate:"required"`
-	Env           string          `json:"env"`
-	DockerBuild   *DockerBuildReq `json:"docker_build"`
+	OrgID       uuid.UUID       `json:"org_id" validate:"required"`
+	Name        string          `json:"name" validate:"required,min=3,max=50"`
+	GitProvider string          `json:"git_provider" validate:"required"`
+	GhAppID     int64           `json:"gh_app_id" validate:"required"`
+	GhRepoID    int64           `json:"gh_repo_id" validate:"required"`
+	BuildPath   string          `json:"build_path" validate:"required"`
+	WatchPath   string          `json:"watch_path" validate:"required"`
+	Env         string          `json:"env"`
+	DockerBuild *DockerBuildReq `json:"docker_build"`
 }
 
 type UpdateDomainReq struct {
@@ -76,16 +73,30 @@ func (h *ServiceHandler) CreateAppService(c *echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, types.Res{Message: "failed to verify github app"})
 	}
 
-	// parse url
-	u, err := url.Parse(b.GhRepoURL)
+	ghClient, err := lib.CreateGithubClient(context.Background(), ghApp.AppID, ghApp.InstallationID.Int64, ghApp.PemKey)
 	if err != nil {
-		panic(err)
+		return c.JSON(http.StatusInternalServerError, types.Res{Message: "failed to create github client"})
+	}
+
+	repo, _, err := ghClient.Repositories.GetByID(context.Background(), b.GhRepoID)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, types.Res{Message: "failed to fetch repository info from github"})
+	}
+
+	repoName := repo.GetFullName()
+	repoURL := repo.GetHTMLURL()
+	defaultBranch := repo.GetDefaultBranch()
+
+	// parse url
+	u, err := url.Parse(repoURL)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, types.Res{Message: "failed to parse repository url"})
 	}
 	url := u.Host + u.Path
 
-	// used as unique container name and code storing path
-	serviceName := fmt.Sprintf("%s-%s-%s", b.Name, b.DefaultBranch, lib.GenerateRandomID(6))
-	imgName := strings.ToLower(fmt.Sprintf("%s-%s-dyp_%s", b.Name, b.DefaultBranch, lib.GenerateRandomID(6)))
+	// used as uniquecontainer name and code storing path
+	serviceName := fmt.Sprintf("%s-%s-%s", b.Name, defaultBranch, lib.GenerateRandomID(6))
+	imgName := strings.ToLower(fmt.Sprintf("%s-%s-dyp_%s", b.Name, defaultBranch, lib.GenerateRandomID(6)))
 
 	// start a new db transaction
 	tx, err := h.Server.DB.Pool.BeginTx(context.Background(), nil)
@@ -103,7 +114,7 @@ func (h *ServiceHandler) CreateAppService(c *echo.Context) error {
 		GitProvider:    b.GitProvider,
 		GhAppID:        ghApp.AppID,
 		GhRepoID:       b.GhRepoID,
-		GhRepoName:     b.GhRepoName,
+		GhRepoName:     repoName,
 		GhRepoUrl:      url,
 		BuildPath:      b.BuildPath,
 		WatchPath:      b.WatchPath,
@@ -120,7 +131,7 @@ func (h *ServiceHandler) CreateAppService(c *echo.Context) error {
 	branchID, err := q.CreateAppServiceBranch(h.qCtx, db.CreateAppServiceBranchParams{
 		ID:               lib.GeneratePrimaryKey(),
 		IsDefaultBranch:  true,
-		BranchName:       b.DefaultBranch,
+		BranchName:       defaultBranch,
 		SwarmServiceName: serviceName,
 		ServiceID:        service.ID,
 	})
@@ -157,7 +168,7 @@ func (h *ServiceHandler) CreateAppService(c *echo.Context) error {
 		DeploymentID:      dID,
 		Token:             token,
 		Url:               url,
-		Branch:            b.DefaultBranch,
+		Branch:            defaultBranch,
 		SwarmServiceName:  serviceName,
 		BuildPath:         b.BuildPath,
 		DockerFilePath:    b.DockerBuild.FilePath,

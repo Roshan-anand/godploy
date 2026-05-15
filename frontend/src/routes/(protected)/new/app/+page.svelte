@@ -37,10 +37,7 @@
 			name: '',
 			git_provider: 'github',
 			gh_app_id: 0,
-			gh_repo_id: '',
-			gh_repo_name: '',
-			gh_repo_url: '',
-			default_branch: '',
+			gh_repo_id: 0,
 			build_path: '/',
 			watch_path: '/',
 			env: '',
@@ -59,7 +56,7 @@
 			}
 
 			const selectedGithubRepo = getReposMutation.data?.find(
-				(repo) => repo.id.toString() === value.gh_repo_id
+				(repo) => repo.id === value.gh_repo_id
 			);
 
 			if (!selectedGithubRepo) {
@@ -81,9 +78,6 @@
 				git_provider: value.git_provider,
 				gh_app_id: value.gh_app_id,
 				gh_repo_id: value.gh_repo_id,
-				gh_repo_name: selectedGithubRepo.full_name,
-				gh_repo_url: selectedGithubRepo.repo_url,
-				default_branch: selectedGithubRepo.default_branch,
 				build_path: buildPath,
 				watch_path: watchPath,
 				env: value.env,
@@ -120,17 +114,17 @@
 		if (!provider) return;
 
 		form.setFieldValue('gh_app_id', 0);
-		form.setFieldValue('gh_repo_id', '');
+		form.setFieldValue('gh_repo_id', 0);
 
 		if (key === 'github' && githubAppsQuery.data?.length === 0) void githubAppsQuery.refetch();
 	};
 
-	const onRepoSelect = (repoId: string) => {
-		const repo = getReposMutation.data?.find((r) => r.id.toString() === repoId);
+	const onRepoSelect = (repoId: number) => {
+		const repo = getReposMutation.data?.find((r) => r.id === repoId);
 		if (!repo) return;
 
 		form.setFieldValue('gh_repo_id', repoId);
-		const repoName = getReposMutation.data?.find((repo) => repo.id.toString() == repoId)?.name;
+		const repoName = getReposMutation.data?.find((repo) => repo.id == repoId)?.name;
 		form.setFieldValue('name', repoName || '');
 	};
 
@@ -216,10 +210,11 @@
 							<Label class="my-1" for="git-repo-select">Repository</Label>
 							<Select.Root
 								type="single"
-								value={field.state.value}
+								value={field.state.value.toString()}
 								onValueChange={(value) => {
-									field.handleChange(value);
-									onRepoSelect(value);
+									const id = parseInt(value);
+									field.handleChange(id);
+									onRepoSelect(id);
 								}}
 								disabled={ghAppID === 0}
 							>
@@ -232,11 +227,11 @@
 												height="20"
 												class="size-4"
 											/>
-											{#if field.state.value == ''}
+											{#if field.state.value == 0}
 												<span>Select repository</span>
 											{/if}
 											{#each getReposMutation.data as repo (repo.id)}
-												{#if repo.id.toString() === field.state.value}
+												{#if repo.id === field.state.value}
 													<span class="text-sm text-muted-foreground">
 														{repo.full_name}
 													</span>

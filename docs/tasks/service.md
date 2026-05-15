@@ -22,7 +22,7 @@
 - [x] SSE for build logs.
 - [x] API to get deployed service list.
 - [x] API to get all the deployment list.
-- [ ] SSE for service logs.
+- [x] SSE for service logs.
 - [ ] API to update env.
 - [ ] API to update SSL & domain of the service.
-- [ ] API to Remove Application service.
+- [x] API to Remove Application service.

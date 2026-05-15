@@ -65,10 +65,7 @@ export type CreateAppServiceBody = {
 	name: string;
 	git_provider: GitProviderKey;
 	gh_app_id: number;
-	gh_repo_id: string;
-	gh_repo_name: string;
-	gh_repo_url: string;
-	default_branch: string;
+	gh_repo_id: number;
 	build_path: string;
 	watch_path: string;
 	env: string;

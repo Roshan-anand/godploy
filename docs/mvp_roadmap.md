@@ -9,14 +9,14 @@
 - [x] i want to CRUD organizations.
 - [x] i want to connect to Github.
 - [x] i want to select a repo and branch.
-- [ ] i want to CRUD services.
-- [ ] i want to setup Application service.
+- [x] i want to CRUD services.
+- [x] i want to setup Application service.
 - [ ] i want to setup DB services (PSQL, MongoDB).
-- [ ] i want to deploy the service.
-- [ ] i want to view the build logs.
-- [ ] i want to view the service logs.
-- [ ] i want to set ssl certs for the service.
-- [ ] i want to set custom domain for the service.
+- [x] i want to deploy the service.
+- [x] i want to view the build logs.
+- [x] i want to view the service logs.
+- [x] i want to set ssl certs for the service.
+- [x] i want to set custom domain for the service.
 
 ## Tasks :
 
@@ -38,21 +38,21 @@
   - [x] CRUD for Org.
 
 - **Services**
-  - [ ] CRUD for Services.
+  - [x] CRUD for Services.
   - [ ] Deploy, Stop, Rebuild service.
   - [ ] Predefined service templates (PSQL, MongoDB).
   - [x] Application Service template (for user code deployments).
   - [x] Workers logs streaming.
-  - [ ] Pull Job
-  - [ ] Build Job
-  - [ ] Deploy Job
-  - [ ] Service logs streaming.
+  - [x] Pull Job
+  - [x] Build Job
+  - [x] Deploy Job
+  - [x] Service logs streaming.
   - [ ] Environment variable management.
-  - [ ] SSL certificate management (Let's Encrypt integration).
-  - [ ] Custom domain management (Traefik integration).
+  - [x] SSL certificate management (Let's Encrypt integration).
+  - [x] Custom domain management (Traefik integration).
 
 - **OCI Image Builder**
-  - [ ] Build images using Dockerfile.
+  - [x] Build images using Dockerfile.
   - [ ] Build images using Nixpacks.
   - [ ] Build images using Buildpacks.
 

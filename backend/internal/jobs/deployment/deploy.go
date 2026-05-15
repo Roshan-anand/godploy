@@ -42,6 +42,7 @@ func (w *worker) DeployWorker(ctx context.Context, data chan *deploymentqueue.De
 						ContainerSpec: &swarm.ContainerSpec{
 							Image: d.ImgName,
 							TTY:   true,
+							Env:   []string{},
 						},
 
 						RestartPolicy: &swarm.RestartPolicy{

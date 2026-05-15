@@ -52,7 +52,7 @@ CREATE TABLE IF NOT EXISTS app_service (
     name TEXT NOT NULL UNIQUE,
     git_provider TEXT NOT NULL,
     gh_app_id INTEGER NOT NULL REFERENCES github_app(app_id) ON DELETE SET NULL,
-    gh_repo_id TEXT NOT NULL,
+    gh_repo_id INTEGER NOT NULL,
     gh_repo_name TEXT NOT NULL,
     gh_repo_url TEXT NOT NULL,
     build_path TEXT NOT NULL,
