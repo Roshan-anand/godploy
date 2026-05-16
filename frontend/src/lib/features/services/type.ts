@@ -68,19 +68,24 @@ export type CreateAppServiceBody = {
 	gh_repo_id: number;
 	build_path: string;
 	watch_path: string;
-	env: string;
 	docker_build: {
 		file_path: string;
 		context_path: string;
 		build_stage: string;
-		build_args: string;
-		build_secrets: string;
 	};
 };
 
-export type CreateAppServiceForm = CreateAppServiceBody;
+export type CreateAppServiceForm = CreateAppServiceBody & {
+	env: string;
+	build_args: string;
+	build_secrets: string;
+	org_id: string;
+};
 
 export type CreateServicePayload = CreateAppServiceBody & {
+	env: string[];
+	build_args: string[];
+	build_secrets: string[];
 	org_id: string;
 };
 
@@ -105,19 +110,29 @@ export type AppServiceDetails = {
 	created_at: string;
 };
 
+// branch domain types
 export type BranchDomainDetails = {
-	id: string;
+	branch_id: string;
 	branch_name: string;
 	domain: string;
 	port: number;
 };
 
-export type BranchDomainPayload = {
-	branch_id: string;
-	domain: string;
-	port: number;
+export type UpdateBranchDomainPayload = Omit<BranchDomainDetails, 'branch_name'>;
+
+export type GetBranchDomainRes = BranchDomainDetails[];
+
+// service env types
+export type UpdateEnvPayload = {
+	service_id: string;
+	env: string[];
+	build_args: string[];
+	build_secrets: string[];
 };
 
+export type GetEnvRes = Omit<UpdateEnvPayload, 'service_id'>;
+
+// navigation types
 export type ServiceTab = '' | 'deployment' | 'env' | 'domains';
 
 export type NavItem = {

@@ -1,6 +1,6 @@
 import { api } from '@/axios';
 import { createQuery } from '@tanstack/svelte-query';
-import type { AppServiceDetails, BranchDomainDetails, ServiceListResponse } from './type';
+import type { AppServiceDetails, GetBranchDomainRes, GetEnvRes, ServiceListResponse } from './type';
 import { GetUserData } from '../global/query';
 
 export const getOrgServicesQueryKey = (orgId: string) => ['services-list', 'org', orgId] as const;
@@ -29,7 +29,21 @@ export function useGetBranchDomainQuery(getServiceId: () => string) {
 		queryKey: ['branch-domain', serviceId],
 		queryFn: async () =>
 			api
-				.get<BranchDomainDetails[]>('/service/app/domain', {
+				.get<GetBranchDomainRes>('/service/app/domain', {
+					params: { service_id: serviceId }
+				})
+				.then((res) => res.data),
+		enabled: serviceId !== ''
+	}));
+}
+
+export function useGetServiceEnvQuery(getServiceId: () => string) {
+	const serviceId = getServiceId();
+	return createQuery(() => ({
+		queryKey: ['service-env', serviceId],
+		queryFn: async () =>
+			api
+				.get<GetEnvRes>('/service/app/env', {
 					params: { service_id: serviceId }
 				})
 				.then((res) => res.data),

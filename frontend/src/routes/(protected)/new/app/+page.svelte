@@ -41,12 +41,12 @@
 			build_path: '/',
 			watch_path: '/',
 			env: '',
+			build_args: '',
+			build_secrets: '',
 			docker_build: {
 				file_path: '',
 				context_path: '',
-				build_stage: '',
-				build_args: '',
-				build_secrets: ''
+				build_stage: ''
 			}
 		} as CreateAppServiceForm,
 		onSubmit: ({ value }) => {
@@ -80,13 +80,13 @@
 				gh_repo_id: value.gh_repo_id,
 				build_path: buildPath,
 				watch_path: watchPath,
-				env: value.env,
+				env: value.env.split('\n'),
+				build_args: value.build_args.split('\n'),
+				build_secrets: value.build_secrets.split('\n'),
 				docker_build: {
 					file_path: value.docker_build.file_path,
 					context_path: value.docker_build.context_path,
-					build_stage: value.docker_build.build_stage,
-					build_args: value.docker_build.build_args,
-					build_secrets: value.docker_build.build_secrets
+					build_stage: value.docker_build.build_stage
 				}
 			});
 		}
@@ -355,7 +355,7 @@
 					{/snippet}
 				</form.Field>
 
-				<form.Field name="docker_build.build_args">
+				<form.Field name="build_args">
 					{#snippet children(field)}
 						<SecretTextarea
 							title="Build Args"
@@ -368,7 +368,7 @@
 					{/snippet}
 				</form.Field>
 
-				<form.Field name="docker_build.build_secrets">
+				<form.Field name="build_secrets">
 					{#snippet children(field)}
 						<SecretTextarea
 							title="Build Secrets"

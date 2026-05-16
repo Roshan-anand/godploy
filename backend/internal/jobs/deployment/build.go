@@ -3,70 +3,45 @@ package deploymentjob
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
-	"errors"
 	"fmt"
-	"io"
+	"os/exec"
 	"path"
 
 	"github.com/Roshan-anand/godploy/internal/db"
 	deploymentqueue "github.com/Roshan-anand/godploy/internal/jobs/deployment/queue"
 	logbrokerqueue "github.com/Roshan-anand/godploy/internal/jobs/logbroker/queue"
 	"github.com/Roshan-anand/godploy/internal/lib/types"
-	"github.com/google/uuid"
-	"github.com/moby/go-archive"
-	"github.com/moby/moby/api/types/jsonstream"
-	"github.com/moby/moby/client"
 )
 
-func streamImgBuildOutput(res io.ReadCloser, l *logbrokerqueue.LogBrokerQueue, dID uuid.UUID) error {
+func getDockerBuildCmd(d *deploymentqueue.BuildJobData) *exec.Cmd {
+	// 	"--secret", "id=npm_token,src=/tmp/npm_token",
+	// 	"--secret", "id=github_token,src=/tmp/github_token",
 
-	decoder := json.NewDecoder(res)
+	cmd := exec.Command("docker", "buildx", "build")
 
-	prevLog := ""
-
-	for {
-		var msg jsonstream.Message
-
-		err := decoder.Decode(&msg)
-		if err != nil {
-			if errors.Is(err, io.EOF) {
-				break
-			}
-			return fmt.Errorf("error decoding build output: %v", err)
-		}
-
-		// Normal log output
-		if msg.Stream != "" && msg.Stream != prevLog {
-			l.PublishLog(&logbrokerqueue.PubData{
-				ID:  dID,
-				Msg: msg.Stream,
-			})
-			prevLog = msg.Stream
-		}
-
-		// BuildKit status lines
-		if msg.Status != "" {
-			status := fmt.Sprintf(
-				"%s %s\n",
-				msg.ID,
-				msg.Status,
-			)
-
-			fmt.Println("status output", status)
-
-			l.PublishLog(&logbrokerqueue.PubData{
-				ID:  dID,
-				Msg: status,
-			})
-		}
-
-		// Errors
-		if msg.Error != nil {
-			return msg.Error
-		}
+	if d.DockerFilePath != "" {
+		cmd.Args = append(cmd.Args, "--file", d.DockerFilePath)
 	}
-	return nil
+
+	for _, arg := range d.BuildArgs {
+		cmd.Args = append(cmd.Args, "--build-arg", arg)
+	}
+
+	// TODO : add build secrets to the cmd
+
+	if d.ImgName != "" {
+		cmd.Args = append(cmd.Args, "--tag", d.ImgName)
+	}
+
+	if d.DockerBuildStage != "" {
+		cmd.Args = append(cmd.Args, "--target", d.DockerBuildStage)
+	}
+
+	// create a tar achive of the code folder
+	dockerCtxPath := path.Join(d.StorePath + d.DockerContextPath)
+	cmd.Args = append(cmd.Args, dockerCtxPath)
+
+	return cmd
 }
 
 // responsible for pulling code and storing it local
@@ -82,43 +57,14 @@ func (w *worker) BuildWorker(ctx context.Context, data chan *deploymentqueue.Bui
 			fmt.Println("BuildWorker: started working ...")
 			l := w.Server.LogBrokerQ
 
-			// create a tar achive of the code folder
-			dockerCtxPath := path.Join(d.StorePath + d.DockerContextPath)
-			buildCtx, err := archive.TarWithOptions(dockerCtxPath, &archive.TarOptions{})
-			if err != nil {
-				fmt.Printf("BuildWorker: error creating tar context: %v\n", err)
-				l.EndLogs(&logbrokerqueue.EndLogData{
-					DeploymentID: d.DeploymentID,
-					Status:       types.DeploymentError,
-				})
-			}
+			// generate a new docker build cmd
+			buildCmd := getDockerBuildCmd(d)
 
-			// build the image
-			buildRes, err := w.Server.Docker.Client.ImageBuild(context.Background(), buildCtx, client.ImageBuildOptions{
-				Dockerfile: d.DockerFilePath,
-				Target:     d.DockerBuildStage,
-				Tags: []string{
-					d.ImgName,
-				},
-			})
-			if err != nil {
-				fmt.Printf("BuildWorker: error building image: %v\n", err)
+			if err := runWorkerCmd(l, d.DeploymentID, buildCmd); err != nil {
+				fmt.Printf("PullWorker: error running command: %v\n", err)
 				l.EndLogs(&logbrokerqueue.EndLogData{
 					DeploymentID: d.DeploymentID,
 					Status:       types.DeploymentError,
-					Message:      err.Error(),
-				})
-				continue
-			}
-			defer buildRes.Body.Close()
-
-			// stream the build output to log broker
-			if err := streamImgBuildOutput(buildRes.Body, l, d.DeploymentID); err != nil {
-				fmt.Printf("BuildWorker: error streaming build output: %v\n", err)
-				l.EndLogs(&logbrokerqueue.EndLogData{
-					DeploymentID: d.DeploymentID,
-					Status:       types.DeploymentError,
-					Message:      err.Error(),
 				})
 				continue
 			}
@@ -144,6 +90,7 @@ func (w *worker) BuildWorker(ctx context.Context, data chan *deploymentqueue.Bui
 				DeploymentID:     d.DeploymentID,
 				SwarmServiceName: d.SwarmServiceName,
 				ImgName:          d.ImgName,
+				Env:              d.Env,
 			})
 
 		case <-ctx.Done():

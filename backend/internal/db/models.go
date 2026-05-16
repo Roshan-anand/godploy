@@ -24,9 +24,9 @@ type AppService struct {
 	GhRepoUrl      string            `json:"gh_repo_url"`
 	BuildPath      string            `json:"build_path"`
 	WatchPath      string            `json:"watch_path"`
-	Env            string            `json:"env"`
-	BuildArgs      string            `json:"build_args"`
-	BuildSecrets   string            `json:"build_secrets"`
+	Env            []byte            `json:"env"`
+	BuildArgs      []byte            `json:"build_args"`
+	BuildSecrets   []byte            `json:"build_secrets"`
 	CreatedAt      time.Time         `json:"created_at"`
 }
 

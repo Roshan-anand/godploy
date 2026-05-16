@@ -13,6 +13,9 @@ type PullJobData struct {
 	DockerContextPath string
 	DockerBuildStage  string
 	ImgName           string
+	Env               []string
+	BuildArgs         []string
+	BuildSecrets      []string
 }
 
 type BuildJobData struct {
@@ -24,12 +27,16 @@ type BuildJobData struct {
 	DockerContextPath string
 	DockerBuildStage  string
 	ImgName           string
+	Env               []string
+	BuildArgs         []string
+	BuildSecrets      []string
 }
 
 type DeployJobData struct {
 	DeploymentID     uuid.UUID
 	SwarmServiceName string
 	ImgName          string
+	Env              []string
 }
 
 type JobQueue struct {

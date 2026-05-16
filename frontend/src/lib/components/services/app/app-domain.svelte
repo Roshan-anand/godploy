@@ -40,9 +40,9 @@
 			<p class="text-sm text-muted-foreground">No branches found for this service</p>
 		{:else}
 			<div class="flex flex-col gap-4">
-				{#each branchQuery.data as branch (branch.id)}
-					{@const portId = `port-${branch.id}`}
-					{@const domainId = `domain-${branch.id}`}
+				{#each branchQuery.data as branch (branch.branch_id)}
+					{@const portId = `port-${branch.branch_id}`}
+					{@const domainId = `domain-${branch.branch_id}`}
 					<Card class="border-muted">
 						<CardHeader>
 							<CardTitle class="text-base">{branch.branch_name}</CardTitle>
@@ -60,7 +60,7 @@
 									if (!domain || !port) return;
 									const portnum = Number(port);
 
-									submitDomain(branch.id, domain as string, portnum);
+									submitDomain(branch.branch_id, domain as string, portnum);
 								}}
 							>
 								<div class="space-y-1.5">

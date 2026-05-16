@@ -3,12 +3,13 @@ import { createMutation } from '@tanstack/svelte-query';
 import { toast } from 'svelte-sonner';
 import type {
 	ApiMessageRes,
-	BranchDomainPayload,
 	CreateServicePayload,
 	DeleteServicePayload,
 	GetReposPayload,
 	GithubRepo,
-	ServiceListResponse
+	ServiceListResponse,
+	UpdateBranchDomainPayload,
+	UpdateEnvPayload
 } from './type';
 import { getOrgServicesQueryKey } from './query.svelte';
 import { goto } from '$app/navigation';
@@ -71,13 +72,28 @@ export function useDeleteServiceMutation() {
 
 export function useUpdateBranchDomainMutation(getServiceId: () => string) {
 	return createMutation(() => ({
-		mutationFn: async (payload: BranchDomainPayload) =>
+		mutationFn: async (payload: UpdateBranchDomainPayload) =>
 			api.put<ApiMessageRes>('/service/app/domain', payload).then((res) => res.data),
 		onSuccess: (response) => {
 			queryClient.invalidateQueries({
 				queryKey: ['branch-domain', getServiceId()]
 			});
 			toast.success(response.message || 'Domain updated successfully');
+		},
+		onError: (error) => axiosErr(error as Error, 'Failed to update domain')
+	}));
+}
+
+export function useUpdateEnvMutation(getServiceId: () => string) {
+	return createMutation(() => ({
+		mutationFn: async (payload: UpdateEnvPayload) =>
+			api.put<ApiMessageRes>('/service/app/env', payload).then((res) => res.data),
+		onSuccess: (response) => {
+			queryClient.invalidateQueries({
+				queryKey: ['service-env', getServiceId()]
+			});
+			// TODO : show a button to rebuild / restart the service
+			toast.success(response.message || 'Env updated successfully');
 		},
 		onError: (error) => axiosErr(error as Error, 'Failed to update domain')
 	}));

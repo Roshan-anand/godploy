@@ -32,5 +32,3 @@
   - when to update local store from query cache vs mutation response
 
 - [ ] badger db how query all logs by prefix works
-
-- [ ] what is partial unique index in SQLite

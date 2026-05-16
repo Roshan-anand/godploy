@@ -45,8 +45,9 @@ INSERT INTO app_service (id, organization_id, type, name, git_provider, gh_app_i
 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 RETURNING id, type;
 
--- name: DeleteAppService :exec
-DELETE FROM app_service
+-- name: UpdateAppServiceEnv :exec
+UPDATE app_service
+SET env = ?, build_args = ?, build_secrets = ?
 WHERE id = ?;
 
 -- name: GetAppServiceById :one
@@ -59,6 +60,10 @@ FROM app_service a
 JOIN app_service_branch b ON b.service_id = a.id AND b.is_default_branch = 1
 JOIN deployments d ON d.branch_id = b.id AND d.is_latest = 1
 WHERE a.id = ?;
+
+-- name: DeleteAppService :exec
+DELETE FROM app_service
+WHERE id = ?;
 
 -- name: CreateAppServiceBranch :one
 INSERT INTO app_service_branch (id, is_default_branch, branch_name, swarm_service_name, service_id, port)
@@ -76,6 +81,11 @@ FROM app_service_branch b
 JOIN deployments d ON d.branch_id = b.id
 WHERE b.service_id = ?;
 
+-- name: GetAllSwarmServiceByAppServiceId :many
+SELECT swarm_service_name
+FROM app_service_branch
+WHERE service_id = ?;
+
 -- name: SetDomianAndPortForBranch :exec
 UPDATE app_service_branch
 SET domain = ?, port = ?
@@ -85,3 +95,8 @@ WHERE id = ?;
 SELECT b.id, b.branch_name, b.domain, b.port
 FROM app_service_branch b
 WHERE b.service_id = ?;
+
+-- name: GetServiceEnv :one
+SELECT env, build_args, build_secrets
+FROM app_service
+WHERE id = ?;

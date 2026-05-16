@@ -91,6 +91,9 @@ func (w *worker) PullWorker(ctx context.Context, data chan *deploymentqueue.Pull
 					DockerContextPath: d.DockerContextPath,
 					DockerBuildStage:  d.DockerBuildStage,
 					ImgName:           d.ImgName,
+					Env:               d.Env,
+					BuildArgs:         d.BuildArgs,
+					BuildSecrets:      d.BuildSecrets,
 				})
 			}
 

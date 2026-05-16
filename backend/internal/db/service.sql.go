@@ -32,9 +32,9 @@ type CreateAppServiceParams struct {
 	GhRepoUrl      string            `json:"gh_repo_url"`
 	BuildPath      string            `json:"build_path"`
 	WatchPath      string            `json:"watch_path"`
-	Env            string            `json:"env"`
-	BuildArgs      string            `json:"build_args"`
-	BuildSecrets   string            `json:"build_secrets"`
+	Env            []byte            `json:"env"`
+	BuildArgs      []byte            `json:"build_args"`
+	BuildSecrets   []byte            `json:"build_secrets"`
 }
 
 type CreateAppServiceRow struct {
@@ -236,6 +236,35 @@ func (q *Queries) GetAllSwarmServiceAndImagesByAppServiceId(ctx context.Context,
 	return items, nil
 }
 
+const getAllSwarmServiceByAppServiceId = `-- name: GetAllSwarmServiceByAppServiceId :many
+SELECT swarm_service_name
+FROM app_service_branch
+WHERE service_id = ?
+`
+
+func (q *Queries) GetAllSwarmServiceByAppServiceId(ctx context.Context, serviceID uuid.UUID) ([]string, error) {
+	rows, err := q.db.QueryContext(ctx, getAllSwarmServiceByAppServiceId, serviceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []string
+	for rows.Next() {
+		var swarm_service_name string
+		if err := rows.Scan(&swarm_service_name); err != nil {
+			return nil, err
+		}
+		items = append(items, swarm_service_name)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getAppServiceById = `-- name: GetAppServiceById :one
 SELECT
     a.id, a.name, a.gh_repo_name, a.gh_repo_url,
@@ -347,6 +376,25 @@ func (q *Queries) GetPsqlServiceById(ctx context.Context, id uuid.UUID) (PsqlSer
 	return i, err
 }
 
+const getServiceEnv = `-- name: GetServiceEnv :one
+SELECT env, build_args, build_secrets
+FROM app_service
+WHERE id = ?
+`
+
+type GetServiceEnvRow struct {
+	Env          []byte `json:"env"`
+	BuildArgs    []byte `json:"build_args"`
+	BuildSecrets []byte `json:"build_secrets"`
+}
+
+func (q *Queries) GetServiceEnv(ctx context.Context, id uuid.UUID) (GetServiceEnvRow, error) {
+	row := q.db.QueryRowContext(ctx, getServiceEnv, id)
+	var i GetServiceEnvRow
+	err := row.Scan(&i.Env, &i.BuildArgs, &i.BuildSecrets)
+	return i, err
+}
+
 const getSwarmServiceByBranchId = `-- name: GetSwarmServiceByBranchId :one
 SELECT swarm_service_name
 FROM app_service_branch
@@ -416,5 +464,28 @@ type SetPsqlSwarmServiceIdParams struct {
 
 func (q *Queries) SetPsqlSwarmServiceId(ctx context.Context, arg SetPsqlSwarmServiceIdParams) error {
 	_, err := q.db.ExecContext(ctx, setPsqlSwarmServiceId, arg.SwarmServiceID, arg.ID)
+	return err
+}
+
+const updateAppServiceEnv = `-- name: UpdateAppServiceEnv :exec
+UPDATE app_service
+SET env = ?, build_args = ?, build_secrets = ?
+WHERE id = ?
+`
+
+type UpdateAppServiceEnvParams struct {
+	Env          []byte    `json:"env"`
+	BuildArgs    []byte    `json:"build_args"`
+	BuildSecrets []byte    `json:"build_secrets"`
+	ID           uuid.UUID `json:"id"`
+}
+
+func (q *Queries) UpdateAppServiceEnv(ctx context.Context, arg UpdateAppServiceEnvParams) error {
+	_, err := q.db.ExecContext(ctx, updateAppServiceEnv,
+		arg.Env,
+		arg.BuildArgs,
+		arg.BuildSecrets,
+		arg.ID,
+	)
 	return err
 }

@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -18,29 +19,42 @@ import (
 )
 
 type DockerBuildReq struct {
-	FilePath     string `json:"file_path"`
-	ContextPath  string `json:"context_path"`
-	BuildStage   string `json:"build_stage"`
-	BuildArgs    string `json:"build_args"`
-	BuildSecrets string `json:"build_secrets"`
+	FilePath    string `json:"file_path"`
+	ContextPath string `json:"context_path"`
+	BuildStage  string `json:"build_stage"`
 }
 
 type CreateAppServiceReq struct {
-	OrgID       uuid.UUID       `json:"org_id" validate:"required"`
-	Name        string          `json:"name" validate:"required,min=3,max=50"`
-	GitProvider string          `json:"git_provider" validate:"required"`
-	GhAppID     int64           `json:"gh_app_id" validate:"required"`
-	GhRepoID    int64           `json:"gh_repo_id" validate:"required"`
-	BuildPath   string          `json:"build_path" validate:"required"`
-	WatchPath   string          `json:"watch_path" validate:"required"`
-	Env         string          `json:"env"`
-	DockerBuild *DockerBuildReq `json:"docker_build"`
+	OrgID        uuid.UUID       `json:"org_id" validate:"required"`
+	Name         string          `json:"name" validate:"required,min=3,max=50"`
+	GitProvider  string          `json:"git_provider" validate:"required"`
+	GhAppID      int64           `json:"gh_app_id" validate:"required"`
+	GhRepoID     int64           `json:"gh_repo_id" validate:"required"`
+	BuildPath    string          `json:"build_path" validate:"required"`
+	WatchPath    string          `json:"watch_path" validate:"required"`
+	Env          []string        `json:"env"`
+	BuildArgs    []string        `json:"build_args"`
+	BuildSecrets []string        `json:"build_secrets"`
+	DockerBuild  *DockerBuildReq `json:"docker_build"`
 }
 
 type UpdateDomainReq struct {
 	BranchID uuid.UUID `json:"branch_id" validate:"required"`
 	Domain   string    `json:"domain" validate:"required"`
 	Port     int32     `json:"port" validate:"required"`
+}
+
+type UpdateEnvReq struct {
+	ServiceID    uuid.UUID `json:"service_id" validate:"required"`
+	Env          []string  `json:"env" validate:"required"`
+	BuildArgs    []string  `json:"build_args" validate:"required"`
+	BuildSecrets []string  `json:"build_secrets" validate:"required"`
+}
+
+type GetEnvRes struct {
+	Env          []string `json:"env" validate:"required"`
+	BuildArgs    []string `json:"build_args" validate:"required"`
+	BuildSecrets []string `json:"build_secrets" validate:"required"`
 }
 
 // create a new app service
@@ -98,6 +112,22 @@ func (h *ServiceHandler) CreateAppService(c *echo.Context) error {
 	serviceName := fmt.Sprintf("%s-%s-%s", b.Name, defaultBranch, lib.GenerateRandomID(6))
 	imgName := strings.ToLower(fmt.Sprintf("%s-%s-dyp_%s", b.Name, defaultBranch, lib.GenerateRandomID(6)))
 
+	// convert into bytes
+	envByte, err := json.Marshal(b.Env)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, types.Res{Message: "invalid env values"})
+	}
+
+	buildArgsByte, err := json.Marshal(b.BuildArgs)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, types.Res{Message: "invalid build args values"})
+	}
+
+	buildSecretsByte, err := json.Marshal(b.BuildSecrets)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, types.Res{Message: "invalid build secrets values"})
+	}
+
 	// start a new db transaction
 	tx, err := h.Server.DB.Pool.BeginTx(context.Background(), nil)
 	if err != nil {
@@ -118,9 +148,9 @@ func (h *ServiceHandler) CreateAppService(c *echo.Context) error {
 		GhRepoUrl:      url,
 		BuildPath:      b.BuildPath,
 		WatchPath:      b.WatchPath,
-		Env:            b.Env,
-		BuildArgs:      b.DockerBuild.BuildArgs,
-		BuildSecrets:   b.DockerBuild.BuildSecrets,
+		Env:            envByte,
+		BuildArgs:      buildArgsByte,
+		BuildSecrets:   buildSecretsByte,
 	})
 	if err != nil {
 		tx.Rollback()
@@ -175,6 +205,9 @@ func (h *ServiceHandler) CreateAppService(c *echo.Context) error {
 		DockerContextPath: b.DockerBuild.ContextPath,
 		DockerBuildStage:  b.DockerBuild.BuildStage,
 		ImgName:           imgName,
+		Env:               b.Env,
+		BuildArgs:         b.BuildArgs,
+		BuildSecrets:      b.BuildSecrets,
 	})
 
 	return c.JSON(http.StatusOK, service.ID)
@@ -298,6 +331,75 @@ func (h *ServiceHandler) UpdateAppServiceDomain(c *echo.Context) error {
 	return c.JSON(http.StatusOK, types.Res{Message: "Successfully updated domain and port"})
 }
 
+// update domain and port
+//
+// route: PUT /api/service/app/env
+func (h *ServiceHandler) UpdateAppServiceEnv(c *echo.Context) error {
+	b := new(UpdateEnvReq)
+	q := h.Server.DB.Queries
+	docker := h.Server.Docker.Client
+
+	if Res := BindAndValidate(b, c, h.Validate); Res != nil {
+		return c.JSON(http.StatusBadRequest, Res)
+	}
+
+	// get all swarm service of avalable branches
+	swarmServices, err := q.GetAllSwarmServiceByAppServiceId(h.qCtx, b.ServiceID)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, types.Res{Message: "Failed to get all swarm service"})
+	}
+
+	// update env in all the service
+	for _, serviceName := range swarmServices {
+		// get service spec to update the labels
+		inspectRes, err := docker.ServiceInspect(context.Background(), serviceName, client.ServiceInspectOptions{})
+		if err != nil {
+			fmt.Printf("Failed to inspect swarm service: %v\n", err)
+			return c.JSON(http.StatusInternalServerError, types.Res{Message: "Failed to inspect swarm service"})
+		}
+		serviceV := inspectRes.Service.Meta.Version
+		spec := inspectRes.Service.Spec
+		spec.TaskTemplate.ContainerSpec.Env = b.Env
+
+		// update the swarm service
+		if _, err := docker.ServiceUpdate(context.Background(), serviceName, client.ServiceUpdateOptions{
+			Version: serviceV,
+			Spec:    spec,
+		}); err != nil {
+			fmt.Printf("Failed to update swarm service: %v\n", err)
+			return c.JSON(http.StatusInternalServerError, types.Res{Message: "Failed to update swarm service"})
+		}
+	}
+
+	// convert into bytes
+	envByte, err := json.Marshal(b.Env)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, types.Res{Message: "invalid env values"})
+	}
+
+	buildArgsByte, err := json.Marshal(b.BuildArgs)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, types.Res{Message: "invalid build args values"})
+	}
+
+	buildSecretsByte, err := json.Marshal(b.BuildSecrets)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, types.Res{Message: "invalid build secrets values"})
+	}
+
+	// update the env in the app service table
+	if err := q.UpdateAppServiceEnv(h.qCtx, db.UpdateAppServiceEnvParams{
+		ID:           b.ServiceID,
+		Env:          envByte,
+		BuildArgs:    buildArgsByte,
+		BuildSecrets: buildSecretsByte,
+	}); err != nil {
+		return c.JSON(http.StatusBadRequest, types.Res{Message: "Failed to update env"})
+	}
+
+	return c.JSON(http.StatusOK, types.Res{Message: "Successfully updated env"})
+}
+
 // get branch domain and port by service id
 //
 // route: GET /api/service/app/domain?service_id
@@ -315,4 +417,43 @@ func (h *ServiceHandler) GetBranchDomain(c *echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, branches)
+}
+
+// get branch domain and port by service id
+//
+// route: GET /api/service/app/env?service_id
+func (h *ServiceHandler) GetServiceEnv(c *echo.Context) error {
+	q := h.Server.DB.Queries
+
+	serviceID, err := uuid.Parse(c.QueryParam("service_id"))
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, types.Res{Message: "invalid service_id"})
+	}
+
+	e, err := q.GetServiceEnv(h.qCtx, serviceID)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, types.Res{Message: "Failed to get branch domain"})
+	}
+
+	var env []string
+	var build_args []string
+	var build_secrets []string
+
+	if err := json.Unmarshal(e.Env, &env); err != nil {
+		return c.JSON(http.StatusInternalServerError, types.Res{Message: "Failed to unmarshal env"})
+	}
+
+	if err := json.Unmarshal(e.BuildArgs, &build_args); err != nil {
+		return c.JSON(http.StatusInternalServerError, types.Res{Message: "Failed to unmarshal build args"})
+	}
+
+	if err := json.Unmarshal(e.BuildSecrets, &build_secrets); err != nil {
+		return c.JSON(http.StatusInternalServerError, types.Res{Message: "Failed to unmarshal build secrets"})
+	}
+
+	return c.JSON(http.StatusOK, &GetEnvRes{
+		Env:          env,
+		BuildArgs:    build_args,
+		BuildSecrets: build_secrets,
+	})
 }

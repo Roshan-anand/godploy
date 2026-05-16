@@ -6,6 +6,7 @@
 	import * as NavigationMenu from '@/components/ui/navigation-menu';
 	import { NavItems } from '@/features/services/const';
 	import type { ServiceTab } from '@/features/services/type';
+	import AppEnv from '@/components/services/app/app-env.svelte';
 
 	const { serviceId, tab }: { serviceId: string; tab: ServiceTab } = $props();
 </script>
@@ -38,6 +39,7 @@
 		<AppDeployments {serviceId} />
 	{:else if tab === 'env'}
 		<p class="text-muted-foreground">Environment variables tab content goes here</p>
+		<AppEnv {serviceId} />
 	{:else if tab === 'domains'}
 		<AppDomain {serviceId} />
 	{:else}
