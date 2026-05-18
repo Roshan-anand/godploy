@@ -2,7 +2,6 @@ import { api, axiosErr } from '@/axios';
 import { createMutation } from '@tanstack/svelte-query';
 import { toast } from 'svelte-sonner';
 import type {
-	ApiMessageRes,
 	CreateServicePayload,
 	DeleteServicePayload,
 	GetReposPayload,
@@ -14,7 +13,7 @@ import type {
 import { getOrgServicesQueryKey } from './query.svelte';
 import { goto } from '$app/navigation';
 import { resolve } from '$app/paths';
-import type { ServiceType } from '@/types';
+import type { ApiRes, ServiceType } from '@/types';
 import { GetUserData } from '../global/query';
 import { queryClient } from '@/query';
 
@@ -22,10 +21,10 @@ export function useGetReposMutation() {
 	return createMutation(() => ({
 		mutationFn: async ({ provider, appId }: GetReposPayload) =>
 			api
-				.get<GithubRepo[]>(provider.listApi, {
+				.get<ApiRes<GithubRepo[]>>(provider.listApi, {
 					params: { app_id: appId }
 				})
-				.then((res) => res.data),
+				.then((res) => res.data.data),
 		onError: (error) => axiosErr(error as Error, 'Failed to fetch repositories')
 	}));
 }
@@ -33,13 +32,13 @@ export function useGetReposMutation() {
 export function useCreateServiceMutation() {
 	return createMutation(() => ({
 		mutationFn: async (payload: CreateServicePayload) =>
-			api.post<string>('/service/app', payload).then((res) => res.data),
-		onSuccess: (service_id) => {
+			api.post<ApiRes<string>>('/service/app', payload).then((res) => res.data),
+		onSuccess: (res) => {
 			toast.success('Service created successfully');
 			goto(
 				resolve('/(protected)/(core)/[service_type]/[service_id]?tab=deployment', {
 					service_type: 'app' as ServiceType,
-					service_id
+					service_id: res.data
 				})
 			);
 		},
@@ -53,7 +52,7 @@ export function useDeleteServiceMutation() {
 	return createMutation(() => ({
 		mutationFn: async ({ service_id, type }: DeleteServicePayload) => {
 			const url = type === 'psql' ? '/service/psql' : '/service/app';
-			return api.delete<ApiMessageRes>(url, { data: { service_id } }).then((res) => res.data);
+			return api.delete<ApiRes<null>>(url, { data: { service_id } }).then((res) => res.data);
 		},
 
 		onSuccess: (response, payload) => {
@@ -73,7 +72,7 @@ export function useDeleteServiceMutation() {
 export function useUpdateBranchDomainMutation(getServiceId: () => string) {
 	return createMutation(() => ({
 		mutationFn: async (payload: UpdateBranchDomainPayload) =>
-			api.put<ApiMessageRes>('/service/app/domain', payload).then((res) => res.data),
+			api.put<ApiRes<null>>('/service/app/domain', payload).then((res) => res.data),
 		onSuccess: (response) => {
 			queryClient.invalidateQueries({
 				queryKey: ['branch-domain', getServiceId()]
@@ -87,7 +86,7 @@ export function useUpdateBranchDomainMutation(getServiceId: () => string) {
 export function useUpdateEnvMutation(getServiceId: () => string) {
 	return createMutation(() => ({
 		mutationFn: async (payload: UpdateEnvPayload) =>
-			api.put<ApiMessageRes>('/service/app/env', payload).then((res) => res.data),
+			api.put<ApiRes<null>>('/service/app/env', payload).then((res) => res.data),
 		onSuccess: (response) => {
 			queryClient.invalidateQueries({
 				queryKey: ['service-env', getServiceId()]
@@ -102,13 +101,13 @@ export function useUpdateEnvMutation(getServiceId: () => string) {
 export function useRebuildServiceMutation() {
 	return createMutation(() => ({
 		mutationFn: async (payload: { branch_id: string }) =>
-			api.put<string>('/service/app/rebuild', payload).then((res) => res.data),
-		onSuccess: (service_id) => {
+			api.put<ApiRes<string>>('/service/app/rebuild', payload).then((res) => res.data),
+		onSuccess: (res) => {
 			toast.success('successfully rebuild the service');
 			goto(
 				resolve('/(protected)/(core)/[service_type]/[service_id]?tab=deployment', {
 					service_type: 'app' as ServiceType,
-					service_id
+					service_id: res.data
 				})
 			);
 		},

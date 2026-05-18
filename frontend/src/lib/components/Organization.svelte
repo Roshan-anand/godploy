@@ -15,6 +15,7 @@
 	import type { Organization } from '@/features/auth/type';
 	import CreateBtn from './CreateBtn.svelte';
 	import { GetUserData, setUserCurrentOrg } from '@/features/global/query';
+	import type { ApiRes } from '@/types';
 
 	const { pushOrg, setOrg, orgs } = getUserState();
 	const { email, org_id, org_name } = GetUserData();
@@ -36,38 +37,38 @@
 	// Keeps current org and org list in sync with on-demand query fetch plus switch/create mutations.
 	const getAllOrgsQuery = createQuery(() => ({
 		queryKey: getOrgsQueryKey(),
-		queryFn: () => api.get<Organization[]>('/org').then((res) => res.data),
+		queryFn: () => api.get<ApiRes<Organization[]>>('/org').then((res) => res.data.data),
 		enabled: false
 	}));
 
 	const switchOrgMutation = createMutation(() => ({
 		mutationFn: (payload: SwitchOrgPayload) =>
-			api.post<Organization>('/org/switch', payload).then((res) => res.data),
-		onSuccess: (org) => {
+			api.post<ApiRes<Organization>>('/org/switch', payload).then((res) => res.data),
+		onSuccess: ({ data, message }) => {
 			setUserCurrentOrg({
-				org_id: org.id,
-				org_name: org.name
+				org_id: data.id,
+				org_name: data.name
 			});
 			orgMenuOpen = false;
-			toast.success('Organization switched successfully');
+			toast.success(message);
 		},
 		onError: (error) => axiosErr(error, 'Failed to switch organization')
 	}));
 
 	const createOrgMutation = createMutation(() => ({
 		mutationFn: (payload: CreateOrgPayload) =>
-			api.post<Organization>('/org', payload).then((res) => res.data),
-		onSuccess: (createdOrg) => {
+			api.post<ApiRes<Organization>>('/org', payload).then((res) => res.data),
+		onSuccess: ({ data, message }) => {
 			queryClient.setQueryData(getOrgsQueryKey(), (cachedOrgs: Organization[] | undefined) => {
-				if (!cachedOrgs) return [createdOrg];
-				if (cachedOrgs.some((org) => org.id === createdOrg.id)) return cachedOrgs;
-				return [createdOrg, ...cachedOrgs];
+				if (!cachedOrgs) return [data];
+				if (cachedOrgs.some((org) => org.id === data.id)) return cachedOrgs;
+				return [data, ...cachedOrgs];
 			});
 
-			pushOrg(createdOrg);
+			pushOrg(data);
 			orgName = '';
 			createDialogOpen = false;
-			toast.success('Organization created successfully');
+			toast.success(message);
 		},
 		onError: (error) => axiosErr(error, 'Failed to create organization')
 	}));

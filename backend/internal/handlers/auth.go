@@ -63,26 +63,26 @@ func (h *AuthHandler) AuthUser(c *echo.Context) error {
 	if !ok {
 		exists, err := q.AdminExists(h.qCtx)
 		if err != nil {
-			return c.JSON(http.StatusInternalServerError, types.Res{Message: "Internal Sever Error"})
+			return c.JSON(http.StatusInternalServerError, types.Res[struct{}]{Message: "Internal Sever Error"})
 		}
 
 		if !exists {
-			return c.JSON(http.StatusForbidden, types.Res{Message: "No admin registered"})
+			return c.JSON(http.StatusForbidden, types.Res[struct{}]{Message: "No admin registered"})
 		}
-		return c.JSON(http.StatusUnauthorized, types.Res{Message: "Unauthorized"})
+		return c.JSON(http.StatusUnauthorized, types.Res[struct{}]{Message: "Unauthorized"})
 	}
 
 	org, err := q.GetCurrentOrg(h.qCtx, u.Email)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, types.Res{Message: "Internal Sever Error"})
+		return c.JSON(http.StatusInternalServerError, types.Res[struct{}]{Message: "Internal Sever Error"})
 	}
 
-	return c.JSON(http.StatusOK, AuthRes{
+	return c.JSON(http.StatusOK, types.Res[AuthRes]{Message: "", Data: AuthRes{
 		Name:    u.Name,
 		Email:   u.Email,
 		OrgId:   org.ID,
 		OrgName: org.Name,
-	})
+	}})
 }
 
 // register a new application
@@ -99,16 +99,16 @@ func (h *AuthHandler) AppRegiter(c *echo.Context) error {
 
 	// check if admin user already exists
 	if exist, err := q.AdminExists(h.qCtx); err != nil {
-		return c.JSON(http.StatusInternalServerError, types.Res{Message: "Internal Server Error"})
+		return c.JSON(http.StatusInternalServerError, types.Res[struct{}]{Message: "Internal Server Error"})
 	} else if exist {
-		return c.JSON(http.StatusBadRequest, types.Res{Message: "Admin User Already Exists"})
+		return c.JSON(http.StatusBadRequest, types.Res[struct{}]{Message: "Admin User Already Exists"})
 	}
 
 	// hash password
 	hPass, err := security.HashPassword(b.Password)
 	if err != nil {
 		fmt.Println(err)
-		return c.JSON(http.StatusInternalServerError, types.Res{Message: "Internal Server Error"})
+		return c.JSON(http.StatusInternalServerError, types.Res[struct{}]{Message: "Internal Server Error"})
 	}
 
 	// create organization first (user needs orgId at insert time)
@@ -117,7 +117,7 @@ func (h *AuthHandler) AppRegiter(c *echo.Context) error {
 		Name: b.OrgName,
 	})
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, types.Res{Message: "Internal Server Error"})
+		return c.JSON(http.StatusInternalServerError, types.Res[struct{}]{Message: "Internal Server Error"})
 	}
 
 	// register new admin user
@@ -130,7 +130,7 @@ func (h *AuthHandler) AppRegiter(c *echo.Context) error {
 		CurrentOrgID: org.ID,
 	})
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, types.Res{Message: "Internal Server Error"})
+		return c.JSON(http.StatusInternalServerError, types.Res[struct{}]{Message: "Internal Server Error"})
 	}
 
 	// link user with organization
@@ -139,20 +139,19 @@ func (h *AuthHandler) AppRegiter(c *echo.Context) error {
 		OrganizationID: org.ID,
 	}); err != nil {
 		fmt.Println("Link User N Org Error:", err)
-		return c.JSON(http.StatusInternalServerError, types.Res{Message: "Internal Server Error"})
+		return c.JSON(http.StatusInternalServerError, types.Res[struct{}]{Message: "Internal Server Error"})
 	}
 
 	// set cookies
 	auth.SetSessionCookies(h.Server, c, uId)
 	auth.SetJwtCookie(h.Server, c, auth.AuthUser{Email: b.Email, Name: b.Name, Role: types.AdminRole})
 
-	r := AuthRes{
+	return c.JSON(http.StatusOK, types.Res[AuthRes]{Message: "", Data: AuthRes{
 		Name:    b.Name,
 		Email:   b.Email,
 		OrgId:   org.ID,
 		OrgName: b.OrgName,
-	}
-	return c.JSON(http.StatusOK, r)
+	}})
 }
 
 // login user
@@ -168,23 +167,22 @@ func (h *AuthHandler) AppLogin(c *echo.Context) error {
 	// get the user
 	u, err := h.Server.DB.Queries.GetUserByEmail(h.qCtx, b.Email)
 	if err != nil {
-		return c.JSON(http.StatusUnauthorized, types.Res{Message: "user not found"})
+		return c.JSON(http.StatusUnauthorized, types.Res[struct{}]{Message: "user not found"})
 	}
 
 	// check password
 	if !security.CheckPasswordHash(b.Password, u.HashPass) {
-		return c.JSON(http.StatusUnauthorized, types.Res{Message: "invalid credentials"})
+		return c.JSON(http.StatusUnauthorized, types.Res[struct{}]{Message: "invalid credentials"})
 	}
 
 	// set cookies
 	auth.SetSessionCookies(h.Server, c, u.ID)
 	auth.SetJwtCookie(h.Server, c, auth.AuthUser{Email: u.Email, Name: u.Name, Role: u.Role})
 
-	r := AuthRes{
+	return c.JSON(http.StatusOK, types.Res[AuthRes]{Message: "", Data: AuthRes{
 		Name:    u.Name,
 		Email:   u.Email,
-		OrgId:   u.OrgID,
+		OrgId:   u.ID,
 		OrgName: u.OrgName,
-	}
-	return c.JSON(http.StatusOK, r)
+	}})
 }

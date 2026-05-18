@@ -39,14 +39,14 @@ func InitHealthHandlers(s *config.Server) *HealthHandler {
 func (h *HealthHandler) HealthCheck(c *echo.Context) error {
 	switch {
 	case h.Server.DB == nil:
-		return c.JSON(500, types.Res{Message: "database not initialized"})
+		return c.JSON(500, types.Res[struct{}]{Message: "database not initialized"})
 	case h.Server.BadgerDB == nil:
-		return c.JSON(500, types.Res{Message: "badger database not initialized"})
+		return c.JSON(500, types.Res[struct{}]{Message: "badger database not initialized"})
 	case h.Server.Docker == nil:
-		return c.JSON(500, types.Res{Message: "docker client not initialized"})
+		return c.JSON(500, types.Res[struct{}]{Message: "docker client not initialized"})
 	}
 
-	return c.JSON(200, types.Res{Message: "ok"})
+	return c.JSON(200, types.Res[struct{}]{Message: "ok"})
 }
 
 // TODO : remove this router for production
@@ -70,12 +70,12 @@ func (h *HealthHandler) SetGhApp(c *echo.Context) error {
 	// parse string to int for app id
 	appId, err := strconv.ParseInt(b.AppID, 10, 64)
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, types.Res{Message: "invalid app id"})
+		return c.JSON(http.StatusBadRequest, types.Res[struct{}]{Message: "invalid app id"})
 	}
 
 	insId, err := strconv.ParseInt(b.InstallationID, 10, 64)
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, types.Res{Message: "invalid installation id"})
+		return c.JSON(http.StatusBadRequest, types.Res[struct{}]{Message: "invalid installation id"})
 	}
 
 	ghAppId, err := q.CreateGithubApp(h.qCtx, db.CreateGithubAppParams{
@@ -87,7 +87,7 @@ func (h *HealthHandler) SetGhApp(c *echo.Context) error {
 		WebhookSecret:  b.WebhookSecret,
 	})
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, types.Res{Message: "failed to create github app"})
+		return c.JSON(http.StatusInternalServerError, types.Res[struct{}]{Message: "failed to create github app"})
 	}
 
 	if err := q.InsertInstallationID(h.qCtx, db.InsertInstallationIDParams{
@@ -97,8 +97,8 @@ func (h *HealthHandler) SetGhApp(c *echo.Context) error {
 			Int64: insId,
 		},
 	}); err != nil {
-		return c.JSON(http.StatusInternalServerError, types.Res{Message: "failed to insert installation id"})
+		return c.JSON(http.StatusInternalServerError, types.Res[struct{}]{Message: "failed to insert installation id"})
 	}
 
-	return c.JSON(http.StatusOK, types.Res{Message: "github app created successfully"})
+	return c.JSON(http.StatusOK, types.Res[struct{}]{Message: "github app created successfully"})
 }

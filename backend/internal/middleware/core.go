@@ -37,7 +37,7 @@ func (m *Middlewares) GlobalMiddlewareCors() echo.MiddlewareFunc {
 // global middleware user applicable to all routes
 func (m *Middlewares) GlobalMiddlewareUser(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c *echo.Context) error {
-		unAuthErr := types.Res{
+		unAuthErr := types.Res[struct{}]{
 			Message: "unauthorized access"}
 		secret := m.Server.Config.JwtSecret
 

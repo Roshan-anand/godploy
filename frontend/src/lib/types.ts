@@ -32,3 +32,8 @@ export type ServiceDeployment = {
 	branch_name: string;
 	created_at: string;
 };
+
+export type ApiRes<T> = {
+	message: string;
+	data: T;
+};

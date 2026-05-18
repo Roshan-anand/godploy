@@ -5,20 +5,21 @@ import { toast } from 'svelte-sonner';
 import { getGithubAppsQueryKey } from './query.svelte';
 import type { DeleteGithubAppPayload, GithubApp } from './type';
 import { GetUserData } from '../global/query';
+import type { ApiRes } from '@/types';
 
 export function useDeleteGithubAppMutation() {
 	const { org_id } = GetUserData();
 
 	return createMutation(() => ({
 		mutationFn: (payload: DeleteGithubAppPayload) =>
-			api.delete('/provider/github/app', { data: payload }).then((res) => res.data),
-		onSuccess: (_response, payload) => {
+			api.delete<ApiRes<number>>('/provider/github/app', { data: payload }).then((res) => res.data),
+		onSuccess: (res) => {
 			queryClient.setQueryData(
 				getGithubAppsQueryKey(org_id),
 				(cachedApps: GithubApp[] | null | undefined) => {
 					if (!cachedApps) return null;
 
-					const remainingApps = cachedApps.filter((app) => app.app_id !== payload.app_id);
+					const remainingApps = cachedApps.filter((app) => app.app_id !== res.data);
 					return remainingApps.length > 0 ? remainingApps : null;
 				}
 			);

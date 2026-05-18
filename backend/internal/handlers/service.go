@@ -8,6 +8,7 @@ import (
 	"net/http"
 
 	"github.com/Roshan-anand/godploy/internal/config"
+	"github.com/Roshan-anand/godploy/internal/db"
 	logbrokerqueue "github.com/Roshan-anand/godploy/internal/jobs/logbroker/queue"
 	"github.com/Roshan-anand/godploy/internal/lib/auth"
 	"github.com/Roshan-anand/godploy/internal/lib/security"
@@ -46,16 +47,19 @@ func (h *ServiceHandler) GetAllServices(c *echo.Context) error {
 
 	orgID, err := q.GetUserCurrentOrg(h.qCtx, u.Email)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, types.Res{Message: "failed to get user's current org"})
+		return c.JSON(http.StatusInternalServerError, types.Res[struct{}]{Message: "failed to get user's current org"})
 	}
 
 	services, err := q.GetAllService(h.qCtx, orgID)
 	if err != nil {
 		fmt.Printf("error getting services for org_id: %v, error: %v\n", orgID, err)
-		return c.JSON(http.StatusInternalServerError, types.Res{Message: "failed to get services"})
+		return c.JSON(http.StatusInternalServerError, types.Res[struct{}]{Message: "failed to get services"})
 	}
 
-	return c.JSON(http.StatusOK, services)
+	return c.JSON(http.StatusOK, types.Res[[]db.GetAllServiceRow]{
+		Message: "",
+		Data:    services,
+	})
 }
 
 // get all service deployment jobs
@@ -68,16 +72,19 @@ func (h *ServiceHandler) GetServiceDeployments(c *echo.Context) error {
 
 	serviceID, err := uuid.Parse(c.QueryParam("service_id"))
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, types.Res{Message: "invalid service_id"})
+		return c.JSON(http.StatusBadRequest, types.Res[struct{}]{Message: "invalid service_id"})
 	}
 
 	deployemnts, err := q.GetDeploymentsByServiceID(h.qCtx, serviceID)
 	if err != nil {
 		fmt.Printf("error getting deployments for service_id: %v, error: %v\n", serviceID, err)
-		return c.JSON(http.StatusInternalServerError, types.Res{Message: "failed to get deployments"})
+		return c.JSON(http.StatusInternalServerError, types.Res[struct{}]{Message: "failed to get deployments"})
 	}
 
-	return c.JSON(http.StatusOK, deployemnts)
+	return c.JSON(http.StatusOK, types.Res[[]db.GetDeploymentsByServiceIDRow]{
+		Message: "",
+		Data:    deployemnts,
+	})
 }
 
 // delete service deployment by deployment id
@@ -93,17 +100,17 @@ func (h *ServiceHandler) DeleteServiceDeployment(c *echo.Context) error {
 
 	dyp, err := q.GetDeploymentImgByID(h.qCtx, b.DeploymentID)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, types.Res{Message: "Failed to get deployment"})
+		return c.JSON(http.StatusInternalServerError, types.Res[struct{}]{Message: "Failed to get deployment"})
 	}
 
 	if err := q.DeleteDeploymentByID(h.qCtx, b.DeploymentID); err != nil {
-		return c.JSON(http.StatusInternalServerError, types.Res{Message: "failed to delete deployment"})
+		return c.JSON(http.StatusInternalServerError, types.Res[struct{}]{Message: "failed to delete deployment"})
 	}
 
 	h.Server.Docker.RemoveImages([]string{dyp.ImageName.String})
 	h.Server.BadgerDB.DeleteAllLogsByDeploymentID([]uuid.UUID{b.DeploymentID})
 
-	return c.JSON(http.StatusOK, types.Res{Message: "deployment deleted successfully"})
+	return c.JSON(http.StatusOK, types.Res[struct{}]{Message: "deployment deleted successfully"})
 }
 
 // subscribe to service deployment logs event
@@ -113,7 +120,7 @@ func (h *ServiceHandler) SubscribeServiceDeploymentLogs(c *echo.Context) error {
 	q := h.Server.DB.Queries
 	dID, err := uuid.Parse(c.QueryParam("deployment_id"))
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, types.Res{Message: "invalid deployment_id"})
+		return c.JSON(http.StatusBadRequest, types.Res[struct{}]{Message: "invalid deployment_id"})
 	}
 
 	w := c.Response()
@@ -125,7 +132,7 @@ func (h *ServiceHandler) SubscribeServiceDeploymentLogs(c *echo.Context) error {
 
 	status, err := q.GetDeploymentStatus(h.qCtx, dID)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, types.Res{Message: "failed to get deployment status"})
+		return c.JSON(http.StatusInternalServerError, types.Res[struct{}]{Message: "failed to get deployment status"})
 	}
 
 	userID := security.GeneratePrimaryKey()
@@ -133,7 +140,7 @@ func (h *ServiceHandler) SubscribeServiceDeploymentLogs(c *echo.Context) error {
 	// if deployment is successful or failed, then stream logs from badgerDB
 	if status == types.DeploymentReady || status == types.DeploymentError {
 		if err := h.Server.BadgerDB.StreamAllLogsByDeploymentID(dID, sse); err != nil {
-			return c.JSON(http.StatusInternalServerError, types.Res{Message: "failed to stream logs"})
+			return c.JSON(http.StatusInternalServerError, types.Res[struct{}]{Message: "failed to stream logs"})
 		}
 		return nil
 	}
@@ -163,12 +170,12 @@ func (h *ServiceHandler) GetServiceLogs(c *echo.Context) error {
 	fmt.Println("trigger server olgs sse")
 	branchID, err := uuid.Parse(c.QueryParam("branch_id"))
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, types.Res{Message: "invalid branch_id"})
+		return c.JSON(http.StatusBadRequest, types.Res[struct{}]{Message: "invalid branch_id"})
 	}
 
 	swarmService, err := q.GetSwarmServiceByBranchId(h.qCtx, branchID)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, types.Res{Message: "failed to get swarm service"})
+		return c.JSON(http.StatusInternalServerError, types.Res[struct{}]{Message: "failed to get swarm service"})
 	}
 
 	serviceLogs, err := h.Server.Docker.Client.ServiceLogs(context.Background(), swarmService, client.ServiceLogsOptions{
@@ -178,7 +185,7 @@ func (h *ServiceHandler) GetServiceLogs(c *echo.Context) error {
 		Follow:     true,
 	})
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, types.Res{Message: "failed to get service logs"})
+		return c.JSON(http.StatusInternalServerError, types.Res[struct{}]{Message: "failed to get service logs"})
 	}
 	defer serviceLogs.Close()
 
@@ -203,7 +210,7 @@ func (h *ServiceHandler) GetServiceLogs(c *echo.Context) error {
 
 	if err := scanner.Err(); err != nil {
 		log.Printf("error streaming service logs: %v", err)
-		return c.JSON(http.StatusInternalServerError, types.Res{Message: "failed to stream service logs"})
+		return c.JSON(http.StatusInternalServerError, types.Res[struct{}]{Message: "failed to stream service logs"})
 	}
 
 	for {

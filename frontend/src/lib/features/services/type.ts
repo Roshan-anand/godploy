@@ -39,10 +39,6 @@ export type GitProviderOption = {
 	createApi: string;
 };
 
-export type ApiMessageRes = {
-	message: string;
-};
-
 export type GithubApp = {
 	name: string;
 	app_id: number;

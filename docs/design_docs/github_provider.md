@@ -29,7 +29,7 @@ Github App Manifest is used to create a Github App which does openrations on beh
       "url": "https://app.com/github/events"
     },
     "redirect_url": "https://app.com/path/to/redirect",
-		"setup_url": "http://app.com/path/to/setup?org_id=<xyz>",
+    "setup_url": "http://app.com/path/to/setup?org_id=<xyz>",
     "public": true,
     "default_permissions": {
       "issues": "write",
@@ -38,6 +38,7 @@ Github App Manifest is used to create a Github App which does openrations on beh
     "default_events": ["issues", "issue_comment", "check_suite", "check_run"]
   }
   ```
+
   - &state=CSRF_token
     - why CSRF (Cross Site Request Forgery) : as this flow containes Back n forth, state changing request, to prevent access to unauthorized users.
 - User prompts for permission.
@@ -93,7 +94,7 @@ Github App Manifest is used to create a Github App which does openrations on beh
   ```
   https://github.com/apps/{APP_SLUG}/installations/new
   ```
-- User approves, GitHub redirects to `setup_url`  
+- User approves, GitHub redirects to `setup_url`
   ```
   https://app.com/path/to/setup?installation_id=12345678
   ```

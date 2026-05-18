@@ -29,6 +29,11 @@ type OrgReq struct {
 	OrgID uuid.UUID `json:"org_id" validate:"required"`
 }
 
+type SwitchOrgRes struct {
+	OrgID uuid.UUID `json:"id"`
+	Name  string    `json:"name"`
+}
+
 func InitOrgHandlers(s *config.Server) *OrgHandler {
 	return &OrgHandler{
 		Server:   s,
@@ -45,12 +50,15 @@ func (h *OrgHandler) GetAllOrgs(c *echo.Context) error {
 
 	orgs, err := h.Server.DB.Queries.GetAllOrg(h.qCtx, u.Email)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, types.Res{
+		return c.JSON(http.StatusInternalServerError, types.Res[struct{}]{
 			Message: "internal server error",
 		})
 	}
 
-	return c.JSON(http.StatusOK, orgs)
+	return c.JSON(http.StatusOK, types.Res[[]db.GetAllOrgRow]{
+		Message: "",
+		Data:    orgs,
+	})
 }
 
 // create a new organization and link it to the authenticated user
@@ -66,18 +74,18 @@ func (h *OrgHandler) CreateOrg(c *echo.Context) error {
 
 	q := h.Server.DB.Queries
 	if isAdmin, err := q.IsUserAdmin(h.qCtx, u.Email); err != nil {
-		return c.JSON(http.StatusInternalServerError, types.Res{Message: "internal server error"})
+		return c.JSON(http.StatusInternalServerError, types.Res[struct{}]{Message: "internal server error"})
 	} else if !isAdmin {
-		return c.JSON(http.StatusForbidden, types.Res{Message: "admin access required"})
+		return c.JSON(http.StatusForbidden, types.Res[struct{}]{Message: "admin access required"})
 	}
 
 	if exists, err := q.CheckOrgExists(h.qCtx, db.CheckOrgExistsParams{
 		UserEmail: u.Email,
 		OrgName:   b.Name,
 	}); err != nil {
-		return c.JSON(http.StatusInternalServerError, types.Res{Message: "internal server error"})
+		return c.JSON(http.StatusInternalServerError, types.Res[struct{}]{Message: "internal server error"})
 	} else if exists {
-		return c.JSON(http.StatusConflict, types.Res{Message: "Organization with this name already exists"})
+		return c.JSON(http.StatusConflict, types.Res[struct{}]{Message: "Organization with this name already exists"})
 	}
 
 	org, err := q.CreateOrg(h.qCtx, db.CreateOrgParams{
@@ -85,17 +93,17 @@ func (h *OrgHandler) CreateOrg(c *echo.Context) error {
 		Name: b.Name,
 	})
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, types.Res{Message: "Failed to create organization"})
+		return c.JSON(http.StatusInternalServerError, types.Res[struct{}]{Message: "Failed to create organization"})
 	}
 
 	if err := q.LinkUserNOrg(h.qCtx, db.LinkUserNOrgParams{
 		UserEmail:      u.Email,
 		OrganizationID: org.ID,
 	}); err != nil {
-		return c.JSON(http.StatusInternalServerError, types.Res{Message: "Failed to link user to organization"})
+		return c.JSON(http.StatusInternalServerError, types.Res[struct{}]{Message: "Failed to link user to organization"})
 	}
 
-	return c.JSON(http.StatusOK, org)
+	return c.JSON(http.StatusOK, types.Res[db.CreateOrgRow]{Message: "", Data: org})
 }
 
 // delete an organization for admin users
@@ -112,22 +120,22 @@ func (h *OrgHandler) DeleteOrg(c *echo.Context) error {
 	q := h.Server.DB.Queries
 	user, err := q.GetUserByEmail(h.qCtx, u.Email)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, types.Res{Message: "internal server error"})
+		return c.JSON(http.StatusInternalServerError, types.Res[struct{}]{Message: "internal server error"})
 	}
 
 	switch {
 	case user.OrgID == b.OrgID:
-		return c.JSON(http.StatusConflict, types.Res{Message: "Cannot delete the current organization"})
+		return c.JSON(http.StatusConflict, types.Res[struct{}]{Message: "Cannot delete the current organization"})
 	case user.Role != types.AdminRole:
-		return c.JSON(http.StatusForbidden, types.Res{Message: "admin access required"})
+		return c.JSON(http.StatusForbidden, types.Res[struct{}]{Message: "admin access required"})
 	}
 
 	if err := q.DeleteOrg(h.qCtx, b.OrgID); err != nil {
 		fmt.Printf("Error deleting organization: %v\n", err)
-		return c.JSON(http.StatusInternalServerError, types.Res{Message: "Failed to delete organization"})
+		return c.JSON(http.StatusInternalServerError, types.Res[struct{}]{Message: "Failed to delete organization"})
 	}
 
-	return c.JSON(http.StatusOK, types.Res{Message: "Organization deleted successfully"})
+	return c.JSON(http.StatusOK, types.Res[struct{}]{Message: "Organization deleted successfully"})
 }
 
 // switch the authenticated user's current organization
@@ -148,30 +156,30 @@ func (h *OrgHandler) SwitchOrg(c *echo.Context) error {
 		UserEmail:      u.Email,
 		OrganizationID: b.OrgID,
 	}); err != nil {
-		return c.JSON(http.StatusInternalServerError, types.Res{Message: "internal server error"})
+		return c.JSON(http.StatusInternalServerError, types.Res[struct{}]{Message: "internal server error"})
 	} else if !exists {
-		return c.JSON(http.StatusForbidden, types.Res{Message: "User does not have access to the organization"})
+		return c.JSON(http.StatusForbidden, types.Res[struct{}]{Message: "User does not have access to the organization"})
 	}
 
 	user, err := q.GetUserByEmail(h.qCtx, u.Email)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, types.Res{Message: "Failed to get user"})
+		return c.JSON(http.StatusInternalServerError, types.Res[struct{}]{Message: "Failed to get user"})
 	}
 
 	if err := q.UpdateCurrentOrg(h.qCtx, db.UpdateCurrentOrgParams{
 		CurrentOrgID: b.OrgID,
 		ID:           user.ID,
 	}); err != nil {
-		return c.JSON(http.StatusInternalServerError, types.Res{Message: "Failed to switch organization"})
+		return c.JSON(http.StatusInternalServerError, types.Res[struct{}]{Message: "Failed to switch organization"})
 	}
 
 	org, err := q.GetOrgById(h.qCtx, b.OrgID)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, types.Res{Message: "Failed to get organization"})
+		return c.JSON(http.StatusInternalServerError, types.Res[struct{}]{Message: "Failed to get organization"})
 	}
 
-	return c.JSON(http.StatusOK, map[string]interface{}{
-		"id":   org.ID,
-		"name": org.Name,
+	return c.JSON(http.StatusOK, types.Res[db.GetOrgByIdRow]{
+		Message: "",
+		Data:    org,
 	})
 }

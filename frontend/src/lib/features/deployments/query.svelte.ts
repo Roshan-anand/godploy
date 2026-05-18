@@ -1,5 +1,5 @@
 import { api } from '@/axios';
-import type { ServiceDeployment } from '@/types';
+import type { ApiRes, ServiceDeployment } from '@/types';
 import { createQuery } from '@tanstack/svelte-query';
 
 export const getDeploymentsQueryKey = (serviceId: string) =>
@@ -10,10 +10,10 @@ export function useServiceDeploymentsQuery(getServiceId: () => string) {
 		queryKey: getDeploymentsQueryKey(getServiceId()),
 		queryFn: async () => {
 			return api
-				.get<ServiceDeployment[]>('/service/deployment', {
+				.get<ApiRes<ServiceDeployment[]>>('/service/deployment', {
 					params: { service_id: getServiceId() }
 				})
-				.then((res) => res.data);
+				.then((res) => res.data.data);
 		},
 		enabled: getServiceId() !== ''
 	}));

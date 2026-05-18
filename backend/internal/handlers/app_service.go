@@ -78,28 +78,28 @@ func (h *ServiceHandler) CreateAppService(c *echo.Context) error {
 		OrgID: b.OrgID,
 		Name:  b.Name,
 	}); err != nil {
-		return c.JSON(http.StatusInternalServerError, types.Res{Message: "Failed to check service name"})
+		return c.JSON(http.StatusInternalServerError, types.Res[struct{}]{Message: "Failed to check service name"})
 	} else if exists {
-		return c.JSON(http.StatusConflict, types.Res{Message: "Service name already exists"})
+		return c.JSON(http.StatusConflict, types.Res[struct{}]{Message: "Service name already exists"})
 	}
 
 	// get the github app details
 	ghApp, err := q.GetGhAppByAppId(h.qCtx, b.GhAppID)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return c.JSON(http.StatusBadRequest, types.Res{Message: "invalid github app"})
+			return c.JSON(http.StatusBadRequest, types.Res[struct{}]{Message: "invalid github app"})
 		}
-		return c.JSON(http.StatusInternalServerError, types.Res{Message: "failed to verify github app"})
+		return c.JSON(http.StatusInternalServerError, types.Res[struct{}]{Message: "failed to verify github app"})
 	}
 
 	ghClient, err := gh.CreateGithubClient(context.Background(), ghApp.AppID, ghApp.InstallationID.Int64, ghApp.PemKey)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, types.Res{Message: "failed to create github client"})
+		return c.JSON(http.StatusInternalServerError, types.Res[struct{}]{Message: "failed to create github client"})
 	}
 
 	repo, _, err := ghClient.Repositories.GetByID(context.Background(), b.GhRepoID)
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, types.Res{Message: "failed to fetch repository info from github"})
+		return c.JSON(http.StatusBadRequest, types.Res[struct{}]{Message: "failed to fetch repository info from github"})
 	}
 
 	repoName := repo.GetFullName()
@@ -109,7 +109,7 @@ func (h *ServiceHandler) CreateAppService(c *echo.Context) error {
 	// parse url
 	u, err := url.Parse(repoURL)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, types.Res{Message: "failed to parse repository url"})
+		return c.JSON(http.StatusInternalServerError, types.Res[struct{}]{Message: "failed to parse repository url"})
 	}
 	url := u.Host + u.Path
 
@@ -124,13 +124,13 @@ func (h *ServiceHandler) CreateAppService(c *echo.Context) error {
 		BuildSecrets: b.BuildSecrets,
 	})
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, types.Res{Message: "invalid env values"})
+		return c.JSON(http.StatusBadRequest, types.Res[struct{}]{Message: "invalid env values"})
 	}
 
 	// start a new db transaction
 	tx, err := h.Server.DB.Pool.BeginTx(context.Background(), nil)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, types.Res{Message: "Failed to create service"})
+		return c.JSON(http.StatusInternalServerError, types.Res[struct{}]{Message: "Failed to create service"})
 	}
 	q = q.WithTx(tx)
 
@@ -156,7 +156,7 @@ func (h *ServiceHandler) CreateAppService(c *echo.Context) error {
 	})
 	if err != nil {
 		tx.Rollback()
-		return c.JSON(http.StatusInternalServerError, types.Res{Message: "Failed to create service"})
+		return c.JSON(http.StatusInternalServerError, types.Res[struct{}]{Message: "Failed to create service"})
 	}
 
 	// create a new branch for the app service
@@ -169,7 +169,7 @@ func (h *ServiceHandler) CreateAppService(c *echo.Context) error {
 	})
 	if err != nil {
 		tx.Rollback()
-		return c.JSON(http.StatusInternalServerError, types.Res{Message: "Failed to create service branch"})
+		return c.JSON(http.StatusInternalServerError, types.Res[struct{}]{Message: "Failed to create service branch"})
 	}
 
 	// TODO : get commit msg from client side
@@ -182,17 +182,17 @@ func (h *ServiceHandler) CreateAppService(c *echo.Context) error {
 	})
 	if err != nil {
 		tx.Rollback()
-		return c.JSON(http.StatusInternalServerError, types.Res{Message: "Failed to create deployment"})
+		return c.JSON(http.StatusInternalServerError, types.Res[struct{}]{Message: "Failed to create deployment"})
 	}
 
 	if err := tx.Commit(); err != nil {
-		return c.JSON(http.StatusInternalServerError, types.Res{Message: "Failed to create service"})
+		return c.JSON(http.StatusInternalServerError, types.Res[struct{}]{Message: "Failed to create service"})
 	}
 
 	// get gh token
 	token, err := gh.GetGhToken(ghApp.AppID, ghApp.InstallationID.Int64, ghApp.PemKey)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, types.Res{Message: "Failed to get github token"})
+		return c.JSON(http.StatusInternalServerError, types.Res[struct{}]{Message: "Failed to get github token"})
 	}
 
 	// push a new deployment job to the queue
@@ -213,7 +213,10 @@ func (h *ServiceHandler) CreateAppService(c *echo.Context) error {
 		BuildSecrets:      b.BuildSecrets,
 	})
 
-	return c.JSON(http.StatusOK, service.ID)
+	return c.JSON(http.StatusOK, types.Res[uuid.UUID]{
+		Message: "",
+		Data:    service.ID,
+	})
 }
 
 // get app service details by id
@@ -222,15 +225,18 @@ func (h *ServiceHandler) CreateAppService(c *echo.Context) error {
 func (h *ServiceHandler) GetAppServiceById(c *echo.Context) error {
 	serviceID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, types.Res{Message: "invalid service id"})
+		return c.JSON(http.StatusBadRequest, types.Res[struct{}]{Message: "invalid service id"})
 	}
 
 	service, err := h.Server.DB.Queries.GetAppServiceById(h.qCtx, serviceID)
 	if err != nil {
-		return c.JSON(http.StatusNotFound, types.Res{Message: "service not found"})
+		return c.JSON(http.StatusNotFound, types.Res[struct{}]{Message: "service not found"})
 	}
 
-	return c.JSON(http.StatusOK, service)
+	return c.JSON(http.StatusOK, types.Res[db.GetAppServiceByIdRow]{
+		Message: "",
+		Data:    service,
+	})
 }
 
 // get branch domain and port by service id
@@ -241,15 +247,18 @@ func (h *ServiceHandler) GetBranchDomain(c *echo.Context) error {
 
 	serviceID, err := uuid.Parse(c.QueryParam("service_id"))
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, types.Res{Message: "invalid service_id"})
+		return c.JSON(http.StatusBadRequest, types.Res[struct{}]{Message: "invalid service_id"})
 	}
 
 	branches, err := q.GetBranchesDomainByServiceId(h.qCtx, serviceID)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, types.Res{Message: "Failed to get branch domain"})
+		return c.JSON(http.StatusInternalServerError, types.Res[struct{}]{Message: "Failed to get branch domain"})
 	}
 
-	return c.JSON(http.StatusOK, branches)
+	return c.JSON(http.StatusOK, types.Res[[]db.GetBranchesDomainByServiceIdRow]{
+		Message: "",
+		Data:    branches,
+	})
 }
 
 // get branch domain and port by service id
@@ -260,12 +269,12 @@ func (h *ServiceHandler) GetServiceEnv(c *echo.Context) error {
 
 	serviceID, err := uuid.Parse(c.QueryParam("service_id"))
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, types.Res{Message: "invalid service_id"})
+		return c.JSON(http.StatusBadRequest, types.Res[struct{}]{Message: "invalid service_id"})
 	}
 
 	e, err := q.GetServiceEnv(h.qCtx, serviceID)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, types.Res{Message: "Failed to get branch domain"})
+		return c.JSON(http.StatusInternalServerError, types.Res[struct{}]{Message: "Failed to get branch domain"})
 	}
 
 	envString, err := UnmarshalServiceEnv(&ServiceEnvByte{
@@ -274,13 +283,16 @@ func (h *ServiceHandler) GetServiceEnv(c *echo.Context) error {
 		BuildSecrets: e.BuildSecrets,
 	})
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, types.Res{Message: "Failed to get branch domain"})
+		return c.JSON(http.StatusInternalServerError, types.Res[struct{}]{Message: "Failed to get branch domain"})
 	}
 
-	return c.JSON(http.StatusOK, &GetEnvRes{
-		Env:          envString.Env,
-		BuildArgs:    envString.BuildArgs,
-		BuildSecrets: envString.BuildSecrets,
+	return c.JSON(http.StatusOK, types.Res[GetEnvRes]{
+		Message: "",
+		Data: GetEnvRes{
+			Env:          envString.Env,
+			BuildArgs:    envString.BuildArgs,
+			BuildSecrets: envString.BuildSecrets,
+		},
 	})
 }
 
@@ -298,19 +310,19 @@ func (h *ServiceHandler) UpdateAppServiceDomain(c *echo.Context) error {
 
 	// check if url is valid
 	if _, err := url.Parse(b.Domain); err != nil {
-		return c.JSON(http.StatusBadRequest, types.Res{Message: "invalid domain"})
+		return c.JSON(http.StatusBadRequest, types.Res[struct{}]{Message: "invalid domain"})
 	}
 
 	swarmService, err := q.GetSwarmServiceByBranchId(h.qCtx, b.BranchID)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, types.Res{Message: "Failed to get swarm service"})
+		return c.JSON(http.StatusInternalServerError, types.Res[struct{}]{Message: "Failed to get swarm service"})
 	}
 
 	// get service spec to update the labels
 	inspectRes, err := docker.ServiceInspect(context.Background(), swarmService, client.ServiceInspectOptions{})
 	if err != nil {
 		fmt.Printf("Failed to inspect swarm service: %v\n", err)
-		return c.JSON(http.StatusInternalServerError, types.Res{Message: "Failed to inspect swarm service"})
+		return c.JSON(http.StatusInternalServerError, types.Res[struct{}]{Message: "Failed to inspect swarm service"})
 	}
 	serviceV := inspectRes.Service.Meta.Version
 	spec := inspectRes.Service.Spec
@@ -325,7 +337,7 @@ func (h *ServiceHandler) UpdateAppServiceDomain(c *echo.Context) error {
 		Spec:    spec,
 	}); err != nil {
 		fmt.Printf("Failed to update swarm service: %v\n", err)
-		return c.JSON(http.StatusInternalServerError, types.Res{Message: "Failed to update swarm service"})
+		return c.JSON(http.StatusInternalServerError, types.Res[struct{}]{Message: "Failed to update swarm service"})
 	}
 
 	// update the branch table
@@ -334,10 +346,10 @@ func (h *ServiceHandler) UpdateAppServiceDomain(c *echo.Context) error {
 		Port:   b.Port,
 		ID:     b.BranchID,
 	}); err != nil {
-		return c.JSON(http.StatusInternalServerError, types.Res{Message: "Failed to update domain and port"})
+		return c.JSON(http.StatusInternalServerError, types.Res[struct{}]{Message: "Failed to update domain and port"})
 	}
 
-	return c.JSON(http.StatusOK, types.Res{Message: "Successfully updated domain and port"})
+	return c.JSON(http.StatusOK, types.Res[struct{}]{Message: "Successfully updated domain and port"})
 }
 
 // update domain and port
@@ -355,7 +367,7 @@ func (h *ServiceHandler) UpdateAppServiceEnv(c *echo.Context) error {
 	// get all swarm service of avalable branches
 	swarmServices, err := q.GetAllSwarmServiceByAppServiceId(h.qCtx, b.ServiceID)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, types.Res{Message: "Failed to get all swarm service"})
+		return c.JSON(http.StatusInternalServerError, types.Res[struct{}]{Message: "Failed to get all swarm service"})
 	}
 
 	// update env in all the service
@@ -364,7 +376,7 @@ func (h *ServiceHandler) UpdateAppServiceEnv(c *echo.Context) error {
 		inspectRes, err := docker.ServiceInspect(context.Background(), serviceName, client.ServiceInspectOptions{})
 		if err != nil {
 			fmt.Printf("Failed to inspect swarm service: %v\n", err)
-			return c.JSON(http.StatusInternalServerError, types.Res{Message: "Failed to inspect swarm service"})
+			return c.JSON(http.StatusInternalServerError, types.Res[struct{}]{Message: "Failed to inspect swarm service"})
 		}
 		serviceV := inspectRes.Service.Meta.Version
 		spec := inspectRes.Service.Spec
@@ -376,24 +388,24 @@ func (h *ServiceHandler) UpdateAppServiceEnv(c *echo.Context) error {
 			Spec:    spec,
 		}); err != nil {
 			fmt.Printf("Failed to update swarm service: %v\n", err)
-			return c.JSON(http.StatusInternalServerError, types.Res{Message: "Failed to update swarm service"})
+			return c.JSON(http.StatusInternalServerError, types.Res[struct{}]{Message: "Failed to update swarm service"})
 		}
 	}
 
 	// convert into bytes
 	envByte, err := json.Marshal(b.Env)
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, types.Res{Message: "invalid env values"})
+		return c.JSON(http.StatusBadRequest, types.Res[struct{}]{Message: "invalid env values"})
 	}
 
 	buildArgsByte, err := json.Marshal(b.BuildArgs)
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, types.Res{Message: "invalid build args values"})
+		return c.JSON(http.StatusBadRequest, types.Res[struct{}]{Message: "invalid build args values"})
 	}
 
 	buildSecretsByte, err := json.Marshal(b.BuildSecrets)
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, types.Res{Message: "invalid build secrets values"})
+		return c.JSON(http.StatusBadRequest, types.Res[struct{}]{Message: "invalid build secrets values"})
 	}
 
 	// update the env in the app service table
@@ -403,10 +415,10 @@ func (h *ServiceHandler) UpdateAppServiceEnv(c *echo.Context) error {
 		BuildArgs:    buildArgsByte,
 		BuildSecrets: buildSecretsByte,
 	}); err != nil {
-		return c.JSON(http.StatusBadRequest, types.Res{Message: "Failed to update env"})
+		return c.JSON(http.StatusBadRequest, types.Res[struct{}]{Message: "Failed to update env"})
 	}
 
-	return c.JSON(http.StatusOK, types.Res{Message: "Successfully updated env"})
+	return c.JSON(http.StatusOK, types.Res[struct{}]{Message: "Successfully updated env"})
 }
 
 // NEXT_PUBLIC_TEST_ARGS
@@ -423,20 +435,20 @@ func (h *ServiceHandler) RebuildAppService(c *echo.Context) error {
 
 	service, err := q.GetAppServiceByBranchId(h.qCtx, b.BranchID)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, types.Res{Message: "Failed to get branch"})
+		return c.JSON(http.StatusInternalServerError, types.Res[struct{}]{Message: "Failed to get branch"})
 	}
 
 	// start a new db transaction
 	tx, err := h.Server.DB.Pool.BeginTx(context.Background(), nil)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, types.Res{Message: "Failed to create service"})
+		return c.JSON(http.StatusInternalServerError, types.Res[struct{}]{Message: "Failed to create service"})
 	}
 	q = q.WithTx(tx)
 
 	// update the previous deployment is_latest to false
 	if err := q.SetDeploymentNotLatest(h.qCtx, service.DeploymentID); err != nil {
 		tx.Rollback()
-		return c.JSON(http.StatusInternalServerError, types.Res{Message: "Failed to create service"})
+		return c.JSON(http.StatusInternalServerError, types.Res[struct{}]{Message: "Failed to create service"})
 	}
 
 	// TODO : get commit msg from client side
@@ -449,27 +461,27 @@ func (h *ServiceHandler) RebuildAppService(c *echo.Context) error {
 	})
 	if err != nil {
 		tx.Rollback()
-		return c.JSON(http.StatusInternalServerError, types.Res{Message: "Failed to create deployment"})
+		return c.JSON(http.StatusInternalServerError, types.Res[struct{}]{Message: "Failed to create deployment"})
 	}
 
 	// end the db transaction and commit
 	if err := tx.Commit(); err != nil {
-		return c.JSON(http.StatusInternalServerError, types.Res{Message: "Failed to create service"})
+		return c.JSON(http.StatusInternalServerError, types.Res[struct{}]{Message: "Failed to create service"})
 	}
 
 	// get the github app details
 	ghApp, err := q.GetGhAppByAppId(h.qCtx, service.GhAppID)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return c.JSON(http.StatusBadRequest, types.Res{Message: "invalid github app"})
+			return c.JSON(http.StatusBadRequest, types.Res[struct{}]{Message: "invalid github app"})
 		}
-		return c.JSON(http.StatusInternalServerError, types.Res{Message: "failed to verify github app"})
+		return c.JSON(http.StatusInternalServerError, types.Res[struct{}]{Message: "failed to verify github app"})
 	}
 
 	// get gh token
 	token, err := gh.GetGhToken(ghApp.AppID, ghApp.InstallationID.Int64, ghApp.PemKey)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, types.Res{Message: "Failed to get github token"})
+		return c.JSON(http.StatusInternalServerError, types.Res[struct{}]{Message: "Failed to get github token"})
 	}
 
 	// used as uniquecontainer name and code storing path
@@ -481,7 +493,7 @@ func (h *ServiceHandler) RebuildAppService(c *echo.Context) error {
 		BuildSecrets: service.BuildSecrets,
 	})
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, types.Res{Message: "Failed to get branch domain"})
+		return c.JSON(http.StatusInternalServerError, types.Res[struct{}]{Message: "Failed to get branch domain"})
 	}
 
 	// push a new deployment job to the queue
@@ -502,7 +514,7 @@ func (h *ServiceHandler) RebuildAppService(c *echo.Context) error {
 		BuildSecrets:      envStr.BuildSecrets,
 	})
 
-	return c.JSON(http.StatusOK, service.ServiceID)
+	return c.JSON(http.StatusOK, types.Res[uuid.UUID]{Message: "Successfully updated env", Data: service.ServiceID})
 }
 
 // delete app service
@@ -518,7 +530,7 @@ func (h *ServiceHandler) DeleteAppService(c *echo.Context) error {
 
 	serviceInfo, err := q.GetAllSwarmServiceAndImagesByAppServiceId(h.qCtx, b.ServiceId)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, types.Res{Message: "Failed to get deployments"})
+		return c.JSON(http.StatusInternalServerError, types.Res[struct{}]{Message: "Failed to get deployments"})
 	}
 
 	// arrange all ids and imgs sepratly for easy access
@@ -544,8 +556,8 @@ func (h *ServiceHandler) DeleteAppService(c *echo.Context) error {
 
 	// delete the app service
 	if err := h.Server.DB.Queries.DeleteAppService(h.qCtx, b.ServiceId); err != nil {
-		return c.JSON(http.StatusInternalServerError, types.Res{Message: "Failed to delete service"})
+		return c.JSON(http.StatusInternalServerError, types.Res[struct{}]{Message: "Failed to delete service"})
 	}
 
-	return c.JSON(http.StatusOK, types.Res{Message: "Successsfully deleted service"})
+	return c.JSON(http.StatusOK, types.Res[struct{}]{Message: "Successsfully deleted service"})
 }

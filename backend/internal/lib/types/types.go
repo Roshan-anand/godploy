@@ -32,7 +32,7 @@ const (
 	DeploymentPruned   DeploymentStatus = "pruned"   // image is not available
 )
 
-type Res struct {
-	Message string                 `json:"message" validate:"required"`
-	Data    map[string]interface{} `json:"data"`
+type Res[T any] struct {
+	Message string `json:"message" validate:"required"`
+	Data    T      `json:"data"`
 }

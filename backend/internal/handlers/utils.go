@@ -37,15 +37,15 @@ func removeSession(query *db.Queries, state string) {
 }
 
 // binds and validate the given data
-func BindAndValidate(b any, c *echo.Context, v *validator.Validate) *types.Res {
+func BindAndValidate(b any, c *echo.Context, v *validator.Validate) *types.Res[struct{}] {
 
 	if err := c.Bind(b); err != nil {
 		fmt.Printf("Error binding request data: %v\n", err)
-		return &types.Res{Message: "Invalid Data"}
+		return &types.Res[struct{}]{Message: "Invalid Data"}
 	}
 
 	if err := v.Struct(b); err != nil {
-		return &types.Res{Message: fmt.Sprintf("validation error : %v", err)}
+		return &types.Res[struct{}]{Message: fmt.Sprintf("validation error : %v", err)}
 	}
 
 	return nil
