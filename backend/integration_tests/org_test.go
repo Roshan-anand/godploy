@@ -2,127 +2,108 @@ package testing
 
 import (
 	"net/http"
-	"net/http/httptest"
 	"testing"
 
 	"github.com/Roshan-anand/godploy/internal/db"
 	"github.com/Roshan-anand/godploy/internal/handlers"
+	"github.com/Roshan-anand/godploy/internal/lib/types"
+	"github.com/google/uuid"
 )
 
 func TestOrgOperations(t *testing.T) {
-	e, srv, err := mockConfigServer()
-	if err != nil {
-		t.Fatal("err config server :", err)
-	}
-
-	ts := httptest.NewServer(e)
-	t.Cleanup(ts.Close)
-
-	h, err := getNewClient()
-	if err != nil {
-		t.Fatal("err creating http client:", err)
-	}
-
-	user, err := mockUserRejister(ts.URL, h, srv.Config)
+	_, h, err := GetDummyServerHandler()
 	if err != nil {
 		t.Fatal(err)
 	}
-	CurrentOrgID := user.OrgId
 
-	rOrg := "/api/org"
+	user := mockUserRejister(h, t)
+	if err != nil {
+		t.Fatal(err)
+	}
 
-	t.Run("DELETE /org : returns 400 when trying to delete only org", func(t *testing.T) {
-		deleteOrgReq := handlers.OrgReq{OrgID: CurrentOrgID}
-		deleteReq, err := http.NewRequest(http.MethodDelete, ts.URL+rOrg, reqBody(deleteOrgReq))
+	var secOrg uuid.UUID
+
+	orgReqBody := &handlers.OrgReq{
+		OrgID: user.OrgId,
+	}
+
+	createOrgBody := &handlers.CreateOrgReq{
+		Name: "origami",
+	}
+
+	t.Run("Delete the only org", func(t *testing.T) {
+		rec, err := TestEchoHandler(t, h.Org.DeleteOrg, orgReqBody, true)
 		if err != nil {
-			t.Fatal("err creating request:", err)
-		}
-		deleteReq.Header.Set("Content-Type", "application/json")
-
-		r, err := h.Do(deleteReq)
-		if err != nil {
-			t.Fatal("err making request:", err)
-		}
-		defer r.Body.Close()
-
-		if r.StatusCode != http.StatusConflict {
-			t.Fatalf("expected status code %d, got %d", http.StatusConflict, r.StatusCode)
-		}
-	})
-
-	t.Run("POST /org : returns 200 for creating new org", func(t *testing.T) {
-		createOrgReq := handlers.CreateOrgReq{Name: "new_org"}
-		r, err := h.Post(ts.URL+rOrg, "application/json", reqBody(createOrgReq))
-		if err != nil {
-			t.Fatal("err making request:", err)
-		}
-		defer r.Body.Close()
-
-		if r.StatusCode != http.StatusOK {
-			t.Fatalf("expected status code %d, got %d", http.StatusOK, r.StatusCode)
-		}
-
-		var res db.CreateOrgRow
-		if err := readAndUnmarshl(r.Body, &res); err != nil {
-			t.Fatal(err)
-		}
-		CurrentOrgID = res.ID
-	})
-
-	t.Run("GET /org : returns all orgs for the user", func(t *testing.T) {
-		r, err := h.Get(ts.URL + rOrg)
-		if err != nil {
-			t.Fatal("err making request:", err)
-		}
-		defer r.Body.Close()
-
-		if r.StatusCode != http.StatusOK {
-			t.Fatalf("expected status code %d, got %d", http.StatusOK, r.StatusCode)
-		}
-
-		var orgs []map[string]interface{}
-		if err := readAndUnmarshl(r.Body, &orgs); err != nil {
 			t.Fatal(err)
 		}
 
-		if len(orgs) != 2 {
-			t.Fatalf("expected 2 orgs, got %d", len(orgs))
+		if rec.Code != http.StatusConflict {
+			t.Fatalf("expected status code %d, got %d", http.StatusConflict, rec.Code)
 		}
 	})
 
-	t.Run("PUT /org/switch : returns 200 for switching org", func(t *testing.T) {
-		switchReq := handlers.OrgReq{OrgID: CurrentOrgID}
-
-		r, err := h.Post(ts.URL+rOrg+"/switch", "application/json", reqBody(switchReq))
+	t.Run("Create a new org", func(t *testing.T) {
+		rec, err := TestEchoHandler(t, h.Org.CreateOrg, createOrgBody, true)
 		if err != nil {
-			t.Fatal("err making request:", err)
+			t.Fatal(err)
 		}
-		defer r.Body.Close()
+		body := rec.Result().Body
+		defer body.Close()
 
-		if r.StatusCode != http.StatusOK {
-			t.Fatalf("expected status code %d, got %d", http.StatusOK, r.StatusCode)
+		if rec.Code != http.StatusOK {
+			t.Fatalf("expected status code %d, got %d", http.StatusOK, rec.Code)
+		}
+
+		var res types.Res[db.CreateOrgRow]
+		if err := readAndUnmarshl(body, &res); err != nil {
+			t.Fatal(err)
+		}
+		secOrg = res.Data.ID
+	})
+
+	t.Run("get all orgs", func(t *testing.T) {
+		rec, err := TestEchoHandler(t, h.Org.GetAllOrgs, nil, true)
+		if err != nil {
+			t.Fatal(err)
+		}
+		body := rec.Result().Body
+		defer body.Close()
+
+		if rec.Code != http.StatusOK {
+			t.Fatalf("expected status code %d, got %d", http.StatusOK, rec.Code)
+		}
+
+		var res types.Res[[]db.GetAllOrgRow]
+		if err := readAndUnmarshl(body, &res); err != nil {
+			t.Fatal(err)
+		}
+
+		if len(res.Data) != 2 {
+			t.Fatalf("expected 2 orgs, got %d", len(res.Data))
 		}
 	})
 
-	// t.Run("DELETE /org : returns 200 for deleting org (not the only one)", func(t *testing.T) {
-	// 	deleteOrgReq := handlers.OrgReq{
-	// 		OrgID: CurrentOrgID,
-	// 	}
+	t.Run("switch org", func(t *testing.T) {
+		orgReqBody.OrgID = secOrg
+		rec, err := TestEchoHandler(t, h.Org.SwitchOrg, orgReqBody, true)
+		if err != nil {
+			t.Fatal(err)
+		}
 
-	// 	deleteReq, err := http.NewRequest(http.MethodDelete, ts.URL+rOrg, reqBody(deleteOrgReq))
-	// 	if err != nil {
-	// 		t.Fatal("err creating request:", err)
-	// 	}
-	// 	deleteReq.Header.Set("Content-Type", "application/json")
+		if rec.Code != http.StatusOK {
+			t.Fatalf("expected status code %d, got %d", http.StatusOK, rec.Code)
+		}
+	})
 
-	// 	r, err := h.Do(deleteReq)
-	// 	if err != nil {
-	// 		t.Fatal("err making request:", err)
-	// 	}
-	// 	defer r.Body.Close()
+	t.Run("DELETE /org : returns 200 for deleting org (not the only one)", func(t *testing.T) {
+		orgReqBody.OrgID = user.OrgId
+		rec, err := TestEchoHandler(t, h.Org.DeleteOrg, orgReqBody, true)
+		if err != nil {
+			t.Fatal(err)
+		}
 
-	// 	if r.StatusCode != http.StatusOK {
-	// 		t.Fatalf("expected status code %d, got %d", http.StatusOK, r.StatusCode)
-	// 	}
-	// })
+		if rec.Code != http.StatusOK {
+			t.Fatalf("expected status code %d, got %d", http.StatusOK, rec.Code)
+		}
+	})
 }
