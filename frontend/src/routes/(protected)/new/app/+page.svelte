@@ -72,6 +72,10 @@
 			const buildPath = normalizePathValue(value.build_path);
 			const watchPath = normalizePathValue(value.watch_path);
 
+			const env = value.env.split('\n').filter((line) => line.trim() !== '');
+			const build_args = value.build_args.split('\n').filter((line) => line.trim() !== '');
+			const build_secrets = value.build_secrets.split('\n').filter((line) => line.trim() !== '');
+
 			createServiceMutation.mutate({
 				org_id: org_id,
 				name: value.name.trim(),
@@ -80,9 +84,9 @@
 				gh_repo_id: value.gh_repo_id,
 				build_path: buildPath,
 				watch_path: watchPath,
-				env: value.env.split('\n'),
-				build_args: value.build_args.split('\n'),
-				build_secrets: value.build_secrets.split('\n'),
+				env,
+				build_args,
+				build_secrets,
 				docker_build: {
 					file_path: value.docker_build.file_path,
 					context_path: value.docker_build.context_path,

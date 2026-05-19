@@ -21,47 +21,51 @@ func (w *worker) DeployWorker(ctx context.Context, data chan *deploymentqueue.De
 				return
 			}
 
-			fmt.Println("DeployWorker: started working ...")
-
 			replicas := uint64(1)
-			_, err := w.Server.Docker.Client.ServiceCreate(context.Background(), client.ServiceCreateOptions{
-				Spec: swarm.ServiceSpec{
+			// config swarm service spec
+			spec := swarm.ServiceSpec{
+				Annotations: swarm.Annotations{
+					Name: d.SwarmServiceName,
+					Labels: map[string]string{
+						"traefik.enable": "true",
+						fmt.Sprintf("traefik.http.routers.%s.entrypoints", d.SwarmServiceName):               "websecure",
+						fmt.Sprintf("traefik.http.services.%s.loadbalancer.server.port", d.SwarmServiceName): "80",
+						fmt.Sprintf("traefik.http.routers.%s.tls.certresolver", d.SwarmServiceName):          "le",
+						"traefik.constraint-label": "head-proxy",
+					},
+				},
 
-					Annotations: swarm.Annotations{
-						Name: d.SwarmServiceName,
-						Labels: map[string]string{
-							"traefik.enable": "true",
-							fmt.Sprintf("traefik.http.routers.%s.entrypoints", d.SwarmServiceName):               "websecure",
-							fmt.Sprintf("traefik.http.services.%s.loadbalancer.server.port", d.SwarmServiceName): "80",
-							fmt.Sprintf("traefik.http.routers.%s.tls.certresolver", d.SwarmServiceName):          "le",
-							"traefik.constraint-label": "head-proxy",
-						},
+				TaskTemplate: swarm.TaskSpec{
+					ContainerSpec: &swarm.ContainerSpec{
+						Image: d.ImgName,
+						TTY:   true,
 					},
 
-					TaskTemplate: swarm.TaskSpec{
-						ContainerSpec: &swarm.ContainerSpec{
-							Image: d.ImgName,
-							TTY:   true,
-							Env:   d.Env,
-						},
-
-						RestartPolicy: &swarm.RestartPolicy{
-							Condition: swarm.RestartPolicyConditionAny,
-						},
-
-						Networks: []swarm.NetworkAttachmentConfig{
-							{
-								Target: "godploy_traefik_proxy",
-							},
-						},
+					RestartPolicy: &swarm.RestartPolicy{
+						Condition: swarm.RestartPolicyConditionAny,
 					},
 
-					Mode: swarm.ServiceMode{
-						Replicated: &swarm.ReplicatedService{
-							Replicas: &replicas,
+					Networks: []swarm.NetworkAttachmentConfig{
+						{
+							Target: "godploy_traefik_proxy",
 						},
 					},
 				},
+
+				Mode: swarm.ServiceMode{
+					Replicated: &swarm.ReplicatedService{
+						Replicas: &replicas,
+					},
+				},
+			}
+
+			// if env avalable
+			if len(d.Env) > 0 {
+				spec.TaskTemplate.ContainerSpec.Env = d.Env
+			}
+
+			_, err := w.Server.Docker.Client.ServiceCreate(context.Background(), client.ServiceCreateOptions{
+				Spec: spec,
 			})
 			if err != nil {
 				fmt.Printf("DeployWorker: error creating service: %v\n", err)
@@ -80,7 +84,6 @@ func (w *worker) DeployWorker(ctx context.Context, data chan *deploymentqueue.De
 				Message:      "successfully deployed",
 			})
 
-			fmt.Printf("DeployWorker: finished working ...")
 		case <-ctx.Done():
 			fmt.Println("DeployWorker: context cancelled, exiting")
 			return

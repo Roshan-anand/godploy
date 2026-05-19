@@ -1,11 +1,8 @@
 package deploymentjob
 
 import (
-	"bufio"
 	"context"
-	"errors"
 	"fmt"
-	"io"
 	"os/exec"
 	"path"
 
@@ -13,42 +10,7 @@ import (
 	deploymentqueue "github.com/Roshan-anand/godploy/internal/jobs/deployment/queue"
 	logbrokerqueue "github.com/Roshan-anand/godploy/internal/jobs/logbroker/queue"
 	"github.com/Roshan-anand/godploy/internal/lib/types"
-	"github.com/creack/pty"
-	"github.com/google/uuid"
 )
-
-func scanAndPublish(l *logbrokerqueue.LogBrokerQueue, dID uuid.UUID, r io.Reader) {
-	scanner := bufio.NewScanner(r)
-
-	buf := make([]byte, 0, 64*1024)
-	scanner.Buffer(buf, 1024*1024)
-	for scanner.Scan() {
-		l.PublishLog(&logbrokerqueue.PubData{
-			ID:  dID,
-			Msg: scanner.Text(),
-		})
-	}
-	if err := scanner.Err(); err != nil {
-		if !errors.Is(err, io.EOF) {
-			fmt.Println("stdout read error:", err)
-		}
-	}
-}
-
-func runWorkerCmd(l *logbrokerqueue.LogBrokerQueue, dID uuid.UUID, cmd *exec.Cmd, worker string) error {
-	ptmx, err := pty.Start(cmd)
-	if err != nil {
-		return fmt.Errorf("%s:err:pty:start: %v", worker, err)
-	}
-	defer ptmx.Close()
-
-	go scanAndPublish(l, dID, ptmx)
-
-	if err := cmd.Wait(); err != nil {
-		return fmt.Errorf("%s:err:cmd:wait: %v\n", worker, err)
-	}
-	return nil
-}
 
 // responsible for pulling code and storing it local
 func (w *worker) PullWorker(ctx context.Context, data chan *deploymentqueue.PullJobData) {

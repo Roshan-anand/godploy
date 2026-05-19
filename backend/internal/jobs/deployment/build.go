@@ -19,7 +19,7 @@ func getDockerBuildCmd(d *deploymentqueue.BuildJobData) *exec.Cmd {
 	// 	"--secret", "id=npm_token,src=/tmp/npm_token",
 	// 	"--secret", "id=github_token,src=/tmp/github_token",
 
-	cmd := exec.Command("docker", "buildx", "build")
+	cmd := exec.Command("docker", "build")
 
 	if d.DockerFilePath != "" {
 		cmd.Args = append(cmd.Args, "--file", d.DockerFilePath)
@@ -61,7 +61,6 @@ func (w *worker) BuildWorker(ctx context.Context, data chan *deploymentqueue.Bui
 				return
 			}
 
-			fmt.Println("BuildWorker: started working ...")
 			l := w.Server.LogBrokerQ
 
 			// generate a new docker build cmd
