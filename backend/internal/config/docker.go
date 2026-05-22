@@ -61,6 +61,13 @@ func (d *DockerClient) RemoveImages(imgs []string) {
 			fmt.Printf("failed to remove image %s : %v\n", img, err)
 		}
 	}
+
+	// remove all build cache
+	if _, err := d.Client.BuildCachePrune(context.Background(), client.BuildCachePruneOptions{
+		All: true,
+	}); err != nil {
+		fmt.Printf("failed to prune build cache : %v\n", err)
+	}
 }
 
 // helper function to remove multiple services

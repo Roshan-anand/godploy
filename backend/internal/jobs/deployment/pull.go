@@ -22,6 +22,13 @@ func (w *worker) PullWorker(ctx context.Context, data chan *deploymentqueue.Pull
 				return
 			}
 
+			l := w.Server.LogBrokerQ
+
+			l.PublishLog(&logbrokerqueue.PubData{
+				ID:  d.DeploymentID,
+				Msg: getTitle("Pulling code from" + d.Url),
+			})
+
 			// update the deployment status to building
 			if err := w.Server.DB.Queries.UpdateDeploymentStatus(w.qCtx, db.UpdateDeploymentStatusParams{
 				Status: types.DeploymentBuilding,
@@ -29,8 +36,6 @@ func (w *worker) PullWorker(ctx context.Context, data chan *deploymentqueue.Pull
 			}); err != nil {
 				fmt.Printf("PullWorker: error updating deployment status: %v\n", err)
 			}
-
-			l := w.Server.LogBrokerQ
 
 			outputPath := path.Join(w.Server.Config.CodeStoreDir, d.SwarmServiceName)
 			repoUrl := fmt.Sprintf("https://oauth2:%s@%s", d.Token, d.Url)

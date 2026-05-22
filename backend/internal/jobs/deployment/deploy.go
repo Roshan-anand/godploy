@@ -21,6 +21,13 @@ func (w *worker) DeployWorker(ctx context.Context, data chan *deploymentqueue.De
 				return
 			}
 
+			l := w.Server.LogBrokerQ
+
+			l.PublishLog(&logbrokerqueue.PubData{
+				ID:  d.DeploymentID,
+				Msg: getTitle("Deploying  the service " + d.SwarmServiceName),
+			})
+
 			replicas := uint64(1)
 			// config swarm service spec
 			spec := swarm.ServiceSpec{
@@ -69,7 +76,7 @@ func (w *worker) DeployWorker(ctx context.Context, data chan *deploymentqueue.De
 			})
 			if err != nil {
 				fmt.Printf("DeployWorker: error creating service: %v\n", err)
-				w.Server.LogBrokerQ.EndLogs(&logbrokerqueue.EndLogData{
+				l.EndLogs(&logbrokerqueue.EndLogData{
 					DeploymentID: d.DeploymentID,
 					Status:       types.DeploymentError,
 					Message:      err.Error(),
@@ -79,10 +86,10 @@ func (w *worker) DeployWorker(ctx context.Context, data chan *deploymentqueue.De
 
 			fmt.Println("finished deploying :", d.SwarmServiceName)
 			// end the logs
-			w.Server.LogBrokerQ.EndLogs(&logbrokerqueue.EndLogData{
+			l.EndLogs(&logbrokerqueue.EndLogData{
 				DeploymentID: d.DeploymentID,
 				Status:       types.DeploymentReady,
-				Message:      "successfully deployed",
+				Message:      getTitle("successfully deployed"),
 			})
 
 		case <-ctx.Done():

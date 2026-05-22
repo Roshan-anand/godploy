@@ -12,6 +12,11 @@ import (
 	"github.com/google/uuid"
 )
 
+// returns a formatted title string for the logs
+func getTitle(msg string) string {
+	return fmt.Sprintf("\n-----------------------------------\n\n %s \n------------------------------------\n", msg)
+}
+
 // scans the reader line by line and publish the logs
 func scanAndPublish(l *logbrokerqueue.LogBrokerQueue, dID uuid.UUID, r io.Reader) {
 	reader := bufio.NewReader(r)

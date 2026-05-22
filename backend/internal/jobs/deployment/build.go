@@ -63,6 +63,11 @@ func (w *worker) BuildWorker(ctx context.Context, data chan *deploymentqueue.Bui
 
 			l := w.Server.LogBrokerQ
 
+			l.PublishLog(&logbrokerqueue.PubData{
+				ID:  d.DeploymentID,
+				Msg: getTitle("Building the image " + d.ImgName),
+			})
+
 			// generate a new docker build cmd
 			buildCmd := getDockerBuildCmd(d)
 

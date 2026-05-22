@@ -65,8 +65,15 @@ func (job *LogsBroker) LogsBrokerJob(ctx context.Context, pub chan *logbrokerque
 			}
 			dID := e.DeploymentID
 
+			if e.Status == types.DeploymentError {
+				if e.Message == "" {
+					e.Message = "something went wrong !!"
+				}
+			}
+
 			// push all logs from buffer to badgerDB
 			logs := job.bufferGet(dID)
+			logs = append(logs, e.Message)
 			job.Server.BadgerDB.AddLogs(dID, logs)
 
 			// update deployment status in database
@@ -80,11 +87,6 @@ func (job *LogsBroker) LogsBrokerJob(ctx context.Context, pub chan *logbrokerque
 			// remove subscribers of the deployment
 			for userID, sub := range job.Server.LogBrokerQ.Subscribers {
 				if sub.DeploymentID == dID {
-					if e.Status == types.DeploymentError {
-						if e.Message == "" {
-							e.Message = "something went wrong !!"
-						}
-					}
 					sub.SSE.SendEvent("log", []byte(e.Message))
 					job.Server.LogBrokerQ.UnsubscribeLogs(userID)
 				}

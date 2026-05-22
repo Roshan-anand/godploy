@@ -41,7 +41,7 @@ func (db *BadgerDB) AddLogs(dID uuid.UUID, logs []string) {
 	txn := db.Pool.NewTransaction(true)
 
 	for i, log := range logs {
-		key := fmt.Sprintf("%s_%d", dID.String(), i)
+		key := fmt.Sprintf("%s_%06d", dID.String(), i)
 		if err := txn.Set([]byte(key), []byte(log)); err == badger.ErrTxnTooBig {
 			_ = txn.Commit()
 			txn = db.Pool.NewTransaction(true)

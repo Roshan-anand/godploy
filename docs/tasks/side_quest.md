@@ -45,6 +45,10 @@
 - deployment logs page
   - [ ] fix logs dialog box width
   - [ ] show error msg in red bg.
+- rollback
+  - [ ] config operation if image not exists
+  - [ ] provide settings to +/- keeping the image of deployments
+  - [ ] automaticcally delete deployments img if max exceeds
 
 ## Potential bugs
 
@@ -55,5 +59,5 @@
 - [ ] form errors pops up as [object object]
 - [ ] create and list org not working
 - [ ] in create_service_form, if the name input have '/' in the string then this cause bug while creating a file for that code in the name of the service_name. so need to prevent user from entering '/' in the name input field. [easy, ui]
-- [ ] when view deployment logs after it is ended, or late subscribed then logs are not fully shown or have random logs.
+- [x] when view deployment logs after it is ended, or late subscribed then logs are not fully shown or have random logs.
 - [ ] when deleting github app the every delete btn shows deleting if any one is clicked. [easy, ui]
