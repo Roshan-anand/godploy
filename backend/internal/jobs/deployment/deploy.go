@@ -39,58 +39,10 @@ func (w *worker) DeployWorker(ctx context.Context, data chan *deploymentqueue.De
 				continue
 			}
 
-			replicas := uint64(1)
-			// config swarm service spec
-			spec := swarm.ServiceSpec{
-				Annotations: swarm.Annotations{
-					Name: d.SwarmServiceName,
-				},
+			// get the service spec
+			spec := getBaseSpec(d.ImgName, d.NetworkName, d.SwarmServiceName, d.Env, d.IsPublic)
 
-				TaskTemplate: swarm.TaskSpec{
-					ContainerSpec: &swarm.ContainerSpec{
-						Image: d.ImgName,
-						TTY:   true,
-					},
-
-					RestartPolicy: &swarm.RestartPolicy{
-						Condition: swarm.RestartPolicyConditionAny,
-					},
-
-					Networks: []swarm.NetworkAttachmentConfig{
-						{
-							Target: d.NetworkName,
-						},
-					},
-				},
-
-				Mode: swarm.ServiceMode{
-					Replicated: &swarm.ReplicatedService{
-						Replicas: &replicas,
-					},
-				},
-			}
-
-			// if env avalable
-			if len(d.Env) > 0 {
-				spec.TaskTemplate.ContainerSpec.Env = d.Env
-			}
-
-			// if the service is public connect to traefik
-			if d.IsPublic {
-				spec.TaskTemplate.Networks = append(spec.TaskTemplate.Networks, swarm.NetworkAttachmentConfig{
-					Target: "godploy_traefik_proxy",
-				})
-
-				spec.Annotations.Labels = map[string]string{
-					"traefik.enable": "true",
-					fmt.Sprintf("traefik.http.routers.%s.entrypoints", d.SwarmServiceName):               "websecure",
-					fmt.Sprintf("traefik.http.services.%s.loadbalancer.server.port", d.SwarmServiceName): "80",
-					fmt.Sprintf("traefik.http.routers.%s.tls.certresolver", d.SwarmServiceName):          "le",
-					"traefik.constraint-label": "head-proxy",
-				}
-			}
-
-			_, err := docker.ServiceCreate(context.Background(), spec, swarm.ServiceCreateOptions{})
+			_, err := docker.ServiceCreate(context.Background(), *spec, swarm.ServiceCreateOptions{})
 			if err != nil {
 				fmt.Printf("DeployWorker: error creating service: %v\n", err)
 				l.EndLogs(&logbrokerqueue.EndLogData{

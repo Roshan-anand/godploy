@@ -9,6 +9,7 @@ import (
 
 	logbrokerqueue "github.com/Roshan-anand/godploy/internal/jobs/logbroker/queue"
 	"github.com/creack/pty"
+	"github.com/docker/docker/api/types/swarm"
 	"github.com/google/uuid"
 )
 
@@ -53,4 +54,54 @@ func runWorkerCmd(l *logbrokerqueue.LogBrokerQueue, dID uuid.UUID, cmd *exec.Cmd
 		return fmt.Errorf("%s:err:cmd:wait: %v\n", worker, err)
 	}
 	return nil
+}
+
+// returns a base service spec for the given parameters
+func getBaseSpec(imgName string, networkName string, swarmName string, env []string, isPublic bool) *swarm.ServiceSpec {
+
+	spec := &swarm.ServiceSpec{
+		Annotations: swarm.Annotations{
+			Name: swarmName,
+			Labels: map[string]string{
+				fmt.Sprintf("traefik.http.routers.%s.entrypoints", swarmName):               "websecure",
+				fmt.Sprintf("traefik.http.services.%s.loadbalancer.server.port", swarmName): "80",
+				fmt.Sprintf("traefik.http.routers.%s.tls.certresolver", swarmName):          "le",
+				"traefik.constraint-label": "head-proxy",
+			},
+		},
+
+		TaskTemplate: swarm.TaskSpec{
+			ContainerSpec: &swarm.ContainerSpec{
+				Image: imgName,
+				TTY:   true,
+			},
+
+			RestartPolicy: &swarm.RestartPolicy{
+				Condition: swarm.RestartPolicyConditionAny,
+			},
+
+			Networks: []swarm.NetworkAttachmentConfig{
+				{
+					Target: networkName,
+				},
+			},
+		},
+	}
+
+	// if the service is public connect to traefik
+	if isPublic {
+		spec.TaskTemplate.Networks = append(spec.TaskTemplate.Networks, swarm.NetworkAttachmentConfig{
+			Target: "godploy_traefik_proxy",
+		})
+		spec.Annotations.Labels["traefik.enable"] = "true"
+	} else {
+		spec.Annotations.Labels["traefik.enable"] = "false"
+	}
+
+	// if env avalable
+	if len(env) > 0 {
+		spec.TaskTemplate.ContainerSpec.Env = env
+	}
+
+	return spec
 }
