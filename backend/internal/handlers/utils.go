@@ -175,7 +175,7 @@ func generateServiceAndImgName(name string, branch string) *GenerateNameRes {
 	branch = strings.ReplaceAll(branch, "/", "-")
 
 	base := fmt.Sprintf("%s-%s", name, branch)
-	id := security.GenerateRandomID(3)
+	id := security.GenerateRandomID(3, true)
 	serviceName := fmt.Sprintf("%s-%s", base, id)
 	imgName := strings.ToLower(fmt.Sprintf("%s-dyp_%s", base, id))
 

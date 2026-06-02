@@ -63,7 +63,6 @@ func (h *ServiceHandler) GetAllServices(c *echo.Context) error {
 func (h *ServiceHandler) GetServiceLogs(c *echo.Context) error {
 	q := h.Server.DB.Queries
 
-	fmt.Println("trigger server olgs sse")
 	branchID, err := uuid.Parse(c.QueryParam("branch_id"))
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, types.Res[struct{}]{Message: "invalid branch_id"})
@@ -95,22 +94,33 @@ func (h *ServiceHandler) GetServiceLogs(c *echo.Context) error {
 	// TODO : for now to test logs, we have set TTY=true when deploying the service in the settings which results in simple singel output.
 	// we hve to think a way to handle TTY=false logs. at that time it send multiplexed output from both stdout and stderr which is better way to show the logs.
 
-	// simple scanner to read the raw logs
-	scanner := bufio.NewScanner(serviceLogs)
+	reader := bufio.NewReader(serviceLogs)
+
+	streamErr := make(chan error, 1)
+
 	go func() {
-		for scanner.Scan() {
-			line := scanner.Text()
-			sse.SendEvent("log", []byte(line))
+		for {
+			line, err := reader.ReadString('\n')
+			if len(line) > 0 {
+				sse.SendEvent("log", []byte(line))
+			}
+
+			if err != nil {
+				fmt.Printf("error streaming service logs: %v", err)
+				streamErr <- err
+				return
+			}
 		}
 	}()
 
-	if err := scanner.Err(); err != nil {
-		log.Printf("error streaming service logs: %v", err)
-		return c.JSON(http.StatusInternalServerError, types.Res[struct{}]{Message: "failed to stream service logs"})
-	}
-
 	for {
 		select {
+		case err := <-streamErr:
+			if err != nil {
+				return c.JSON(http.StatusInternalServerError, types.Res[struct{}]{Message: "failed to stream service logs"})
+			}
+			return nil
+
 		case <-c.Request().Context().Done():
 			log.Printf("SSE client disconnected, ip: %v", c.RealIP())
 			return nil

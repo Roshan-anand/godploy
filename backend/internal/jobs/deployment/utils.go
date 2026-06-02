@@ -73,7 +73,7 @@ func getBaseSpec(imgName string, networkName string, swarmName string, env []str
 		TaskTemplate: swarm.TaskSpec{
 			ContainerSpec: &swarm.ContainerSpec{
 				Image: imgName,
-				TTY:   true,
+				TTY:   false,
 			},
 
 			RestartPolicy: &swarm.RestartPolicy{

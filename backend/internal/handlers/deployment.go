@@ -177,7 +177,7 @@ func (h *DeploymentHandler) RebuildAppService(c *echo.Context) error {
 	}
 
 	// create a new github client
-	gh, err := ghservice.New(q, service.GhAppID)
+	gh, err := ghservice.New(tq, service.GhAppID)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return c.JSON(http.StatusBadRequest, types.Res[struct{}]{Message: fmt.Sprintf("github app with app id %d not found", service.GhAppID)})

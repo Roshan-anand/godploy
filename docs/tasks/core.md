@@ -3,7 +3,7 @@
 ## Issues
 
 - [ ] 01 — Install Godploy on Ubuntu from GHCR [easy]
-- [ ] 02 — Create an internal application Service inside a Project [easy]
+- [x] 02 — Create an internal application Service inside a Project [easy]
 - [ ] 03 — Expose an application Service publicly with a stable default-branch domain [easy]
 - [ ] 04 — Add and deploy a new Service Branch [easy]
 - [ ] 05 — Manage generated branch domains and manual overrides [easy]

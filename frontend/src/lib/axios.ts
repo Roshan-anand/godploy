@@ -8,6 +8,7 @@ export const api = axios.create({
 });
 
 export const axiosErr = (error: Error, fallbackMsg: string) => {
+	console.error(error.message);
 	if (axios.isAxiosError(error)) toast.error(error.response?.data?.message || fallbackMsg);
 	else toast.error(fallbackMsg);
 };

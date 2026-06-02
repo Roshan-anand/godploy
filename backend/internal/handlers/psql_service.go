@@ -66,7 +66,7 @@ func isPsqlImage(image string) bool {
 }
 
 func buildPsqlInternalURL(dbUser, dbPassword, serviceName, dbName string) string {
-	return fmt.Sprintf("postgres://%s:%s@%s:5432/%s", dbUser, dbPassword, serviceName, dbName)
+	return fmt.Sprintf("postgres://%s:%s@%s:5432/%s?sslmode=disable", dbUser, dbPassword, serviceName, dbName)
 }
 
 // create a new psql service
@@ -102,7 +102,7 @@ func (h *ServiceHandler) CreatePsqlService(c *echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, types.Res[struct{}]{Message: "Failed to fetch organization id"})
 	}
 
-	serviceName := fmt.Sprintf("%s-%s", b.Name, security.GenerateRandomID(6))
+	serviceName := fmt.Sprintf("%s-%s", b.Name, security.GenerateRandomID(3, true))
 
 	// if user selects orphan volume then claim it or else create a new volume
 	var volumeName string
@@ -155,6 +155,7 @@ func (h *ServiceHandler) CreatePsqlService(c *echo.Context) error {
 					"POSTGRES_PASSWORD=" + b.DbPassword,
 					"POSTGRES_USER=" + b.DbUser,
 					"POSTGRES_DB=" + b.DbName,
+					"sslmode=disable",
 				},
 
 				Mounts: []mount.Mount{
