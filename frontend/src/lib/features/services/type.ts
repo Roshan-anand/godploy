@@ -98,6 +98,8 @@ export type CreatePsqlServiceBody = {
 	db_user: string;
 	db_password: string;
 	image: string;
+	// optional: name of an orphan volume to reattach instead of creating a new one
+	volume?: string;
 };
 
 export type CreatePsqlServicePayload = CreatePsqlServiceBody & {

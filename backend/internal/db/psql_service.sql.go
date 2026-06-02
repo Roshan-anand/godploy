@@ -29,6 +29,24 @@ func (q *Queries) AssociateVolumeWithPsql(ctx context.Context, arg AssociateVolu
 	return err
 }
 
+const claimOrphanVolume = `-- name: ClaimOrphanVolume :execrows
+DELETE FROM orphan_volume
+WHERE volume = ? AND organization_id = ?
+`
+
+type ClaimOrphanVolumeParams struct {
+	Volume         string    `json:"volume"`
+	OrganizationID uuid.UUID `json:"organization_id"`
+}
+
+func (q *Queries) ClaimOrphanVolume(ctx context.Context, arg ClaimOrphanVolumeParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, claimOrphanVolume, arg.Volume, arg.OrganizationID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
 const createOrphanVolume = `-- name: CreateOrphanVolume :exec
 INSERT INTO orphan_volume (id, organization_id, volume, type)
 VALUES (?, ?, ?, ?)
@@ -92,11 +110,16 @@ func (q *Queries) CreatePsqlService(ctx context.Context, arg CreatePsqlServicePa
 
 const deleteOrphanVolume = `-- name: DeleteOrphanVolume :exec
 DELETE FROM orphan_volume
-WHERE volume = ?
+WHERE volume = ? AND organization_id = ?
 `
 
-func (q *Queries) DeleteOrphanVolume(ctx context.Context, volume string) error {
-	_, err := q.db.ExecContext(ctx, deleteOrphanVolume, volume)
+type DeleteOrphanVolumeParams struct {
+	Volume         string    `json:"volume"`
+	OrganizationID uuid.UUID `json:"organization_id"`
+}
+
+func (q *Queries) DeleteOrphanVolume(ctx context.Context, arg DeleteOrphanVolumeParams) error {
+	_, err := q.db.ExecContext(ctx, deleteOrphanVolume, arg.Volume, arg.OrganizationID)
 	return err
 }
 
@@ -178,6 +201,25 @@ func (q *Queries) GetAllOrphanVolumesByOrgID(ctx context.Context, organizationID
 		return nil, err
 	}
 	return items, nil
+}
+
+const getOrphanVolumeByName = `-- name: GetOrphanVolumeByName :one
+SELECT id, organization_id, volume, type, created_at
+FROM orphan_volume
+WHERE volume = ?
+`
+
+func (q *Queries) GetOrphanVolumeByName(ctx context.Context, volume string) (OrphanVolume, error) {
+	row := q.db.QueryRowContext(ctx, getOrphanVolumeByName, volume)
+	var i OrphanVolume
+	err := row.Scan(
+		&i.ID,
+		&i.OrganizationID,
+		&i.Volume,
+		&i.Type,
+		&i.CreatedAt,
+	)
+	return i, err
 }
 
 const getOrphanVolumeByType = `-- name: GetOrphanVolumeByType :many

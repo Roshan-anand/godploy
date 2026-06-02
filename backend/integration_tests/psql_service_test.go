@@ -13,6 +13,7 @@ import (
 )
 
 func TestPsqlService(t *testing.T) {
+
 	_, h, err := GetDummyServerHandler()
 	if err != nil {
 		t.Fatal(err)
@@ -50,11 +51,7 @@ func TestPsqlService(t *testing.T) {
 		defer body.Close()
 
 		if rec.Code != http.StatusOK {
-			msg, err := readOnly(body)
-			if err != nil {
-				t.Fatal(err)
-			}
-			t.Log(msg)
+			printRaw(body, t)
 			t.Fatalf("expected status code %d, got %d", http.StatusOK, rec.Code)
 		}
 

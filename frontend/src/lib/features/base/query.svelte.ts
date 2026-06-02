@@ -36,3 +36,21 @@ export function useGetOrphanVolumesQuery() {
 		};
 	});
 }
+
+// Fetch orphan volumes filtered by predefined service type (e.g. "psql").
+// Used during predef-db creation to let users reattach a compatible orphan volume.
+export function useGetOrphanVolumesByTypeQuery(type: string) {
+	const { org_id } = GetUserData();
+	return createQuery(() => ({
+		queryKey: ['orphan-volumes', 'org', org_id, 'type', type] as const,
+		queryFn: async () => {
+			const res = await api.get<ApiRes<OrphanVolume[]>>(`/volume/${type}`, {
+				params: { org_id },
+				validateStatus: (status) => (status >= 200 && status < 300) || status === 204
+			});
+			if (res.status === 204) return [];
+			return res.data.data || [];
+		},
+		enabled: org_id !== '' && type !== ''
+	}));
+}

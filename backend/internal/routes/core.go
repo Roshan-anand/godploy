@@ -56,6 +56,7 @@ func SetupRoutes(srv *config.Server) (*echo.Echo, error) {
 
 	volume := protected.Group("/volume")
 	volume.GET("", h.Service.GetAllVolume)
+	volume.GET("/:type", h.Service.GetAllVolumeByType)
 	volume.DELETE("", h.Service.DeleteVolume)
 
 	// initialize service api routes

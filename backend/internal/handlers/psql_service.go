@@ -9,6 +9,7 @@ import (
 
 	"github.com/Roshan-anand/godploy/internal/config"
 	"github.com/Roshan-anand/godploy/internal/db"
+	"github.com/Roshan-anand/godploy/internal/lib/auth"
 	"github.com/Roshan-anand/godploy/internal/lib/security"
 	"github.com/Roshan-anand/godploy/internal/lib/types"
 	"github.com/docker/docker/api/types/mount"
@@ -30,6 +31,7 @@ type CreatePsqlServiceReq struct {
 	DbUser     string    `json:"db_user" validate:"required"`
 	DbPassword string    `json:"db_password" validate:"required"`
 	Image      string    `json:"image" validate:"required"`
+	Volume     string    `json:"volume"`
 }
 
 type UpdatePsqlServiceReq struct {
@@ -71,6 +73,7 @@ func buildPsqlInternalURL(dbUser, dbPassword, serviceName, dbName string) string
 //
 // route: POST /api/service/psql
 func (h *ServiceHandler) CreatePsqlService(c *echo.Context) error {
+	u := c.Get(h.Server.Config.EchoCtxUserKey).(auth.AuthUser)
 	q := h.Server.DB.Queries
 	b := new(CreatePsqlServiceReq)
 	docker := h.Server.Docker.Client
@@ -84,7 +87,7 @@ func (h *ServiceHandler) CreatePsqlService(c *echo.Context) error {
 		return c.JSON(http.StatusBadRequest, types.Res[struct{}]{Message: "Invalid image. Only postgres images are allowed"})
 	}
 
-	// check if service name already exists in the organization
+	// check if service name already exists
 	if exists, err := q.ServiceNameExists(h.qCtx, db.ServiceNameExistsParams{
 		ProjectID: b.ProjectID,
 		Name:      b.Name,
@@ -94,23 +97,46 @@ func (h *ServiceHandler) CreatePsqlService(c *echo.Context) error {
 		return c.JSON(http.StatusConflict, types.Res[struct{}]{Message: "Service name already exists"})
 	}
 
-	network, err := q.GetProjectNetwork(h.qCtx, b.ProjectID)
+	org, err := q.GetCurrentOrg(h.qCtx, u.Email)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, types.Res[struct{}]{Message: "Failed to fetch project network"})
+		return c.JSON(http.StatusInternalServerError, types.Res[struct{}]{Message: "Failed to fetch organization id"})
 	}
 
 	serviceName := fmt.Sprintf("%s-%s", b.Name, security.GenerateRandomID(6))
 
-	// create volume for the psql service
-	volume, err := docker.VolumeCreate(h.qCtx, volume.CreateOptions{
-		Name:   serviceName + "_pgdata",
-		Driver: "local",
-	})
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError, types.Res[struct{}]{Message: "Failed to create volume"})
+	// if user selects orphan volume then claim it or else create a new volume
+	var volumeName string
+	if b.Volume == "" {
+		volume, err := docker.VolumeCreate(h.qCtx, volume.CreateOptions{
+			Name:   serviceName + "_pgdata",
+			Driver: "local",
+		})
+		if err != nil {
+			fmt.Println("err :", err)
+			return c.JSON(http.StatusInternalServerError, types.Res[struct{}]{Message: "Failed to create volume"})
+		}
+		volumeName = volume.Name
+	} else {
+		row, err := q.ClaimOrphanVolume(h.qCtx, db.ClaimOrphanVolumeParams{
+			Volume:         b.Volume,
+			OrganizationID: org.ID,
+		})
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, types.Res[struct{}]{Message: "Failed to claim orphan volume"})
+		}
+
+		if row == 0 {
+			return c.JSON(http.StatusConflict, types.Res[struct{}]{Message: "Volume is not available"})
+		}
+
+		volumeName = b.Volume
 	}
 
 	// create network if not exist
+	network, err := q.GetProjectNetwork(h.qCtx, b.ProjectID)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, types.Res[struct{}]{Message: "Failed to fetch project network"})
+	}
 	if err := h.Server.Docker.CreateNetwork(network); err != nil {
 		return c.JSON(http.StatusInternalServerError, types.Res[struct{}]{Message: "Failed to create network"})
 	}
@@ -134,7 +160,7 @@ func (h *ServiceHandler) CreatePsqlService(c *echo.Context) error {
 				Mounts: []mount.Mount{
 					{
 						Type:   mount.TypeVolume,
-						Source: volume.Name,
+						Source: volumeName,
 						Target: "/var/lib/postgresql/data",
 					},
 				},
@@ -160,7 +186,7 @@ func (h *ServiceHandler) CreatePsqlService(c *echo.Context) error {
 
 	internalUrl := buildPsqlInternalURL(b.DbUser, b.DbPassword, serviceName, b.DbName)
 
-	serviceID, err := h.Server.DB.Queries.CreatePsqlService(h.qCtx, db.CreatePsqlServiceParams{
+	serviceID, err := q.CreatePsqlService(h.qCtx, db.CreatePsqlServiceParams{
 		ID:               security.GeneratePrimaryKey(),
 		ProjectID:        b.ProjectID,
 		Type:             types.PsqlServiceType,
@@ -171,7 +197,7 @@ func (h *ServiceHandler) CreatePsqlService(c *echo.Context) error {
 		DbPassword:       b.DbPassword, // TODO : make is hased
 		InternalUrl:      internalUrl,
 		Image:            b.Image,
-		Volume:           volume.Name,
+		Volume:           volumeName,
 	})
 	if err != nil {
 		fmt.Println("error creating service in db :", err)
@@ -316,7 +342,6 @@ func (h *ServiceHandler) DeletePsqlService(c *echo.Context) error {
 			Type:           types.PSQLPredefServiceType,
 		}); err != nil {
 			tx.Rollback()
-			fmt.Println("err ", err)
 			return c.JSON(http.StatusInternalServerError, types.Res[struct{}]{Message: "Failed to create orphan volume record"})
 		}
 	} else {

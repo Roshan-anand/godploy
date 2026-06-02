@@ -4,6 +4,7 @@
 	import { Label } from '@/components/ui/label';
 	import * as Select from '@/components/ui/select';
 	import { useCreatePsqlServiceMutation } from '@/features/services/mutation.svelte';
+	import { useGetOrphanVolumesByTypeQuery } from '@/features/base/query.svelte';
 	import { createForm } from '@tanstack/svelte-form';
 	import { z } from 'zod';
 	import FormError from '@/components/services/FormError.svelte';
@@ -14,8 +15,11 @@
 	const projectId = $derived(data.project_id);
 
 	const createPsqlServiceMutation = useCreatePsqlServiceMutation();
+	// orphan volumes available for reattach (psql-compatible only)
+	const orphanVolumesQuery = useGetOrphanVolumesByTypeQuery('psql');
 
 	let isPasswordVisible = $state(false);
+	const orphanVolumes = $derived(orphanVolumesQuery.data ?? []);
 
 	// Predefined Postgres images to keep selection consistent.
 	const psqlImages = [
@@ -33,7 +37,8 @@
 			db_name: 'app_db',
 			db_user: 'app_user',
 			db_password: 'app_password',
-			image: 'postgres:16-alpine'
+			image: 'postgres:16-alpine',
+			volume: ''
 		} as CreatePsqlServiceBody,
 		onSubmit: ({ value }) => {
 			createPsqlServiceMutation.mutate({
@@ -42,7 +47,9 @@
 				db_name: value.db_name.trim(),
 				db_user: value.db_user.trim(),
 				db_password: value.db_password,
-				image: value.image.trim()
+				image: value.image.trim(),
+				// empty volume = create new database; non-empty = reattach orphan
+				volume: value.volume
 			});
 		}
 	}));
@@ -181,6 +188,41 @@
 						</Select.Content>
 					</Select.Root>
 					<FormError errors={field.state.meta.errors} />
+				</div>
+			{/snippet}
+		</form.Field>
+
+		<!-- Data source: single select, "New database" by default or pick an orphan volume to reattach -->
+		<form.Field name="volume">
+			{#snippet children(field)}
+				<div class="space-y-1.5 rounded-lg border p-4">
+					<Label class="my-1" for={field.name}>Data Source</Label>
+					<Select.Root
+						type="single"
+						value={field.state.value}
+						onValueChange={(value) => field.handleChange(value)}
+						disabled={createPsqlServiceMutation.isPending}
+					>
+						<Select.Trigger class="w-full" id={field.name}>
+							{#if field.state.value === ''}
+								New database
+							{:else}
+								{field.state.value}
+							{/if}
+						</Select.Trigger>
+						<Select.Content>
+							<Select.Item value="" label="New database" />
+							{#each orphanVolumes as vol (vol.id)}
+								<Select.Item value={vol.volume} label={vol.volume} />
+							{/each}
+						</Select.Content>
+					</Select.Root>
+					{#if field.state.value !== ''}
+						<p class="text-xs text-muted-foreground">
+							Heads up: postgres image versions must be compatible with the data on the volume. A
+							mismatch may prevent the database from starting.
+						</p>
+					{/if}
 				</div>
 			{/snippet}
 		</form.Field>

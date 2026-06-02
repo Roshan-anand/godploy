@@ -53,7 +53,11 @@ export function useCreatePsqlServiceMutation() {
 	return createMutation(() => ({
 		mutationFn: async (payload: CreatePsqlServicePayload) =>
 			api.post<ApiRes<string>>('/service/psql', payload).then((res) => res.data),
-		onSuccess: ({ message }, { project_id }) => {
+		onSuccess: ({ message }, { project_id, volume }) => {
+			// invalidate orphan volume caches when a reattach happened
+			if (volume) {
+				queryClient.invalidateQueries({ queryKey: ['orphan-volumes'] });
+			}
 			toast.success(message || 'PSQL Service created successfully');
 			goto(
 				resolve('/(protected)/(core)/project/[project_id]', {
