@@ -2,8 +2,13 @@
 	import AppSidebar from '@/components/app-sidebar.svelte';
 	import * as Sidebar from '@/components/ui/sidebar/index.js';
 	import ModeToggle from '@/components/mode-toggle.svelte';
+	import { GetUserData } from '@/features/global/query';
+	import { setCurrentOrgState } from '@/features/global/store.svelte';
 
 	let { children } = $props();
+
+	const { org_id, org_name } = GetUserData();
+	setCurrentOrgState(org_id, org_name);
 </script>
 
 <Sidebar.Provider>

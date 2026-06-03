@@ -2,7 +2,7 @@ import { api, axiosErr } from '@/axios';
 import { createMutation } from '@tanstack/svelte-query';
 import { toast } from 'svelte-sonner';
 import type { ApiRes } from '@/types';
-import { GetUserData, setUserCurrentOrg } from '../global/query';
+import { GetUserData } from '../global/query';
 import { queryClient } from '@/query';
 import type { Organization } from '@/features/auth/type';
 import type {
@@ -12,6 +12,7 @@ import type {
 	DeleteVolumePayload
 } from './type';
 import { getOrgProjectsQueryKey, getOrgsQueryKey } from './const';
+import { getCurrentOrgState } from '../global/store.svelte';
 
 export function useCreateProjectMutation() {
 	const { org_id } = GetUserData();
@@ -73,14 +74,12 @@ type CreateOrgPayload = {
 };
 
 export function useSwitchOrgMutation() {
+	const { setOrg } = getCurrentOrgState();
 	return createMutation(() => ({
 		mutationFn: (payload: SwitchOrgPayload) =>
 			api.post<ApiRes<Organization>>('/org/switch', payload).then((res) => res.data),
 		onSuccess: ({ data, message }) => {
-			setUserCurrentOrg({
-				org_id: data.id,
-				org_name: data.name
-			});
+			setOrg(data.id, data.name);
 			toast.success(message || 'Organization switched successfully');
 		},
 		onError: (error) => axiosErr(error, 'Failed to switch organization')

@@ -42,8 +42,7 @@ export function useGetAllOrgsQuery() {
 	const { email } = GetUserData();
 	return createQuery(() => ({
 		queryKey: getOrgsQueryKey(email),
-		queryFn: () => api.get<ApiRes<Organization[]>>('/org').then((res) => res.data.data),
-		enabled: false
+		queryFn: () => api.get<ApiRes<Organization[]>>('/org').then((res) => res.data.data)
 	}));
 }
 

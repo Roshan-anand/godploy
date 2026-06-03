@@ -39,7 +39,7 @@
 	--chart-4: #c09bb8;
 	--chart-5: #a67fa9;
 
-	--sidebar: #f5f5f5;
+	--sidebar: var(--background);
 	--sidebar-foreground: #0a0a0a;
 
 	--sidebar-primary: #e56f00;
@@ -132,8 +132,6 @@
 }
 
 .dark {
-	/* shadcn mapped */
-
 	--background: #0a0a0a;
 	--foreground: #ffffff;
 
@@ -168,7 +166,7 @@
 	--chart-4: #d4b0cc;
 	--chart-5: #ba94bd;
 
-	--sidebar: #141414;
+	--sidebar: var(--background);
 	--sidebar-foreground: #ffffff;
 
 	--sidebar-primary: #ff8800;
@@ -180,7 +178,7 @@
 	--sidebar-border: #292929;
 	--sidebar-ring: #424242;
 
-	--radius: 0.625rem;
+	--radius: 0.1rem;
 
 	/* only extra vars */
 

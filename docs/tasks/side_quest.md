@@ -32,7 +32,6 @@
 - [x] API & tests for orphan volume operations
 - [ ] switching org dosent refetch other query like get project, gh_app etc.
 
-
 ## enhancements
 
 - [ ] use dynamic imports in client side
@@ -55,6 +54,7 @@
   - [ ] provide settings to +/- keeping the image of deployments
   - [ ] automaticcally delete deployments img if max exceeds
 - [ ] modify the bg workers to production level setup.
+- [ ] when sidebar collapse the organization button avatar is oddly placed, fix by keeping it in center. [easy, ui]
 
 ## Potential bugs
 

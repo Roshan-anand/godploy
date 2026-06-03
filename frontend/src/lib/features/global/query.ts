@@ -21,17 +21,5 @@ export const GetUserData = (): AuthResponse =>
 		org_name: ''
 	};
 
-// helper function to update user organization data in cache
-export const setUserCurrentOrg = (orgData: Pick<AuthResponse, 'org_id' | 'org_name'>) => {
-	const currentData = queryClient.getQueryData<AuthResponse>(authUserQueryKey());
-	if (!currentData) return;
-
-	queryClient.setQueryData<AuthResponse>(authUserQueryKey(), {
-		...currentData,
-		org_id: orgData.org_id,
-		org_name: orgData.org_name
-	});
-};
-
 export const setUserData = (userData: AuthResponse | null) =>
 	queryClient.setQueryData<AuthResponse | null>(authUserQueryKey(), userData);

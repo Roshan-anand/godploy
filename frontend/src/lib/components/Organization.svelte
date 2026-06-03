@@ -11,54 +11,26 @@
 	import { GetUserData } from '@/features/global/query';
 	import { useGetAllOrgsQuery } from '@/features/base/query.svelte';
 	import { useSwitchOrgMutation, useCreateOrgMutation } from '@/features/base/mutation.svelte';
+	import { SidebarMenuButton } from './ui/sidebar';
+	import { getCurrentOrgState } from '@/features/global/store.svelte';
 
-	const user = GetUserData();
-
-	const { currentOrgName, currentOrgID } = $derived.by(() => {
-		console.log('triggerd derived for org data');
-		if (switchOrgMutation.isSuccess) {
-			const { org_id, org_name } = GetUserData();
-			return {
-				currentOrgID: org_id,
-				currentOrgName: org_name
-			};
-		}
-
-		return {
-			currentOrgName: user.org_name,
-			currentOrgID: user.org_id
-		};
-	});
+	const { email } = GetUserData();
+	const currentOrg = getCurrentOrgState();
 
 	let orgMenuOpen = $state(false);
 	let createDialogOpen = $state(false);
 	let orgName = $state('');
 
-	// Keeps current org and org list in sync with on-demand query fetch plus switch/create mutations.
 	const getAllOrgsQuery = useGetAllOrgsQuery();
 	const switchOrgMutation = useSwitchOrgMutation();
 	const createOrgMutation = useCreateOrgMutation();
 
-	const canCreateOrg = $derived.by(() => orgName.trim().length >= 3);
 	const isOrgListLoading = $derived.by(() => {
 		return getAllOrgsQuery.isPending || (getAllOrgsQuery.isFetching && !getAllOrgsQuery.data);
 	});
 
-	// TODO : this cuase inifinit refetch
-	// $effect(() => {
-	// 	if (orgMenuOpen) {
-	// 		console.log('trigger reFetching org list...');
-	// 		void getAllOrgsQuery.refetch();
-	// 	}
-	// });
-
-	function getAvatarText(orgNameValue: string) {
-		const [firstWord = ''] = orgNameValue.trim().split(/\s+/);
-		return firstWord.slice(0, 1).toUpperCase() || '?';
-	}
-
 	function switchOrg(orgId: string) {
-		if (!orgId || orgId === currentOrgID || switchOrgMutation.isPending) return;
+		if (!orgId || orgId === currentOrg.id || switchOrgMutation.isPending) return;
 
 		switchOrgMutation.mutate(
 			{ org_id: orgId },
@@ -70,18 +42,13 @@
 		);
 	}
 
-	function openCreateOrgDialog() {
-		// orgMenuOpen = false;
-		createDialogOpen = true;
-	}
-
 	function closeCreateOrgDialog() {
 		if (createOrgMutation.isPending) return;
 		createDialogOpen = false;
 	}
 
 	function createOrg() {
-		if (!canCreateOrg || createOrgMutation.isPending) return;
+		if (orgName.trim().length < 3 || createOrgMutation.isPending) return;
 
 		createOrgMutation.mutate(
 			{
@@ -97,56 +64,53 @@
 	}
 </script>
 
-<div class="flex w-full flex-col gap-2">
-	<div class="flex w-full items-center gap-2">
+<DropdownMenu.Root bind:open={orgMenuOpen}>
+	<SidebarMenuButton
+		variant="none"
+		class={`relative flex items-center gap-2 p-1 m-0 w-full mx-auto border border-border h-fit hover:bg-sidebar-accent ${orgMenuOpen && 'bg-sidebar-accent'}`}
+	>
 		<Avatar>
-			<AvatarFallback>{getAvatarText(currentOrgName)}</AvatarFallback>
+			<AvatarFallback class="rounded-lg">{currentOrg.name.trim()[0] || '?'}</AvatarFallback>
 		</Avatar>
-
-		<div class="min-w-0 flex-1">
-			<p class="truncate font-medium">{currentOrgName || 'No organization selected'}</p>
+		<div class="flex flex-col items-start">
+			<p class="truncate font-medium">{currentOrg.name || 'No organization selected'}</p>
+			<p class="truncate font-medium opacity-75">{email}</p>
 		</div>
 
-		<DropdownMenu.Root bind:open={orgMenuOpen}>
-			<DropdownMenu.Trigger>
-				{#snippet child({ props })}
-					<Button variant="outline" size="sm" disabled={switchOrgMutation.isPending} {...props}>
-						<ChevronsUpDown />
-					</Button>
-				{/snippet}
-			</DropdownMenu.Trigger>
-			<DropdownMenu.Content side="left" align="start" class="w-64">
-				<DropdownMenu.Label>Switch organization</DropdownMenu.Label>
-				{#if isOrgListLoading}
-					<div class="p-1"><Skeleton class="h-8 w-full" /></div>
-				{:else if getAllOrgsQuery.isError}
-					<p class="text-destructive px-2 py-1 text-sm">Failed to load organizations</p>
-				{:else if getAllOrgsQuery.data && getAllOrgsQuery.data.length > 0}
-					<DropdownMenu.Group>
-						{#each getAllOrgsQuery.data as org (org.id)}
-							<DropdownMenu.Item
-								onSelect={() => switchOrg(org.id)}
-								disabled={switchOrgMutation.isPending}
-							>
-								<span class="truncate">{org.name}</span>
-								{#if org.id === currentOrgID}
-									<Check class="ml-auto" />
-								{/if}
-							</DropdownMenu.Item>
-						{/each}
-					</DropdownMenu.Group>
-				{:else}
-					<p class="text-muted-foreground px-2 py-1 text-sm">No organizations available</p>
-				{/if}
+		<ChevronsUpDown class="ml-auto" />
 
-				<DropdownMenu.Separator />
-				<div class="p-1">
-					<CreateBtn onclick={openCreateOrgDialog} disabled={createOrgMutation.isPending} />
-				</div>
-			</DropdownMenu.Content>
-		</DropdownMenu.Root>
-	</div>
-</div>
+		<DropdownMenu.Trigger class="absolute size-full top-0 left-0"></DropdownMenu.Trigger>
+	</SidebarMenuButton>
+	<DropdownMenu.Content side="bottom" align="start" sideOffset={10} class="w-70 z-50">
+		<DropdownMenu.Label>Switch organization</DropdownMenu.Label>
+		{#if isOrgListLoading}
+			<div class="p-1"><Skeleton class="h-8 w-full" /></div>
+		{:else if getAllOrgsQuery.isError}
+			<p class="text-destructive px-2 py-1 text-sm">Failed to load organizations</p>
+		{:else if getAllOrgsQuery.data && getAllOrgsQuery.data.length > 0}
+			<DropdownMenu.Group>
+				{#each getAllOrgsQuery.data as org (org.id)}
+					<DropdownMenu.Item
+						onSelect={() => switchOrg(org.id)}
+						disabled={switchOrgMutation.isPending}
+					>
+						<span class="truncate">{org.name}</span>
+						{#if org.id === currentOrg.id}
+							<Check class="ml-auto" />
+						{/if}
+					</DropdownMenu.Item>
+				{/each}
+			</DropdownMenu.Group>
+		{:else}
+			<p class="text-muted-foreground px-2 py-1 text-sm">No organizations available</p>
+		{/if}
+
+		<DropdownMenu.Separator />
+		<div class="p-1">
+			<CreateBtn onclick={() => (createDialogOpen = true)} disabled={createOrgMutation.isPending} />
+		</div>
+	</DropdownMenu.Content>
+</DropdownMenu.Root>
 
 <Dialog.Root bind:open={createDialogOpen}>
 	<Dialog.Portal>
@@ -187,7 +151,7 @@
 					>
 						Cancel
 					</Button>
-					<Button type="submit" disabled={!canCreateOrg || createOrgMutation.isPending}>
+					<Button type="submit" disabled={createOrgMutation.isPending}>
 						{createOrgMutation.isPending ? 'Creating...' : 'Create'}
 					</Button>
 				</div>

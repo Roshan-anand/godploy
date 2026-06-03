@@ -14,47 +14,59 @@
 		SidebarRail
 	} from '@/components/ui/sidebar';
 	import { Blocks, Users, GitBranch, Database } from '@lucide/svelte';
+	import { page } from '$app/state';
+	import type { ResolvedPathname } from '$app/types';
 	import Organization from './Organization.svelte';
+
+	type AppSidebarItem = {
+		hash: string;
+		route: ResolvedPathname;
+		name: string;
+		icon: typeof Blocks;
+	};
+
+	const sidebarItems: AppSidebarItem[] = [
+		{ hash: '#/', route: resolve('/(protected)/(core)'), name: 'Projects', icon: Blocks },
+		{
+			hash: '#/members',
+			route: resolve('/(protected)/(core)/members'),
+			name: 'Members',
+			icon: Users
+		},
+		{ hash: '#/git', route: resolve('/(protected)/(core)/git'), name: 'Git', icon: GitBranch },
+		{
+			hash: '#/storage',
+			route: resolve('/(protected)/(core)/storage'),
+			name: 'Storage',
+			icon: Database
+		}
+	];
 </script>
 
-<Sidebar>
+<Sidebar collapsible="icon">
 	<SidebarHeader>
 		<SidebarMenu>
 			<SidebarMenuItem>
-				<SidebarMenuButton size="lg">
-					<Organization />
-				</SidebarMenuButton>
+				<Organization />
 			</SidebarMenuItem>
 		</SidebarMenu>
 	</SidebarHeader>
 	<SidebarContent>
 		<SidebarGroup>
 			<SidebarGroupContent>
-				<SidebarMenu>
-					<SidebarMenuItem>
-						<SidebarMenuButton onclick={() => goto(resolve('/(protected)/(core)'))}>
-							<Blocks />
-							<span>Projects</span>
-						</SidebarMenuButton>
-					</SidebarMenuItem>
-					<SidebarMenuItem>
-						<SidebarMenuButton onclick={() => goto(resolve('/(protected)/(core)/members'))}>
-							<Users />
-							<span>Members</span>
-						</SidebarMenuButton>
-					</SidebarMenuItem>
-					<SidebarMenuItem>
-						<SidebarMenuButton onclick={() => goto(resolve('/(protected)/(core)/git'))}>
-							<GitBranch />
-							<span>Git</span>
-						</SidebarMenuButton>
-					</SidebarMenuItem>
-					<SidebarMenuItem>
-						<SidebarMenuButton onclick={() => goto(resolve('/(protected)/(core)/storage'))}>
-							<Database />
-							<span>Storage</span>
-						</SidebarMenuButton>
-					</SidebarMenuItem>
+				<SidebarMenu class="gap-3">
+					{#each sidebarItems as { name, hash, icon: Icon, route } (hash)}
+						<SidebarMenuItem>
+							<!-- eslint-disable svelte/no-navigation-without-resolve -->
+							<SidebarMenuButton
+								class={`${page.url.hash === hash && 'bg-sidebar-accent text-sidebar-primary hover:text-sidebar-primary'}`}
+								onclick={() => goto(route)}
+							>
+								<Icon />
+								<span>{name}</span>
+							</SidebarMenuButton>
+						</SidebarMenuItem>
+					{/each}
 				</SidebarMenu>
 			</SidebarGroupContent>
 		</SidebarGroup>
