@@ -1,12 +1,11 @@
 <script lang="ts">
-	import { Skeleton } from '@/components/ui/skeleton';
 	import { useGetOrphanVolumesQuery } from '@/features/base/query.svelte';
 	import VolumeDeletion from '@/components/conformation/volume-deletion.svelte';
+	import { DotmSquare } from '@/components/loader';
 
 	const volumesQuery = useGetOrphanVolumesQuery();
 
 	const volumeCount = $derived.by(() => volumesQuery.data?.length ?? 0);
-	const tempItem = Array.from({ length: 6 });
 </script>
 
 <section class="flex flex-1 flex-col gap-4 p-2">
@@ -22,14 +21,8 @@
 	<p class="text-xs text-muted-foreground">{volumeCount} orphan volumes</p>
 
 	{#if volumesQuery.isPending}
-		<div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-			{#each tempItem as _, i (i)}
-				<div class="rounded-lg border bg-card text-card-foreground shadow-sm p-4 space-y-3">
-					<Skeleton class="h-5 w-3/4" />
-					<Skeleton class="h-4 w-1/2" />
-					<Skeleton class="h-8 w-24" />
-				</div>
-			{/each}
+		<div class="size-full flex items-center justify-center">
+			<DotmSquare size={55} dotSize={7} />
 		</div>
 	{:else if volumesQuery.isError}
 		<p class="text-sm text-destructive">Failed to load orphan volumes</p>

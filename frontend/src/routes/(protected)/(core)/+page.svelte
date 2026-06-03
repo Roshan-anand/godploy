@@ -1,12 +1,12 @@
 <script lang="ts">
 	import { Input } from '@/components/ui/input';
 	import { Label } from '@/components/ui/label';
-	import { Skeleton } from '@/components/ui/skeleton';
 	import { Search } from '@lucide/svelte';
 	import { resolve } from '$app/paths';
 	import { useGetAllProjectsQuery } from '@/features/base/query.svelte';
 	import CreateProject from './create-project.svelte';
 	import ProjectDeletion from '@/components/conformation/project-deletion.svelte';
+	import { DotmSquare } from '@/components/loader';
 
 	let searchQuery = $state('');
 	const projectsQuery = useGetAllProjectsQuery();
@@ -19,8 +19,6 @@
 
 		return projectsQuery.data.filter((project) => project.name.toLowerCase().includes(keyword));
 	});
-
-	const tempItem = Array.from({ length: 6 });
 </script>
 
 <nav class="flex gap-4">
@@ -37,14 +35,9 @@
 </nav>
 
 <section class="flex-1 p-2">
-	{#if projectsQuery.isPending}
-		<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-			{#each tempItem as _, i (i)}
-				<div class="rounded-lg border bg-card text-card-foreground shadow-sm p-4 space-y-3">
-					<Skeleton class="h-6 w-3/4" />
-					<Skeleton class="h-4 w-1/2" />
-				</div>
-			{/each}
+	{#if !projectsQuery.isPending}
+		<div class="size-full flex items-center justify-center">
+			<DotmSquare size={65} dotSize={8} />
 		</div>
 	{:else if projectsQuery.isError}
 		<p class="text-red-500">Failed to load projects</p>

@@ -2,7 +2,6 @@
 	import { Button } from '@/components/ui/button';
 	import { Input } from '@/components/ui/input';
 	import { Label } from '@/components/ui/label';
-	import { Skeleton } from '@/components/ui/skeleton';
 	import { Grid2x2Plus, Search } from '@lucide/svelte';
 	import { resolve } from '$app/paths';
 	import { goto } from '$app/navigation';
@@ -11,6 +10,7 @@
 	import { useGetAllServicesQuery } from '@/features/services/query.svelte';
 	import AppDeletion from '@/components/conformation/app-deletion.svelte';
 	import DbDeletion from '@/components/conformation/db-deletion.svelte';
+	import { DotmSquare } from '@/components/loader';
 
 	let searchQuery = $state('');
 
@@ -29,8 +29,6 @@
 
 		return servicesQuery.data.filter((service) => service.name.toLowerCase().includes(keyword));
 	});
-
-	const tempItem = Array.from({ length: 6 });
 
 	const createOptions = [
 		{
@@ -80,13 +78,8 @@
 
 <section class="flex-1 p-2">
 	{#if servicesQuery.isPending}
-		<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-			{#each tempItem as _, i (i)}
-				<div class="rounded-lg border bg-card text-card-foreground shadow-sm p-4 space-y-3">
-					<Skeleton class="h-6 w-3/4" />
-					<Skeleton class="h-4 w-1/2" />
-				</div>
-			{/each}
+		<div class="size-full flex items-center justify-center">
+			<DotmSquare size={65} dotSize={8} />
 		</div>
 	{:else if servicesQuery.isError}
 		<p class="text-red-500">Failed to load services</p>

@@ -1,12 +1,10 @@
 <script lang="ts">
+	import { DotmSquare } from '@/components/loader';
 	import { Button } from '@/components/ui/button';
 	import { useDeleteGithubAppMutation } from '@/features/git/mutation.svelte';
 	import { useGithubAppsQuery } from '@/features/git/query.svelte';
-	import { GetUserData } from '@/features/global/query';
 	import { GitProvidersList } from '@/features/services/const';
 	import Icon from '@iconify/svelte';
-
-	const { org_id } = GetUserData();
 
 	const getGithubAppsQuery = useGithubAppsQuery();
 	const deleteGithubAppMutation = useDeleteGithubAppMutation();
@@ -42,8 +40,10 @@
 <hr class="my-3" />
 
 <section class="flex-1">
-	{#if getGithubAppsQuery.isPending && org_id !== ''}
-		<p class="text-muted-foreground">Loading provider details...</p>
+	{#if getGithubAppsQuery.isPending}
+		<div class="size-full flex items-center justify-center">
+			<DotmSquare size={65} dotSize={8} />
+		</div>
 	{:else if getGithubAppsQuery.isError}
 		<p class="text-destructive">Failed to load provider details.</p>
 	{:else if !getGithubAppsQuery.data || getGithubAppsQuery.data.length === 0}
