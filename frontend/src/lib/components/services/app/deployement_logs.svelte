@@ -2,6 +2,7 @@
 	import { browser } from '$app/environment';
 	import { Button } from '@/components/ui/button';
 	import * as Dialog from '@/components/ui/dialog';
+	import { tick } from 'svelte';
 
 	let { deploymentId, deploymentName }: { deploymentId: string; deploymentName: string } = $props();
 
@@ -51,6 +52,34 @@
 		connectLogs();
 		return closeStream;
 	});
+
+	let logsContainer: HTMLDivElement;
+
+	let autoScroll = true;
+
+	function handleScroll() {
+		if (!logsContainer) return;
+
+		const distanceFromBottom =
+			logsContainer.scrollHeight - logsContainer.scrollTop - logsContainer.clientHeight;
+
+		// User is considered "at bottom" within 20px
+		autoScroll = distanceFromBottom < 20;
+	}
+
+	$effect(() => {
+		if (logs.length > 0) {
+			scrollToBottom();
+		}
+	});
+
+	async function scrollToBottom() {
+		await tick();
+
+		if (autoScroll && logsContainer) {
+			logsContainer.scrollTop = logsContainer.scrollHeight;
+		}
+	}
 </script>
 
 <Button variant="outline" size="sm" onclick={() => (open = true)}>View</Button>
@@ -70,6 +99,8 @@
 				<p class="text-xs text-muted-foreground">state: {streamState}</p>
 
 				<div
+					bind:this={logsContainer}
+					onscroll={handleScroll}
 					class="mt-2 h-[50vh] overflow-auto rounded bg-background p-3 font-mono text-xs leading-5"
 				>
 					{#if logs.length === 0}

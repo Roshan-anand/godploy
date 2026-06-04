@@ -324,7 +324,12 @@
 
 		<form.Field
 			name="name"
-			validators={{ onChange: z.string().min(3, 'Service name must be at least 3 characters') }}
+			validators={{
+				onChange: z
+					.string()
+					.min(3, 'Service name must be at least 3 characters')
+					.regex(/^[^/]*$/, "app name must not include '/'")
+			}}
 		>
 			{#snippet children(field)}
 				<div class="space-y-1.5">

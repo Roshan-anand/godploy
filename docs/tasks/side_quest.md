@@ -48,7 +48,7 @@
 - deployment logs page
   - [ ] fix logs dialog box width
   - [ ] show error msg in red bg.
-  - [ ] scroll should be always at the bottom. [easy, ui]
+  - [x] scroll should be always at the bottom. [easy, ui]
 - rollback
   - [ ] config operation if image not exists
   - [ ] provide settings to +/- keeping the image of deployments
@@ -62,8 +62,8 @@
 - [ ] service data is stored in DB and deployed, but what if user remove the service from terminal. the data still exists.
 - [ ] the github app is stored linked to org_ig, what if user fails on instllation then data still ramins. so retry fails because there is multiple github app store in singe org.
 - [ ] delete github app only deletes app from the DB and not from the github.
-- [ ] form errors pops up as [object object]
-- [ ] create and list org not working
-- [ ] in create_service_form, if the name input have '/' in the string then this cause bug while creating a file for that code in the name of the service_name. so need to prevent user from entering '/' in the name input field. [easy, ui]
+- [x] form errors pops up as [object object]
+- [x] create and list org not working
+- [x] in create_service_form, if the name input have '/' in the string then this cause bug while creating a file for that code in the name of the service_name. so need to prevent user from entering '/' in the name input field. [easy, ui]
 - [x] when view deployment logs after it is ended, or late subscribed then logs are not fully shown or have random logs.
 - [ ] when deleting github app the every delete btn shows deleting if any one is clicked. [easy, ui]
