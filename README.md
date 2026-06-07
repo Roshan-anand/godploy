@@ -1,15 +1,16 @@
 <div align="center">
-<img src="docs/logo/logo-name-black.png" align="center" alt="logo" width="200px" />
+<img src="docs/logo/logo-name-black.png" align="center" alt="logo" width="300px" />
+<br/>
+<p>Lightweight, single-binary, self-hosted alternative to railway, render, vercel.</p>
 </div>
 
-Lightweight, single-binary, self-hosted alternative to Dokploy, Coolify, Netlify, Vercel.
 
 ## Tech stack
 
 - **Server:** Go
 - **Runtime:** Docker
 - **Ingress:** Traefik
-- **DB:** SQLite (metadata)
+- **DB:** SQLite (metadata), BadgerDB (logs)
 - **UI:** sveltekit (SPA, served from binary)
 
 ## Architecture :
