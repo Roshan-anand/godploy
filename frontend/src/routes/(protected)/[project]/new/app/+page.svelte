@@ -5,36 +5,29 @@
 	import { Input } from '@/components/ui/input';
 	import { Label } from '@/components/ui/label';
 	import * as Select from '@/components/ui/select';
-	import { normalizePathValue } from '@/utils';
-	import {
-		useCreateServiceMutation,
-		useGetReposMutation
-	} from '@/features/services/mutation.svelte';
-	import type { CreateAppServiceForm, GitProviderKey } from '@/features/services/type';
+	import { useCreateServiceMutation, useGetReposMutation } from '@/features/services';
+	import type { CreateAppServiceForm, GitProviderKey } from '@/features/services';
 	import { resolve } from '$app/paths';
 	import { toast } from 'svelte-sonner';
 	import { z } from 'zod';
 	import FormError from '@/components/services/FormError.svelte';
-	import { useGithubAppsQuery } from '@/features/git/query.svelte';
+	import { useGithubAppsQuery } from '@/features/git';
 	import * as Collapsible from '@/components/ui/collapsible';
 	import { ChevronRight, ChevronDown } from '@lucide/svelte';
 	import SecretTextarea from '@/components/services/secret-textarea.svelte';
 	import { createForm } from '@tanstack/svelte-form';
 	import Icon from '@iconify/svelte';
-	import { GitProvidersList } from '@/features/services/const';
-	import { goto } from '$app/navigation';
-	import { getInstanceState } from '@/features/instance/context.svelte.js';
+	import { GitProvidersList } from '@/features/services';
 
 	const { data } = $props();
 	const { projectName } = $derived(data);
-	const instance = getInstanceState();
 
 	let environmentOpen = $state(false);
 	let buildSettingOpen = $state(false);
 
 	const githubAppsQuery = useGithubAppsQuery();
 	const getReposMutation = useGetReposMutation();
-	const createServiceMutation = useCreateServiceMutation();
+	const createServiceMutation = useCreateServiceMutation(() => projectName);
 
 	const form = createForm(() => ({
 		defaultValues: {
@@ -56,8 +49,6 @@
 			}
 		} as CreateAppServiceForm,
 		onSubmit: ({ value }) => {
-			if (!instance.id) return;
-
 			const selectedGithubRepo = getReposMutation.data?.find(
 				(repo) => repo.id === value.gh_repo_id
 			);
@@ -72,45 +63,7 @@
 				return;
 			}
 
-			const buildPath = normalizePathValue(value.build_path);
-			const watchPath = normalizePathValue(value.watch_path);
-
-			const env = value.env.split('\n').filter((line) => line.trim() !== '');
-			const build_args = value.build_args.split('\n').filter((line) => line.trim() !== '');
-			const build_secrets = value.build_secrets.split('\n').filter((line) => line.trim() !== '');
-
-			createServiceMutation.mutate(
-				{
-					instance_id: instance.id,
-					name: value.name.trim(),
-					git_provider: value.git_provider,
-					gh_app_id: value.gh_app_id,
-					gh_repo_id: value.gh_repo_id,
-					default_branch: value.default_branch,
-					build_path: buildPath,
-					watch_path: watchPath,
-					public: value.public,
-					env,
-					build_args,
-					build_secrets,
-					docker_build: {
-						file_path: value.docker_build.file_path,
-						context_path: value.docker_build.context_path,
-						build_stage: value.docker_build.build_stage
-					}
-				},
-				{
-					onSuccess: ({ data }) => {
-						goto(
-							resolve('/(protected)/[project]/[service_type]/[service]?tab=deployment', {
-								project: projectName,
-								service_type: data.type,
-								service: data.name
-							})
-						);
-					}
-				}
-			);
+			createServiceMutation.mutate(value);
 		}
 	}));
 
@@ -177,7 +130,6 @@
 				<Label class="my-1">Import from a git provider</Label>
 				<GitProviderField
 					value={field.state.value}
-					disabled={!instance.id}
 					onSelect={(key) => {
 						field.handleChange(key);
 						fetchGitProvider(key);

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { useGetServiceIDQuery } from '@/features/services/query.svelte.js';
+	import { useGetServiceIDQuery } from '@/features/services';
 	import AppService from './app_service.svelte';
 	import PsqlService from './psql_service.svelte';
 	import { goto } from '$app/navigation';

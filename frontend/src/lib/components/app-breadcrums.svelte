@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import * as Breadcrumb from '$lib/components/ui/breadcrumb/index.js';
-	import { useGetAllInstanceQuery } from '@/features/base/query.svelte';
+	import { useGetAllInstanceQuery } from '@/features/base';
 	import * as Select from '@/components/ui/select';
 	import { Blocks } from '@lucide/svelte';
-	import { getInstanceState } from '@/features/instance/context.svelte';
+	import { getInstanceState } from '@/features/instance';
 
 	const instance = getInstanceState();
 	const { project, service, type } = $derived(instance.path);

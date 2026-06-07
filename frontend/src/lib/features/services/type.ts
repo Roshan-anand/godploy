@@ -82,7 +82,6 @@ export type CreateAppServiceForm = CreateAppServiceBody & {
 	env: string;
 	build_args: string;
 	build_secrets: string;
-	org_id: string;
 };
 
 export type CreateServicePayload = CreateAppServiceBody & {

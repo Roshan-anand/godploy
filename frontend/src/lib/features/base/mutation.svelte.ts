@@ -4,7 +4,7 @@ import { toast } from 'svelte-sonner';
 import type { ApiRes } from '@/types';
 import { GetUserData } from '../global/query';
 import { queryClient } from '@/query';
-import type { Organization } from '@/features/auth/type';
+import type { Organization } from '@/features/auth';
 import type {
 	CreateProjectPayload,
 	DeleteProjectPayload,

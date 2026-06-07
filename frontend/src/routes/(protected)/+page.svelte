@@ -3,7 +3,7 @@
 	import { Label } from '@/components/ui/label';
 	import { Search } from '@lucide/svelte';
 	import { resolve } from '$app/paths';
-	import { useGetAllProjectsQuery } from '@/features/base/query.svelte';
+	import { useGetAllProjectsQuery } from '@/features/base';
 	import CreateProject from './create-project.svelte';
 	import ProjectDeletion from '@/components/conformation/project-deletion.svelte';
 	import { DotmSquare } from '@/components/loader';

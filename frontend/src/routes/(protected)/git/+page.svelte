@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { DotmSquare } from '@/components/loader';
 	import { Button } from '@/components/ui/button';
-	import { useDeleteGithubAppMutation } from '@/features/git/mutation.svelte';
-	import { useGithubAppsQuery } from '@/features/git/query.svelte';
-	import { GitProvidersList } from '@/features/services/const';
+	import { useDeleteGithubAppMutation } from '@/features/git';
+	import { useGithubAppsQuery } from '@/features/git';
+	import { GitProvidersList } from '@/features/services';
 	import Icon from '@iconify/svelte';
 
 	const getGithubAppsQuery = useGithubAppsQuery();

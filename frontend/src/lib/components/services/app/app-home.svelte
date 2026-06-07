@@ -6,11 +6,8 @@
 	import AppLogs from './app-logs.svelte';
 	import { ChevronRight, ChevronDown } from '@lucide/svelte';
 	import { Button } from '@/components/ui/button';
-	import {
-		useRebuildServiceMutation,
-		useRollbackServiceMutation
-	} from '@/features/deployments/mutation.svelte';
-	import { useGetAppServiceDetailsQuery } from '@/features/services/query.svelte';
+	import { useRebuildServiceMutation, useRollbackServiceMutation } from '@/features/deployments';
+	import { useGetAppServiceDetailsQuery } from '@/features/services';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import type { ServiceType } from '@/types';

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { useGetOrphanVolumesQuery } from '@/features/base/query.svelte';
+	import { useGetOrphanVolumesQuery } from '@/features/base';
 	import VolumeDeletion from '@/components/conformation/volume-deletion.svelte';
 	import { DotmSquare } from '@/components/loader';
 

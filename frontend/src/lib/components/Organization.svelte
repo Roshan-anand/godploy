@@ -7,11 +7,11 @@
 	import { Label } from '@/components/ui/label';
 	import { Skeleton } from '@/components/ui/skeleton';
 	import { Check, ChevronsUpDown, Plus } from '@lucide/svelte';
-	import { GetUserData } from '@/features/global/query';
-	import { useGetAllOrgsQuery } from '@/features/base/query.svelte';
-	import { useSwitchOrgMutation, useCreateOrgMutation } from '@/features/base/mutation.svelte';
+	import { GetUserData } from '@/features/global';
+	import { useGetAllOrgsQuery } from '@/features/base';
+	import { useSwitchOrgMutation, useCreateOrgMutation } from '@/features/base';
 	import { SidebarMenuButton } from './ui/sidebar';
-	import { getBaseState } from '@/features/global/store.svelte';
+	import { getBaseState } from '@/features/global';
 
 	const { email } = GetUserData();
 	const base = getBaseState();

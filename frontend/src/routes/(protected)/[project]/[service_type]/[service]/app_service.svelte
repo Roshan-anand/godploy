@@ -4,8 +4,8 @@
 	import AppDomain from '@/components/services/app/app-domain.svelte';
 	import { resolve } from '$app/paths';
 	import * as NavigationMenu from '@/components/ui/navigation-menu';
-	import { NavItems } from '@/features/services/const';
-	import type { ServiceTab } from '@/features/services/type';
+	import { NavItems } from '@/features/services';
+	import type { ServiceTab } from '@/features/services';
 	import AppEnv from '@/components/services/app/app-env.svelte';
 
 	const {

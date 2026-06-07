@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { Button } from '@/components/ui/button';
 	import { Skeleton } from '@/components/ui/skeleton';
-	import { useDeleteDeploymentMutation } from '@/features/deployments/mutation.svelte';
-	import { useServiceDeploymentsQuery } from '@/features/deployments/query.svelte';
+	import { useDeleteDeploymentMutation } from '@/features/deployments';
+	import { useServiceDeploymentsQuery } from '@/features/deployments';
 	import DeployementLogs from './deployement_logs.svelte';
 
 	let { serviceID }: { serviceID: string } = $props();

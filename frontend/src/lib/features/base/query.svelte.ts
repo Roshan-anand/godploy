@@ -1,7 +1,7 @@
 import { api } from '@/axios';
 import { createQuery } from '@tanstack/svelte-query';
 import type { ApiRes } from '@/types';
-import type { Instance, Organization } from '@/features/auth/type';
+import type { Instance, Organization } from '@/features/auth';
 import type { OrphanVolume, ProjectListResponse } from './type';
 import { getOrphanVolumesQueryKey, getOrgProjectsQueryKey, getOrgsQueryKey } from './const';
 import { getBaseState } from '../global/store.svelte';

@@ -1,5 +1,5 @@
 import { api } from '@/axios';
-import type { AuthResponse } from '@/features/auth/type';
+import type { AuthResponse } from '@/features/auth';
 import { queryClient } from '@/query';
 import type { ApiRes } from '@/types';
 

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { Button } from '@/components/ui/button';
 	import * as Dialog from '@/components/ui/dialog';
-	import { useDeleteAppServiceMutation } from '@/features/services/mutation.svelte';
+	import { useDeleteAppServiceMutation } from '@/features/services';
 	import { Trash2 } from '@lucide/svelte';
 
 	type Props = {

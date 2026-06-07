@@ -8,12 +8,12 @@
 	import {
 		useRedeployPsqlServiceMutation,
 		useUpdatePsqlServiceMutation
-	} from '@/features/services/mutation.svelte';
-	import { useGetPsqlServiceDetailsQuery } from '@/features/services/query.svelte';
+	} from '@/features/services';
+	import { useGetPsqlServiceDetailsQuery } from '@/features/services';
 	import { createForm } from '@tanstack/svelte-form';
 	import { z } from 'zod';
 	import FormError from '@/components/services/FormError.svelte';
-	import type { UpdatePsqlServicePayload } from '@/features/services/type';
+	import type { UpdatePsqlServicePayload } from '@/features/services';
 
 	const { serviceID }: { serviceID: string } = $props();
 

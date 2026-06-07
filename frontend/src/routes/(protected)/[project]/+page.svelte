@@ -7,7 +7,7 @@
 	import { goto } from '$app/navigation';
 	import * as DropdownMenu from '$lib/components/ui/dropdown-menu/index.js';
 	import { ChevronDown } from '@lucide/svelte';
-	import { useGetAllServicesQuery } from '@/features/services/query.svelte';
+	import { useGetAllServicesQuery } from '@/features/services';
 	import AppDeletion from '@/components/conformation/app-deletion.svelte';
 	import DbDeletion from '@/components/conformation/db-deletion.svelte';
 	import { DotmSquare } from '@/components/loader';

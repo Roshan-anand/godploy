@@ -1,4 +1,4 @@
-import type { ServiceTab } from '@/features/services/type';
+import type { ServiceTab } from '@/features/services';
 import type { ServiceType } from '@/types.js';
 
 export function load({ params, url }) {

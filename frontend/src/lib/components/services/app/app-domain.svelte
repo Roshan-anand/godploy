@@ -4,8 +4,8 @@
 	import { Button } from '@/components/ui/button';
 	import { Label } from '@/components/ui/label';
 	import { Skeleton } from '@/components/ui/skeleton';
-	import { useGetBranchDomainQuery } from '@/features/services/query.svelte';
-	import { useUpdateBranchDomainMutation } from '@/features/services/mutation.svelte';
+	import { useGetBranchDomainQuery } from '@/features/services';
+	import { useUpdateBranchDomainMutation } from '@/features/services';
 
 	let { serviceID }: { serviceID: string } = $props();
 

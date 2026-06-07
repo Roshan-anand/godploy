@@ -1,3 +1,5 @@
+import { goto } from '$app/navigation';
+import { resolve } from '$app/paths';
 import { api, axiosErr } from '@/axios';
 import { createMutation } from '@tanstack/svelte-query';
 import { toast } from 'svelte-sonner';
@@ -5,7 +7,6 @@ import type {
 	CreateServicePayload,
 	GetReposPayload,
 	GithubRepo,
-	CreatePsqlServicePayload,
 	RedeployPsqlServicePayload,
 	ServiceListResponse,
 	UpdateBranchDomainPayload,
@@ -13,12 +14,15 @@ import type {
 	UpdatePsqlServicePayload,
 	DeleteAppServicePayload,
 	DeletePsqlServicePayload,
-	CreateServiceResponse
+	CreateServiceResponse,
+	CreateAppServiceForm,
+	CreatePsqlServiceBody
 } from './type';
 import type { ApiRes } from '@/types';
 import { queryClient } from '@/query';
 import { getInstanceServicesQueryKey } from './query.svelte';
 import { getInstanceState } from '../instance/context.svelte';
+import { normalizePathValue } from '@/utils';
 
 export function useGetReposMutation() {
 	return createMutation(() => ({
@@ -32,25 +36,87 @@ export function useGetReposMutation() {
 	}));
 }
 
-export function useCreateServiceMutation() {
+export function useCreateServiceMutation(getProjectName: () => string) {
 	return createMutation(() => ({
-		mutationFn: async (payload: CreateServicePayload) =>
-			api.post<ApiRes<CreateServiceResponse>>('/service/app', payload).then((res) => res.data),
-		onSuccess: ({ message }) => toast.success(message || 'App Service created successfully'),
+		mutationFn: async (formValue: CreateAppServiceForm) => {
+			const instance = getInstanceState();
+			if (!instance.id) throw new Error('No instance selected');
+
+			const env = formValue.env.split('\n').filter((line) => line.trim() !== '');
+			const build_args = formValue.build_args.split('\n').filter((line) => line.trim() !== '');
+			const build_secrets = formValue.build_secrets
+				.split('\n')
+				.filter((line) => line.trim() !== '');
+
+			const payload: CreateServicePayload = {
+				instance_id: instance.id,
+				name: formValue.name.trim(),
+				git_provider: formValue.git_provider,
+				gh_app_id: formValue.gh_app_id,
+				gh_repo_id: formValue.gh_repo_id,
+				default_branch: formValue.default_branch,
+				build_path: normalizePathValue(formValue.build_path),
+				watch_path: normalizePathValue(formValue.watch_path),
+				public: formValue.public,
+				env,
+				build_args,
+				build_secrets,
+				docker_build: {
+					file_path: formValue.docker_build.file_path,
+					context_path: formValue.docker_build.context_path,
+					build_stage: formValue.docker_build.build_stage
+				}
+			};
+
+			return api
+				.post<ApiRes<CreateServiceResponse>>('/service/app', payload)
+				.then((res) => res.data);
+		},
+		onSuccess: ({ data, message }) => {
+			const instance = getInstanceState();
+			queryClient.invalidateQueries({
+				queryKey: getInstanceServicesQueryKey(instance.id as string)
+			});
+			toast.success(message || 'App Service created successfully');
+			goto(
+				resolve('/(protected)/[project]/[service_type]/[service]?tab=deployment', {
+					project: getProjectName(),
+					service_type: data.type,
+					service: data.name
+				})
+			);
+		},
 		onError: (error) => axiosErr(error as Error, 'Failed to create service')
 	}));
 }
 
-export function useCreatePsqlServiceMutation() {
+export function useCreatePsqlServiceMutation(getProjectName: () => string) {
 	return createMutation(() => ({
-		mutationFn: async (payload: CreatePsqlServicePayload) =>
-			api.post<ApiRes<CreateServiceResponse>>('/service/psql', payload).then((res) => res.data),
+		mutationFn: async (formValue: CreatePsqlServiceBody) => {
+			const instance = getInstanceState();
+			if (!instance.id) throw new Error('No instance selected');
+
+			const payload = {
+				instance_id: instance.id,
+				name: formValue.name.trim(),
+				db_name: formValue.db_name.trim(),
+				db_user: formValue.db_user.trim(),
+				db_password: formValue.db_password,
+				image: formValue.image.trim(),
+				volume: formValue.volume
+			};
+
+			return api
+				.post<ApiRes<CreateServiceResponse>>('/service/psql', payload)
+				.then((res) => res.data);
+		},
 		onSuccess: ({ message }, { volume }) => {
 			// invalidate orphan volume caches when a reattach happened
 			if (volume) {
 				queryClient.invalidateQueries({ queryKey: ['orphan-volumes'] });
 			}
 			toast.success(message || 'PSQL Service created successfully');
+			goto(resolve('/(protected)/[project]', { project: getProjectName() }));
 		},
 		onError: (error) => axiosErr(error as Error, 'Failed to create service')
 	}));
@@ -111,10 +177,24 @@ export function useUpdateBranchDomainMutation(getServiceId: () => string) {
 	}));
 }
 
+type UpdateEnvFormValues = {
+	service_id: string;
+	env: string;
+	build_args: string;
+	build_secrets: string;
+};
+
 export function useUpdateEnvMutation(getServiceId: () => string) {
 	return createMutation(() => ({
-		mutationFn: async (payload: UpdateEnvPayload) =>
-			api.put<ApiRes<null>>('/service/app/env', payload).then((res) => res.data),
+		mutationFn: async ({ env, build_args, build_secrets, ...rest }: UpdateEnvFormValues) => {
+			const payload: UpdateEnvPayload = {
+				...rest,
+				env: env.split('\n').filter((l) => l.trim() !== ''),
+				build_args: build_args.split('\n').filter((l) => l.trim() !== ''),
+				build_secrets: build_secrets.split('\n').filter((l) => l.trim() !== '')
+			};
+			return api.put<ApiRes<null>>('/service/app/env', payload).then((res) => res.data);
+		},
 		onSuccess: ({ message }) => {
 			queryClient.invalidateQueries({
 				queryKey: ['service-env', getServiceId()]

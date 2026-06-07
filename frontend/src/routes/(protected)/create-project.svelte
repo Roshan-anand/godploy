@@ -3,7 +3,7 @@
 	import * as Dialog from '@/components/ui/dialog';
 	import { Input } from '@/components/ui/input';
 	import { Label } from '@/components/ui/label';
-	import { useCreateProjectMutation } from '@/features/base/mutation.svelte';
+	import { useCreateProjectMutation } from '@/features/base';
 
 	let dialogOpen = $state(false);
 	let projectName = $state('');

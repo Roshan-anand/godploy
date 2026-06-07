@@ -3,22 +3,18 @@
 	import { Input } from '@/components/ui/input';
 	import { Label } from '@/components/ui/label';
 	import * as Select from '@/components/ui/select';
-	import { useCreatePsqlServiceMutation } from '@/features/services/mutation.svelte';
-	import { useGetOrphanVolumesByTypeQuery } from '@/features/base/query.svelte';
+	import { useCreatePsqlServiceMutation } from '@/features/services';
+	import { useGetOrphanVolumesByTypeQuery } from '@/features/base';
 	import { createForm } from '@tanstack/svelte-form';
 	import { z } from 'zod';
 	import FormError from '@/components/services/FormError.svelte';
-	import type { CreatePsqlServiceBody } from '@/features/services/type';
+	import type { CreatePsqlServiceBody } from '@/features/services';
 	import { Eye, EyeOff } from '@lucide/svelte';
-	import { goto } from '$app/navigation';
-	import { resolve } from '$app/paths';
-	import { getInstanceState } from '@/features/instance/context.svelte.js';
 
 	const { data } = $props();
 	const { projectName } = $derived(data);
-	const instance = getInstanceState();
 
-	const createPsqlServiceMutation = useCreatePsqlServiceMutation();
+	const createPsqlServiceMutation = useCreatePsqlServiceMutation(() => projectName);
 	const orphanVolumesQuery = useGetOrphanVolumesByTypeQuery('psql');
 
 	let isPasswordVisible = $state(false);
@@ -44,25 +40,7 @@
 			volume: ''
 		} as CreatePsqlServiceBody,
 		onSubmit: ({ value }) => {
-			if (!instance.id) return;
-
-			createPsqlServiceMutation.mutate(
-				{
-					instance_id: instance.id,
-					name: value.name.trim(),
-					db_name: value.db_name.trim(),
-					db_user: value.db_user.trim(),
-					db_password: value.db_password,
-					image: value.image.trim(),
-					// empty volume = create new database; non-empty = reattach orphan
-					volume: value.volume
-				},
-				{
-					onSuccess: () => {
-						goto(resolve('/(protected)/[project]', { project: projectName }));
-					}
-				}
-			);
+			createPsqlServiceMutation.mutate(value);
 		}
 	}));
 </script>

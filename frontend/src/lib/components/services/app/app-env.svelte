@@ -1,8 +1,8 @@
 <script lang="ts">
 	import SecretTextarea from '@/components/services/secret-textarea.svelte';
 	import { Button } from '@/components/ui/button';
-	import { useUpdateEnvMutation } from '@/features/services/mutation.svelte';
-	import { useGetServiceEnvQuery } from '@/features/services/query.svelte';
+	import { useUpdateEnvMutation } from '@/features/services';
+	import { useGetServiceEnvQuery } from '@/features/services';
 
 	let { serviceID }: { serviceID: string } = $props();
 
@@ -16,9 +16,9 @@
 	const handleUpdateEnv = () => {
 		updateEnv.mutate({
 			service_id: serviceID,
-			env: env.split('\n'),
-			build_args: buildArgs.split('\n'),
-			build_secrets: buildSecrets.split('\n')
+			env,
+			build_args: buildArgs,
+			build_secrets: buildSecrets
 		});
 	};
 </script>

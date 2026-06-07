@@ -3,7 +3,7 @@
 	import { Checkbox } from '@/components/ui/checkbox';
 	import * as Dialog from '@/components/ui/dialog';
 	import { Label } from '@/components/ui/label';
-	import { useDeletePsqlServiceMutation } from '@/features/services/mutation.svelte';
+	import { useDeletePsqlServiceMutation } from '@/features/services';
 	import { Trash2 } from '@lucide/svelte';
 
 	type Props = {

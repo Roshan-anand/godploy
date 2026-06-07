@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { Button } from '@/components/ui/button';
-	import { GitProvidersList } from '@/features/services/const';
-	import type { GitProviderKey } from '@/features/services/type';
+	import { GitProvidersList } from '@/features/services';
+	import type { GitProviderKey } from '@/features/services';
 	import { cn } from '@/utils';
 	import Icon from '@iconify/svelte';
 
