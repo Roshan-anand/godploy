@@ -98,11 +98,7 @@
 									onblur={field.handleBlur}
 									oninput={(e) => field.handleChange(e.currentTarget.value)}
 								/>
-								{#if field.state.meta.errors.length}
-									<p class="text-sm font-medium text-destructive">
-										{field.state.meta.errors[0] ?? 'Invalid email'}
-									</p>
-								{/if}
+								<FormError errors={field.state.meta.errors} />
 							</div>
 						{/snippet}
 					</form.Field>
