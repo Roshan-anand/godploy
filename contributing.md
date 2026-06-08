@@ -35,3 +35,40 @@
 ## errors
 
 - while running `make check` or `bun check` in frontend, if you get permission error, then run `make permission` and now its fixed.
+
+<hr/>
+
+## permanent subdomain for local development
+
+it get's really tricky to manage external service like Github with dynamic urls from cloudflare tunnel. so if u have a domain then use a permanent subdomain for local development.
+
+- Login and create a named tunnel
+
+  ```bash
+    cloudflared tunnel login
+    cloudflared tunnel create dev
+  ```
+
+- Create a DNS record for the subdomain
+  ```bash
+    cloudflared tunnel route dns dev dev.<your-domain>.com
+  ```
+
+- Configure the tunnel
+  - Create ~/.cloudflared/config.yml
+
+  ```yaml
+    tunnel: dev
+    credentials-file: /home/your-user/.cloudflared/<tunnel-id>.json
+
+    ingress:
+      - hostname: dev.<your-domain>.com
+        service: http://localhost:8080
+
+      - service: http_status:404
+  ```
+
+- Start the tunnel
+  ```bash
+    cloudflared tunnel run dev
+  ```

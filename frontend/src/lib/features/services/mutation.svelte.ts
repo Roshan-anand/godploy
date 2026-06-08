@@ -37,9 +37,10 @@ export function useGetReposMutation() {
 }
 
 export function useCreateServiceMutation(getProjectName: () => string) {
+	const instance = getInstanceState();
+	
 	return createMutation(() => ({
 		mutationFn: async (formValue: CreateAppServiceForm) => {
-			const instance = getInstanceState();
 			if (!instance.id) throw new Error('No instance selected');
 
 			const env = formValue.env.split('\n').filter((line) => line.trim() !== '');
@@ -74,7 +75,6 @@ export function useCreateServiceMutation(getProjectName: () => string) {
 				.then((res) => res.data);
 		},
 		onSuccess: ({ data, message }) => {
-			const instance = getInstanceState();
 			queryClient.invalidateQueries({
 				queryKey: getInstanceServicesQueryKey(instance.id as string)
 			});
@@ -92,9 +92,10 @@ export function useCreateServiceMutation(getProjectName: () => string) {
 }
 
 export function useCreatePsqlServiceMutation(getProjectName: () => string) {
+	const instance = getInstanceState();
+	
 	return createMutation(() => ({
 		mutationFn: async (formValue: CreatePsqlServiceBody) => {
-			const instance = getInstanceState();
 			if (!instance.id) throw new Error('No instance selected');
 
 			const payload = {
@@ -124,13 +125,14 @@ export function useCreatePsqlServiceMutation(getProjectName: () => string) {
 }
 
 export function useDeleteAppServiceMutation() {
+	const instance = getInstanceState();
+	
 	return createMutation(() => ({
 		mutationFn: async (payload: DeleteAppServicePayload) =>
 			api.delete<ApiRes<null>>('/service/app', { data: payload }).then((res) => res.data),
 		onSuccess: ({ message }, { service_id }) => {
 			toast.success(message || 'Application deleted successfully');
 
-			const instance = getInstanceState();
 			if (!instance.id) return;
 			queryClient.setQueryData(
 				getInstanceServicesQueryKey(instance.id),
