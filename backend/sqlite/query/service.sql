@@ -3,6 +3,10 @@ SELECT ps.id, ps.type, ps.name, '' AS gh_repo_name, '' AS gh_repo_url, '' AS git
 FROM psql_service ps
 WHERE ps.instance_id = @instance_id
 UNION ALL
+SELECT rs.id, rs.type, rs.name, '' AS gh_repo_name, '' AS gh_repo_url, '' AS git_provider, '' AS branch_name, rs.created_at
+FROM redis_service rs
+WHERE rs.instance_id = @instance_id
+UNION ALL
 SELECT aps.id, aps.type, aps.name, aps.gh_repo_url, aps.gh_repo_url, aps.git_provider, aps.branch, aps.created_at
 FROM app_service aps
 WHERE aps.instance_id = @instance_id;
@@ -11,6 +15,10 @@ WHERE aps.instance_id = @instance_id;
 SELECT ps.id 
 FROM psql_service ps
 WHERE ps.instance_id = @instance_id AND ps.name = @name
+UNION ALL
+SELECT rs.id 
+FROM redis_service rs
+WHERE rs.instance_id = @instance_id AND rs.name = @name
 UNION ALL
 SELECT aps.id 
 FROM app_service aps
@@ -22,6 +30,10 @@ SELECT CAST(
         SELECT 1
         FROM psql_service ps
         WHERE ps.instance_id = @instance_id AND ps.name = @name
+        UNION ALL
+        SELECT 1
+        FROM redis_service rs
+        WHERE rs.instance_id = @instance_id AND rs.name = @name
         UNION ALL
         SELECT 1
         FROM app_service aps
@@ -50,6 +62,11 @@ SELECT CAST(EXISTS(
     SELECT 1
     FROM psql_service ps
     JOIN instance i ON i.id = ps.instance_id
+    WHERE i.project_id = @project_id
+    UNION ALL
+    SELECT 1
+    FROM redis_service rs
+    JOIN instance i ON i.id = rs.instance_id
     WHERE i.project_id = @project_id
 ) AS BOOLEAN);
 
@@ -96,7 +113,11 @@ WHERE aps.id = @service_id
 UNION ALL
 SELECT swarm_service
 FROM psql_service ps
-WHERE ps.id = @service_id;
+WHERE ps.id = @service_id
+UNION ALL
+SELECT swarm_service
+FROM redis_service rs
+WHERE rs.id = @service_id;
 
 -- name: GetAllAppServicesByRepo :many
 SELECT a.id AS service_id, a.name, a.gh_repo_url, a.gh_app_id,

@@ -25,6 +25,11 @@ SELECT CAST(EXISTS(
     FROM psql_service ps
     JOIN instance i ON i.id = ps.instance_id
     WHERE i.project_id = ?1
+    UNION ALL
+    SELECT 1
+    FROM redis_service rs
+    JOIN instance i ON i.id = rs.instance_id
+    WHERE i.project_id = ?1
 ) AS BOOLEAN)
 `
 
@@ -210,6 +215,10 @@ SELECT ps.id, ps.type, ps.name, '' AS gh_repo_name, '' AS gh_repo_url, '' AS git
 FROM psql_service ps
 WHERE ps.instance_id = ?1
 UNION ALL
+SELECT rs.id, rs.type, rs.name, '' AS gh_repo_name, '' AS gh_repo_url, '' AS git_provider, '' AS branch_name, rs.created_at
+FROM redis_service rs
+WHERE rs.instance_id = ?1
+UNION ALL
 SELECT aps.id, aps.type, aps.name, aps.gh_repo_url, aps.gh_repo_url, aps.git_provider, aps.branch, aps.created_at
 FROM app_service aps
 WHERE aps.instance_id = ?1
@@ -393,7 +402,7 @@ func (q *Queries) GetAppServiceForRebuild(ctx context.Context, id uuid.UUID) (Ge
 }
 
 const getAppServiceOnly = `-- name: GetAppServiceOnly :one
-SELECT id, instance_id, type, name, git_provider, gh_app_id, gh_repo_id, gh_repo_name, gh_repo_url, build_path, watch_path, docker_filepath, docker_contextpath, docker_buildstage, env, build_args, build_secrets, is_public, branch, swarm_service, domain, port, created_at FROM app_service WHERE id = ?
+SELECT id, instance_id, type, name, git_provider, gh_app_id, gh_repo_id, gh_repo_name, gh_repo_url, build_path, watch_path, docker_filepath, docker_contextpath, docker_buildstage, env, build_args, build_secrets, is_public, branch, swarm_service, domain, internal_url, port, created_at FROM app_service WHERE id = ?
 `
 
 func (q *Queries) GetAppServiceOnly(ctx context.Context, id uuid.UUID) (AppService, error) {
@@ -421,6 +430,7 @@ func (q *Queries) GetAppServiceOnly(ctx context.Context, id uuid.UUID) (AppServi
 		&i.Branch,
 		&i.SwarmService,
 		&i.Domain,
+		&i.InternalUrl,
 		&i.Port,
 		&i.CreatedAt,
 	)
@@ -514,6 +524,10 @@ SELECT ps.id
 FROM psql_service ps
 WHERE ps.instance_id = ?1 AND ps.name = ?2
 UNION ALL
+SELECT rs.id 
+FROM redis_service rs
+WHERE rs.instance_id = ?1 AND rs.name = ?2
+UNION ALL
 SELECT aps.id 
 FROM app_service aps
 WHERE aps.instance_id = ?1 AND aps.name = ?2
@@ -539,6 +553,10 @@ UNION ALL
 SELECT swarm_service
 FROM psql_service ps
 WHERE ps.id = ?1
+UNION ALL
+SELECT swarm_service
+FROM redis_service rs
+WHERE rs.id = ?1
 `
 
 func (q *Queries) GetSwarmServiceByServiceId(ctx context.Context, serviceID uuid.UUID) (string, error) {
@@ -554,6 +572,10 @@ SELECT CAST(
         SELECT 1
         FROM psql_service ps
         WHERE ps.instance_id = ?1 AND ps.name = ?2
+        UNION ALL
+        SELECT 1
+        FROM redis_service rs
+        WHERE rs.instance_id = ?1 AND rs.name = ?2
         UNION ALL
         SELECT 1
         FROM app_service aps

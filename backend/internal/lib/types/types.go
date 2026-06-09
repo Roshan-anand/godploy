@@ -18,8 +18,9 @@ const (
 type ServiceType string
 
 const (
-	PsqlServiceType ServiceType = "psql"
-	AppServiceType  ServiceType = "app"
+	PsqlServiceType  ServiceType = "psql"
+	AppServiceType   ServiceType = "app"
+	RedisServiceType ServiceType = "redis"
 )
 
 type PredefServiceType string

@@ -99,6 +99,10 @@ SELECT CAST(EXISTS(
     SELECT 1
     FROM psql_service ps
     where ps.instance_id = @instance_id
+    UNION ALL
+    SELECT 1
+    FROM redis_service rs
+    where rs.instance_id = @instance_id
 ) AS BOOLEAN);
 
 -- name: DeleteInstance :exec

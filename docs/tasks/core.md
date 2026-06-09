@@ -5,7 +5,7 @@
 - [ ] 01 — Install Godploy on Ubuntu from GHCR [easy]
 - [x] 02 — Create a Project with a default production Project Instance [easy]
 - [x] 03 — Create an internal application Service inside the production Project Instance [easy]
-- [ ] 04 — Expose a public application Service from the production Project Instance [easy]
+- [x] 04 — Expose a public application Service from the production Project Instance [easy]
 - [ ] 05 — Show project instance switching in the dashboard [easy]
 - [ ] 06 — Create a branch preview Project Instance from a production snapshot [easy]
 - [ ] 07 — Create a pull request preview Project Instance from available PR candidates [easy]
@@ -25,3 +25,15 @@
 - [ ] 21 — Align GitHub App manifest, webhook endpoint, and public server URL behavior [hard]
 - [ ] 22 — Decide the V1 critical-flow test gate and coverage order [hard]
 - [ ] 23 — Decide the V1 rate-limiting policy for core routes and service exposure [hard]
+
+## Extras V1
+
+- [ ] 01 — Global Settings: avatar picker, profile edit, password change [easy]
+- [ ] 02 — Organization Settings: CRUD, org switch, delete with cascade, project transfer [easy]
+- [ ] 03 — Project Instance Rename: editable name with per-project uniqueness [easy]
+- [ ] 04 — App Service Pause & Replicas: pause/resume, replica count inc/dec [easy]
+- [ ] 05 — App Service Health Check Override: custom health check over Dockerfile [easy]
+- [ ] 06 — Service Domain Settings: production domain input, preview auto-gen & custom override [easy]
+- [ ] 07 — Project Deletion Warning Update: list running services per instance instead of orphan volumes [easy]
+- [ ] 08 — Predefined DB Volume Size & Stop/Start: configurable volume size, stop/start without redeploy [easy]
+- [ ] 09 — Orphan Volume Filters & Rename: size sort, type filter, name search, inline rename [easy]

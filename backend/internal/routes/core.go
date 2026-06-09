@@ -78,6 +78,13 @@ func SetupRoutes(srv *config.Server) (*echo.Echo, error) {
 	psql.POST("/redeploy", h.Service.RedeployPsqlService)
 	psql.DELETE("", h.Service.DeletePsqlService)
 
+	redis := service.Group("/redis")
+	redis.GET("/:id", h.Service.GetRedisServiceById)
+	redis.POST("", h.Service.CreateRedisService)
+	redis.PUT("", h.Service.UpdateRedisServiceDetails)
+	redis.POST("/redeploy", h.Service.RedeployRedisService)
+	redis.DELETE("", h.Service.DeleteRedisService)
+
 	app := service.Group("/app")
 	app.GET("/:id", h.Service.GetAppServiceById)
 	app.POST("", h.Service.CreateAppService)

@@ -116,6 +116,19 @@ type RedirectSession struct {
 	CreatedAt time.Time     `json:"created_at"`
 }
 
+type RedisService struct {
+	ID           uuid.UUID         `json:"id"`
+	InstanceID   uuid.UUID         `json:"instance_id"`
+	Type         types.ServiceType `json:"type"`
+	Name         string            `json:"name"`
+	SwarmService string            `json:"swarm_service"`
+	Password     string            `json:"password"`
+	Image        string            `json:"image"`
+	Volume       string            `json:"volume"`
+	InternalUrl  string            `json:"internal_url"`
+	CreatedAt    time.Time         `json:"created_at"`
+}
+
 type Session struct {
 	ID        uuid.UUID `json:"id"`
 	UserID    uuid.UUID `json:"user_id"`

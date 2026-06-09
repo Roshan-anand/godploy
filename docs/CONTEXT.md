@@ -64,6 +64,46 @@ _Avoid_: Hidden app, background container
 The access mode of an application service, either public or internal.
 _Avoid_: Network mode, visibility
 
+**Global Settings**:
+User-level profile configuration including avatar, display name, email, and password.
+_Avoid_: Account settings, profile page
+
+**Service Domain**:
+The domain name configured for a service, either user-entered or auto-generated for previews.
+_Avoid_: Hostname, ingress domain
+
+**Auto-generated Domain**:
+A backend-generated subdomain for a preview service following the `<service>.<preview>.<base_domain>` pattern.
+_Avoid_: System domain, default domain
+
+**Custom Domain**:
+A user-overridden domain for a service, replacing any auto-generated domain.
+_Avoid_: Manual domain, override domain
+
+**Organization Transfer**:
+Moving a project from one organization to another by reassigning its owning organization identifier.
+_Avoid_: Move project, reassign project
+
+**Replicas**:
+The number of container instances running for a service within the swarm.
+_Avoid_: Instances, scale count, copies
+
+**Pause**:
+Taking an application service offline by setting its replicas to zero while preserving configuration and deployment state.
+_Avoid_: Suspend, stop, disable
+
+**Stop**:
+Taking a predefined database service offline while preserving its configuration and stored data.
+_Avoid_: Pause, shutdown, disable
+
+**Health Check Override**:
+A user-specified health check that supersedes any Dockerfile-defined health check for a service.
+_Avoid_: Custom health check, manual health check
+
+**Volume Size**:
+The configurable storage capacity for a predefined database service, set at creation and editable later.
+_Avoid_: Disk size, storage quota
+
 ## Relationships
 
 - An **Organization** contains one or more **Projects**
@@ -85,6 +125,13 @@ _Avoid_: Network mode, visibility
 - A **Public Service** joins the **Instance Network** and the global ingress network
 - An **Internal Service** joins only the **Instance Network**
 - A **Service** may use an **Internal URL** to communicate with another **Service** in the same **Project Instance**
+- A **Service** keeps a configurable **Volume Size** when it is a **Predefined Database Service**
+- A **Service** may have a **Service Domain** that is either **Auto-generated** or **Custom**
+- A **Service** may be **Paused** by setting its **Replicas** to zero
+- A **Predefined Database Service** may be **Stopped** separately from being deleted
+- A **Service** may carry an optional **Health Check Override** that supersedes the Dockerfile health check
+- A **Project** may be transferred from one **Organization** to another via **Organization Transfer**
+- A user has one **Global Settings** profile containing avatar, name, email, and password
 
 ## Example dialogue
 
@@ -106,9 +153,21 @@ _Avoid_: Network mode, visibility
 > **Dev:** "What happens to database data when I delete the service but keep the data?"
 > **Domain expert:** "The data becomes an **Orphan Volume** and can later be managed from **Storage** or attached again to a compatible database service."
 
+> **Dev:** "Can I temporarily take an app offline without deleting it?"
+> **Domain expert:** "Yes, you **Pause** the **Service** which sets its **Replicas** to zero while preserving everything else."
+
+> **Dev:** "How do I move a project to a different organization?"
+> **Domain expert:** "Use **Organization Transfer** — it simply reassigns the owning organization on the **Project** record."
+
+> **Dev:** "Does the preview service get a domain automatically?"
+> **Domain expert:** "Yes, the backend generates an **Auto-generated Domain** when the preview is created. You can override it with a **Custom Domain** in the service settings."
+
 ## Flagged ambiguities
 
 - `service` was previously discussed as belonging directly to an **Organization**; resolved: a **Service** belongs to a **Project Instance**, and that instance belongs to a **Project**.
 - `application` was previously used to imply public access; resolved: an application may be either a **Public Service** or an **Internal Service**.
 - `network` was used to describe service visibility; resolved: use **Exposure Mode** for public vs internal, and **Instance Network** for the private network itself.
 - `branch` was previously used as the runtime deployment boundary; resolved: use **Project Instance** for runtime isolation and **Git Source** for repository branch or pull request selection.
+- `account` was previously used interchangeably with user profile; resolved: use **Global Settings** for the user-level configuration and profile data.
+- `suspend` was used to describe taking a service offline; resolved: use **Pause** for application services and **Stop** for predefined database services.
+- `domain override` was used loosely; resolved: a **Service Domain** that is user-entered is a **Custom Domain**, distinct from the **Auto-generated Domain** for previews.

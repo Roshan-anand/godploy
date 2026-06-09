@@ -41,6 +41,10 @@ SELECT CAST(EXISTS(
     SELECT 1
     FROM psql_service ps
     where ps.instance_id = ?1
+    UNION ALL
+    SELECT 1
+    FROM redis_service rs
+    where rs.instance_id = ?1
 ) AS BOOLEAN)
 `
 
