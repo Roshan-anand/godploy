@@ -13,13 +13,13 @@
 		SidebarMenuItem,
 		SidebarRail
 	} from '@/components/ui/sidebar';
-	import { Blocks, Users, GitBranch, Database } from '@lucide/svelte';
+	import { Blocks, Users, GitBranch, Database, Settings } from '@lucide/svelte';
 	import { page } from '$app/state';
 	import type { ResolvedPathname } from '$app/types';
 	import Organization from './Organization.svelte';
 
 	type AppSidebarItem = {
-		hash: RegExp;
+		hash: string;
 		route: ResolvedPathname;
 		name: string;
 		icon: typeof Blocks;
@@ -27,23 +27,29 @@
 
 	const sidebarItems: AppSidebarItem[] = [
 		{
-			hash: /^(?!#\/(?:members|git|storage)$).*$/,
+			hash: '#/project',
 			route: resolve('/'),
 			name: 'Projects',
 			icon: Blocks
 		},
-		{ hash: /^#\/git$/, route: resolve('/git'), name: 'Git', icon: GitBranch },
+		{ hash: '#/git', route: resolve('/git'), name: 'Git', icon: GitBranch },
 		{
-			hash: /^#\/storage$/,
+			hash: '#/storage',
 			route: resolve('/storage'),
 			name: 'Storage',
 			icon: Database
 		},
 		{
-			hash: /^#\/members$/,
+			hash: '#/members',
 			route: resolve('/members'),
 			name: 'Members',
 			icon: Users
+		},
+		{
+			hash: '#/settings',
+			route: resolve('/settings'),
+			name: 'Settings',
+			icon: Settings
 		}
 	];
 </script>
@@ -64,7 +70,7 @@
 						<SidebarMenuItem>
 							<!-- eslint-disable svelte/no-navigation-without-resolve -->
 							<SidebarMenuButton
-								class={`${hash.test(page.url.hash) && 'bg-sidebar-accent text-sidebar-primary hover:text-sidebar-primary'}`}
+								class={`${hash.startsWith(page.url.hash) && 'bg-sidebar-accent text-sidebar-primary hover:text-sidebar-primary'}`}
 								onclick={() => goto(route)}
 							>
 								<Icon />

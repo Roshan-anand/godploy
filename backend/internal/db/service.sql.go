@@ -633,6 +633,11 @@ type UpdateDomianAndPortParams struct {
 }
 
 func (q *Queries) UpdateDomianAndPort(ctx context.Context, arg UpdateDomianAndPortParams) error {
-	_, err := q.db.ExecContext(ctx, updateDomianAndPort, arg.Domain, arg.Port, arg.IsPublic, arg.ServiceID)
+	_, err := q.db.ExecContext(ctx, updateDomianAndPort,
+		arg.Domain,
+		arg.Port,
+		arg.IsPublic,
+		arg.ServiceID,
+	)
 	return err
 }

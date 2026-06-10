@@ -5,7 +5,7 @@
 	import { resolve } from '$app/paths';
 	import { useGetAllProjectsQuery } from '@/features/base';
 	import CreateProject from './create-project.svelte';
-	import ProjectDeletion from '@/components/conformation/project-deletion.svelte';
+	import { ProjectDeletion } from '@/components/conformation';
 	import { DotmSquare } from '@/components/loader';
 	import { goto } from '$app/navigation';
 	import { Button } from '@/components/ui/button';

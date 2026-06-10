@@ -33,3 +33,23 @@ export type SwitchOrgPayload = {
 export type CreateOrgPayload = {
 	name: string;
 };
+
+export type RenameOrgPayload = {
+	org_id: string;
+	name: string;
+};
+
+export type DeleteOrgPayload = {
+	org_id: string;
+};
+
+export type TransferProjectPayload = {
+	project_id: string;
+	target_org_id: string;
+};
+
+export type OrgProject = {
+	id: string;
+	name: string;
+	created_at: string;
+};

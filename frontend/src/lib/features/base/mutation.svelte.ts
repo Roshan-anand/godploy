@@ -11,7 +11,10 @@ import type {
 	DeleteVolumePayload,
 	ProjectResponse,
 	SwitchOrgPayload,
-	CreateOrgPayload
+	CreateOrgPayload,
+	RenameOrgPayload,
+	DeleteOrgPayload,
+	TransferProjectPayload
 } from './type';
 import { getOrgProjectsQueryKey, getOrgsQueryKey } from './const';
 import { goto } from '$app/navigation';
@@ -98,5 +101,51 @@ export function useCreateOrgMutation() {
 			toast.success(message);
 		},
 		onError: (error) => axiosErr(error, 'Failed to create organization')
+	}));
+}
+
+export function useRenameOrgMutation() {
+	const { email } = GetUserData();
+	const org = getOrgState();
+	return createMutation(() => ({
+		mutationFn: (payload: RenameOrgPayload) =>
+			api.put<ApiRes<Organization>>('/org/rename', payload).then((res) => res.data),
+		onSuccess: ({ data, message }) => {
+			queryClient.setQueryData(getOrgsQueryKey(email), (cachedOrgs: Organization[] | undefined) => {
+				if (!cachedOrgs) return;
+				return cachedOrgs.map((org) => (org.id === data.id ? { ...org, name: data.name } : org));
+			});
+			if (org.id === data.id) {
+				org.setCurrentOrg(data.id, data.name);
+			}
+			toast.success(message || 'Organization renamed successfully');
+		},
+		onError: (error) => axiosErr(error, 'Failed to rename organization')
+	}));
+}
+
+export function useDeleteOrgMutation() {
+	const { email } = GetUserData();
+	return createMutation(() => ({
+		mutationFn: (payload: DeleteOrgPayload) =>
+			api.delete<ApiRes<null>>('/org', { data: payload }).then((res) => res.data),
+		onSuccess: ({ message }) => {
+			queryClient.invalidateQueries({ queryKey: getOrgsQueryKey(email) });
+			toast.success(message || 'Organization deleted successfully');
+		},
+		onError: (error) => axiosErr(error, 'Failed to delete organization')
+	}));
+}
+
+export function useTransferProjectMutation() {
+	return createMutation(() => ({
+		mutationFn: (payload: TransferProjectPayload) =>
+			api.put<ApiRes<null>>('/project/transfer', payload).then((res) => res.data),
+		onSuccess: ({ message }) => {
+			queryClient.invalidateQueries({ queryKey: ['project-list'] });
+			queryClient.invalidateQueries({ queryKey: ['org-projects'] });
+			toast.success(message || 'Project transferred successfully');
+		},
+		onError: (error) => axiosErr(error, 'Failed to transfer project')
 	}));
 }

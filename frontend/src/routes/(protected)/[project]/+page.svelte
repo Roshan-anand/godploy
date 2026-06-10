@@ -8,8 +8,7 @@
 	import * as DropdownMenu from '$lib/components/ui/dropdown-menu/index.js';
 	import { ChevronDown } from '@lucide/svelte';
 	import { useGetAllServicesQuery } from '@/features/services';
-	import AppDeletion from '@/components/conformation/app-deletion.svelte';
-	import DbDeletion from '@/components/conformation/db-deletion.svelte';
+	import { AppDeletion, DbDeletion } from '@/components/conformation';
 	import { DotmSquare } from '@/components/loader';
 	import InstancePRPreviewDropdown from '@/components/InstancePRPreviewDropdown.svelte';
 	import { X } from '@lucide/svelte';
