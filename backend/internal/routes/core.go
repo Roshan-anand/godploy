@@ -93,7 +93,10 @@ func SetupRoutes(srv *config.Server) (*echo.Echo, error) {
 	app.PUT("/domain", h.Service.UpdateAppServiceDomain)
 	app.GET("/env", h.Service.GetServiceEnv)
 	app.PUT("/env", h.Service.UpdateAppServiceEnv)
+	app.GET("/settings", h.Service.GetAppServiceSettings)
 	app.POST("/scale", h.Service.ScaleAppService)
+	app.POST("/pause", h.Service.PauseAppService)
+	app.POST("/resume", h.Service.ResumeAppService)
 	app.POST("/rebuild", h.Deployment.RebuildAppService)
 	app.POST("/rollback", h.Deployment.RollbackAppService)
 

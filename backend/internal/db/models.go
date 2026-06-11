@@ -30,6 +30,7 @@ type AppService struct {
 	Env               []byte            `json:"env"`
 	BuildArgs         []byte            `json:"build_args"`
 	BuildSecrets      []byte            `json:"build_secrets"`
+	Replicas          int32             `json:"replicas"`
 	IsPublic          bool              `json:"is_public"`
 	Branch            string            `json:"branch"`
 	SwarmService      string            `json:"swarm_service"`

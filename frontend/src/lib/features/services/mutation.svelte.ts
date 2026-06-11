@@ -16,7 +16,8 @@ import type {
 	DeletePsqlServicePayload,
 	CreateServiceResponse,
 	CreateAppServiceForm,
-	CreatePsqlServiceBody
+	CreatePsqlServiceBody,
+	ScaleAppServicePayload
 } from './type';
 import type { ApiRes } from '@/types';
 import { queryClient } from '@/query';
@@ -232,5 +233,46 @@ export function useRedeployPsqlServiceMutation() {
 			toast.success(message || 'PSQL redeploy started');
 		},
 		onError: (error) => axiosErr(error as Error, 'Failed to redeploy PSQL service')
+	}));
+}
+
+export function useScaleAppServiceMutation(getServiceId: () => string) {
+	return createMutation(() => ({
+		mutationFn: async (payload: ScaleAppServicePayload) =>
+			api.post<ApiRes<null>>('/service/app/scale', payload).then((res) => res.data),
+		onSuccess: ({ message }) => {
+			queryClient.invalidateQueries({ queryKey: ['service-settings', getServiceId()] });
+			queryClient.invalidateQueries({ queryKey: ['service-details', getServiceId()] });
+			toast.success(message || 'Replicas updated');
+		},
+		onError: (error) => axiosErr(error as Error, 'Failed to scale service')
+	}));
+}
+
+export function usePauseAppServiceMutation(getServiceId: () => string) {
+	return createMutation(() => ({
+		mutationFn: async () =>
+			api
+				.post<ApiRes<null>>('/service/app/pause', { service_id: getServiceId() })
+				.then((res) => res.data),
+		onSuccess: ({ message }) => {
+			queryClient.invalidateQueries({ queryKey: ['service-details', getServiceId()] });
+			toast.success(message || 'Service paused');
+		},
+		onError: (error) => axiosErr(error as Error, 'Failed to pause service')
+	}));
+}
+
+export function useResumeAppServiceMutation(getServiceId: () => string) {
+	return createMutation(() => ({
+		mutationFn: async () =>
+			api
+				.post<ApiRes<null>>('/service/app/resume', { service_id: getServiceId() })
+				.then((res) => res.data),
+		onSuccess: ({ message }) => {
+			queryClient.invalidateQueries({ queryKey: ['service-details', getServiceId()] });
+			toast.success(message || 'Service resumed');
+		},
+		onError: (error) => axiosErr(error as Error, 'Failed to resume service')
 	}));
 }

@@ -2,6 +2,8 @@ package handlers
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -73,9 +75,24 @@ type RoolbackServiceReq struct {
 	ServiceID uuid.UUID `json:"service_id" validate:"required"`
 }
 
+type AppServiceSettingsRes struct {
+	Domain   string `json:"domain"`
+	Port     int32  `json:"port"`
+	IsPublic bool   `json:"is_public"`
+	Replicas int32  `json:"replicas"`
+}
+
 type ScaleAppServiceReq struct {
 	ServiceId uuid.UUID `json:"service_id" validate:"required"`
 	Replicas  uint64    `json:"replicas" validate:"required"`
+}
+
+type PauseAppServiceReq struct {
+	ServiceID uuid.UUID `json:"service_id" validate:"required"`
+}
+
+type ResumeAppServiceReq struct {
+	ServiceID uuid.UUID `json:"service_id" validate:"required"`
 }
 
 // create a new app service
@@ -227,7 +244,11 @@ func (h *ServiceHandler) GetAppServiceById(c *echo.Context) error {
 
 	service, err := h.Server.DB.Queries.GetAppServiceById(h.qCtx, serviceID)
 	if err != nil {
-		return c.JSON(http.StatusNotFound, types.Res[struct{}]{Message: "service not found"})
+		if errors.Is(err, sql.ErrNoRows) {
+			return c.JSON(http.StatusNotFound, types.Res[struct{}]{Message: "service not found"})
+		}
+		fmt.Println("error getting service by id:", err)
+		return c.JSON(http.StatusInternalServerError, types.Res[struct{}]{Message: "Failed to get service"})
 	}
 
 	return c.JSON(http.StatusOK, types.Res[db.GetAppServiceByIdRow]{
@@ -462,7 +483,158 @@ func (h *ServiceHandler) ScaleAppService(c *echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, types.Res[struct{}]{Message: "error updating the swarm service"})
 	}
 
+	if err := q.UpdateAppServiceReplicas(h.qCtx, db.UpdateAppServiceReplicasParams{
+		Replicas: int32(b.Replicas),
+		ID:       b.ServiceId,
+	}); err != nil {
+		return c.JSON(http.StatusInternalServerError, types.Res[struct{}]{Message: "error persisting replicas"})
+	}
+
 	return c.JSON(http.StatusOK, types.Res[struct{}]{Message: "successfully updated the replicas"})
+}
+
+// GetAppServiceSettings — returns settings data for the app service (domain, port, visibility, replicas)
+//
+// route: GET /api/service/app/settings?service_id=
+func (h *ServiceHandler) GetAppServiceSettings(c *echo.Context) error {
+	q := h.Server.DB.Queries
+
+	serviceID, err := uuid.Parse(c.QueryParam("service_id"))
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, types.Res[struct{}]{Message: "invalid service_id"})
+	}
+
+	settings, err := q.GetAppServiceSettings(h.qCtx, serviceID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return c.JSON(http.StatusNotFound, types.Res[struct{}]{Message: "service not found"})
+		}
+		return c.JSON(http.StatusInternalServerError, types.Res[struct{}]{Message: "failed to get settings"})
+	}
+
+	return c.JSON(http.StatusOK, types.Res[AppServiceSettingsRes]{
+		Message: "",
+		Data: AppServiceSettingsRes{
+			Domain:   settings.Domain,
+			Port:     settings.Port,
+			IsPublic: settings.IsPublic,
+			Replicas: settings.Replicas,
+		},
+	})
+}
+
+// PauseAppService — sets swarm replicas to 0, marks current deployment as paused
+//
+// route: POST /api/service/app/pause
+func (h *ServiceHandler) PauseAppService(c *echo.Context) error {
+	b := new(PauseAppServiceReq)
+	q := h.Server.DB.Queries
+	docker := h.Server.Docker.Client
+
+	if Res := BindAndValidate(b, c, h.Validate); Res != nil {
+		return c.JSON(http.StatusBadRequest, Res)
+	}
+
+	currentDep, err := q.GetCurrentDeploymentByServiceId(h.qCtx, b.ServiceID)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, types.Res[struct{}]{Message: "error getting current deployment"})
+	}
+
+	swarmName, err := q.GetSwarmServiceByServiceId(h.qCtx, b.ServiceID)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, types.Res[struct{}]{Message: "error getting swarm service"})
+	}
+
+	swarmService, _, err := docker.ServiceInspectWithRaw(context.Background(), swarmName, swarm.ServiceInspectOptions{})
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, types.Res[struct{}]{Message: "error inspecting swarm service"})
+	}
+	version := swarmService.Version
+	spec := swarmService.Spec
+
+	zero := uint64(0)
+	spec.Mode.Replicated.Replicas = &zero
+
+	if _, err := docker.ServiceUpdate(context.Background(), swarmName, version, spec, swarm.ServiceUpdateOptions{}); err != nil {
+		return c.JSON(http.StatusInternalServerError, types.Res[struct{}]{Message: "error pausing swarm service"})
+	}
+
+	if err := q.UpdateDeploymentStatus(h.qCtx, db.UpdateDeploymentStatusParams{
+		Status: types.DeploymentPaused,
+		ID:     currentDep.ID,
+	}); err != nil {
+		return c.JSON(http.StatusInternalServerError, types.Res[struct{}]{Message: "error persisting paused status"})
+	}
+
+	if err := q.UpdateAppServiceReplicas(h.qCtx, db.UpdateAppServiceReplicasParams{
+		Replicas: 0,
+		ID:       b.ServiceID,
+	}); err != nil {
+		return c.JSON(http.StatusInternalServerError, types.Res[struct{}]{Message: "error persisting replicas"})
+	}
+
+	return c.JSON(http.StatusOK, types.Res[struct{}]{Message: "service paused"})
+}
+
+// ResumeAppService — restores replicas to stored count (or 1), marks deployment as ready
+//
+// route: POST /api/service/app/resume
+func (h *ServiceHandler) ResumeAppService(c *echo.Context) error {
+	b := new(ResumeAppServiceReq)
+	q := h.Server.DB.Queries
+	docker := h.Server.Docker.Client
+
+	if Res := BindAndValidate(b, c, h.Validate); Res != nil {
+		return c.JSON(http.StatusBadRequest, Res)
+	}
+
+	currentDep, err := q.GetCurrentDeploymentByServiceId(h.qCtx, b.ServiceID)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, types.Res[struct{}]{Message: "error getting current deployment"})
+	}
+
+	swarmName, err := q.GetSwarmServiceByServiceId(h.qCtx, b.ServiceID)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, types.Res[struct{}]{Message: "error getting swarm service"})
+	}
+
+	swarmService, _, err := docker.ServiceInspectWithRaw(context.Background(), swarmName, swarm.ServiceInspectOptions{})
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, types.Res[struct{}]{Message: "error inspecting swarm service"})
+	}
+	version := swarmService.Version
+	spec := swarmService.Spec
+
+	storedReplicas, err := q.GetAppServiceReplicas(h.qCtx, b.ServiceID)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, types.Res[struct{}]{Message: "error getting stored replicas"})
+	}
+
+	resumeReplicas := uint64(storedReplicas)
+	if resumeReplicas < 1 {
+		resumeReplicas = 1
+	}
+	spec.Mode.Replicated.Replicas = &resumeReplicas
+
+	if _, err := docker.ServiceUpdate(context.Background(), swarmName, version, spec, swarm.ServiceUpdateOptions{}); err != nil {
+		return c.JSON(http.StatusInternalServerError, types.Res[struct{}]{Message: "error resuming swarm service"})
+	}
+
+	if err := q.UpdateDeploymentStatus(h.qCtx, db.UpdateDeploymentStatusParams{
+		Status: types.DeploymentReady,
+		ID:     currentDep.ID,
+	}); err != nil {
+		return c.JSON(http.StatusInternalServerError, types.Res[struct{}]{Message: "error persisting running status"})
+	}
+
+	if err := q.UpdateAppServiceReplicas(h.qCtx, db.UpdateAppServiceReplicasParams{
+		Replicas: int32(resumeReplicas),
+		ID:       b.ServiceID,
+	}); err != nil {
+		return c.JSON(http.StatusInternalServerError, types.Res[struct{}]{Message: "error persisting replicas"})
+	}
+
+	return c.JSON(http.StatusOK, types.Res[struct{}]{Message: "service resumed"})
 }
 
 // delete app service

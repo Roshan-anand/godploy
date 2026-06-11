@@ -1,12 +1,9 @@
 <script lang="ts">
-	import AppDeployments from '@/components/services/app/app-deployments.svelte';
-	import AppHome from '@/components/services/app/app-home.svelte';
-	import AppSettings from '@/components/services/app/app-settings.svelte';
+	import { AppDeployments, AppHome, AppSettings, AppEnv } from '@/components/services/app';
 	import { resolve } from '$app/paths';
 	import * as NavigationMenu from '@/components/ui/navigation-menu';
 	import { NavItems } from '@/features/services';
 	import type { ServiceTab } from '@/features/services';
-	import AppEnv from '@/components/services/app/app-env.svelte';
 
 	const {
 		serviceID,

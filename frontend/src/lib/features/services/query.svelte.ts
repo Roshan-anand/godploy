@@ -2,6 +2,7 @@ import { api } from '@/axios';
 import { createQuery } from '@tanstack/svelte-query';
 import type {
 	AppServiceDetails,
+	AppServiceSettings,
 	GetEnvRes,
 	PsqlServiceDetails,
 	ServiceListResponse,
@@ -84,6 +85,22 @@ export function useGetPsqlServiceDetailsQuery(getID: () => string) {
 			queryFn: async () =>
 				api
 					.get<ApiRes<PsqlServiceDetails>>(`/service/psql/${serviceId}`)
+					.then((res) => res.data.data),
+			enabled: serviceId !== ''
+		};
+	});
+}
+
+export function useGetAppServiceSettingsQuery(getID: () => string) {
+	return createQuery(() => {
+		const serviceId = getID();
+		return {
+			queryKey: ['service-settings', serviceId],
+			queryFn: async () =>
+				api
+					.get<ApiRes<AppServiceSettings>>('/service/app/settings', {
+						params: { service_id: serviceId }
+					})
 					.then((res) => res.data.data),
 			enabled: serviceId !== ''
 		};
