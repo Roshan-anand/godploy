@@ -67,6 +67,22 @@ func (q *Queries) DownGradeDeployment(ctx context.Context, arg DownGradeDeployme
 	return err
 }
 
+const getCurrentDeploymentByServiceId = `-- name: GetCurrentDeploymentByServiceId :one
+SELECT id, status FROM deployments WHERE service_id = ? AND is_current = TRUE
+`
+
+type GetCurrentDeploymentByServiceIdRow struct {
+	ID     uuid.UUID              `json:"id"`
+	Status types.DeploymentStatus `json:"status"`
+}
+
+func (q *Queries) GetCurrentDeploymentByServiceId(ctx context.Context, serviceID uuid.UUID) (GetCurrentDeploymentByServiceIdRow, error) {
+	row := q.db.QueryRowContext(ctx, getCurrentDeploymentByServiceId, serviceID)
+	var i GetCurrentDeploymentByServiceIdRow
+	err := row.Scan(&i.ID, &i.Status)
+	return i, err
+}
+
 const getDeploymentImgByID = `-- name: GetDeploymentImgByID :one
 SELECT d.id, d.image
 FROM deployments d

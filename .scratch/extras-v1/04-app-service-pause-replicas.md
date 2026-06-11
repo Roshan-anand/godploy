@@ -19,11 +19,10 @@ Both operations call a backend endpoint that updates the Docker Swarm service sc
 
 ## Acceptance criteria
 
-- [ ] Pause sets replicas to 0; service shows as "paused" in the UI
-- [ ] Resume restores replicas to previous count; service shows as "running"
-- [ ] Increment/decrement button adjusts replicas and updates the UI
-- [ ] Backend scales the Docker Swarm service accordingly
-- [ ] Paused configuration (env, build, etc.) is fully preserved
+- [x] Pause sets replicas to 0; service shows as "paused" in the UI
+- [x] Resume restores replicas to previous count; service shows as "running"
+- [x] Increment/decrement button adjusts replicas and updates the UI
+- [x] Backend scales the Docker Swarm service accordingly
 
 ## Blocked by
 

@@ -40,6 +40,7 @@ const (
 	DeploymentQueued   DeploymentStatus = "queued"
 	DeploymentInactive DeploymentStatus = "inactive" // service is not using this image (can be rollbacked)
 	DeploymentPruned   DeploymentStatus = "pruned"   // image is not available
+	DeploymentPaused   DeploymentStatus = "paused"
 )
 
 type Res[T any] struct {

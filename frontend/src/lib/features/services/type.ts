@@ -135,6 +135,7 @@ export type AppServiceDetails = {
 	gh_repo_name: string;
 	gh_repo_url: string;
 	status: DeploymentStatus;
+	replicas: number;
 	commit_msg: string;
 	branch: string;
 	swarm_service: string;
@@ -169,6 +170,18 @@ export type ServiceTab = '' | 'deployment' | 'env' | 'settings';
 export type NavItem = {
 	label: string;
 	tab: ServiceTab;
+};
+
+export type AppServiceSettings = {
+	domain: string;
+	port: number;
+	is_public: boolean;
+	replicas: number;
+};
+
+export type ScaleAppServicePayload = {
+	service_id: string;
+	replicas: number;
 };
 
 export type PRInfo = {

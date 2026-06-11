@@ -1,10 +1,9 @@
 <script lang="ts">
-	import { AppDeployments, AppHome, AppSettings } from '@/components/services/app';
+	import { AppDeployments, AppHome, AppSettings, AppEnv } from '@/components/services/app';
 	import { resolve } from '$app/paths';
 	import * as NavigationMenu from '@/components/ui/navigation-menu';
 	import { NavItems } from '@/features/services';
 	import type { ServiceTab } from '@/features/services';
-	import { AppEnv } from '@/components/services/app';
 
 	const {
 		serviceID,

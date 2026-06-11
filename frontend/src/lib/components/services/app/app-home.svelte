@@ -7,7 +7,11 @@
 	import { ChevronRight, ChevronDown } from '@lucide/svelte';
 	import { Button } from '@/components/ui/button';
 	import { useRebuildServiceMutation, useRollbackServiceMutation } from '@/features/deployments';
-	import { useGetAppServiceDetailsQuery } from '@/features/services';
+	import {
+		useGetAppServiceDetailsQuery,
+		usePauseAppServiceMutation,
+		useResumeAppServiceMutation
+	} from '@/features/services';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import type { ServiceType } from '@/types';
@@ -30,6 +34,8 @@
 	const serviceQuery = useGetAppServiceDetailsQuery(() => serviceID);
 	const rebuildService = useRebuildServiceMutation();
 	const rollBackService = useRollbackServiceMutation();
+	const pauseService = usePauseAppServiceMutation(() => serviceID);
+	const resumeService = useResumeAppServiceMutation(() => serviceID);
 
 	let open = $state(false);
 	let selectedPR = $state<PRInfo | null>(null);
@@ -50,6 +56,7 @@
 		created_at,
 		commit_msg,
 		status,
+		replicas,
 		domain,
 		internal_url,
 		port,
@@ -84,6 +91,19 @@
 
 					<div class="flex items-center gap-2">
 						<AppServicePRPreviewButton serviceId={serviceID} onSelect={(pr) => (selectedPR = pr)} />
+						{#if status === 'paused'}
+							<Button disabled={resumeService.isPending} onclick={() => resumeService.mutate()}>
+								Resume
+							</Button>
+						{:else}
+							<Button
+								variant="secondary"
+								disabled={pauseService.isPending || status !== 'ready'}
+								onclick={() => pauseService.mutate()}
+							>
+								Pause
+							</Button>
+						{/if}
 						<Button
 							disabled={rebuildService.isPending}
 							onclick={() =>
@@ -138,8 +158,14 @@
 				<p>{commit_msg}</p>
 				<section class="flex items-center gap-4">
 					<div>
-						status : {status}
+						deployment :
+						{#if status === 'paused'}
+							<span class="text-yellow-500 font-medium">paused</span>
+						{:else}
+							{status}
+						{/if}
 					</div>
+					<div>replicas : {replicas}</div>
 					<div>created at : {created_at}</div>
 				</section>
 				<section class="mt-2 rounded-md border bg-muted/30 p-3">
