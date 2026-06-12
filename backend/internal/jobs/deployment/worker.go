@@ -32,7 +32,7 @@ func (d *DeploymentService) runDeploymentPipeline(ctx context.Context, data *Dep
 
 	outputPath := path.Join(d.codeStoreDir, data.SwarmService)
 	repoUrl := fmt.Sprintf("https://oauth2:%s@%s", data.Token, data.Url)
-	cmd := exec.Command("git", "clone", "--branch", data.Branch, "--depth", "1", repoUrl, "outputPath")
+	cmd := exec.Command("git", "clone", "--branch", data.Branch, "--depth", "1", repoUrl, outputPath)
 
 	if err := runWorkerCmd(d.log, data.DeploymentID, cmd, "pull"); err != nil {
 		fmt.Printf("PullWorker: error running command: %v\n", err)
@@ -86,31 +86,31 @@ func (d *DeploymentService) runDeploymentPipeline(ctx context.Context, data *Dep
 	}
 
 	// remove the code folder
-	go os.RemoveAll("outputPath")
+	go os.RemoveAll(outputPath)
 
 	fmt.Println("finished building :", data.ImgName)
 
 	switch data.JobType {
 	case DeployJob:
-		// set a deploy worker
-		// w.Server.DeploymentQ.EnqueueDeployJob(&deploymentqueue.DeployJobData{
-		// 	DeploymentID: d.DeploymentID,
-		// 	SwarmService: d.SwarmService,
-		// 	ImgName:      d.ImgName,
-		// 	Env:          d.Env,
-		// 	IsPublic:     d.IsPublic,
-		// 	NetworkName:  d.NetworkName,
-		// })
+		d.deploy(&deployData{
+			deploymentID: data.DeploymentID,
+			swarmService: data.SwarmService,
+			imgName:      data.ImgName,
+			env:          data.Env,
+			isPublic:     data.IsPublic,
+			networkName:  data.NetworkName,
+		})
 
 	case ReDeployJob:
-		// w.Server.DeploymentQ.EnqueueRedeployJob(&deploymentqueue.RedeployJobData{
-		// 	DeploymentID: d.DeploymentID,
-		// 	SwarmService: d.SwarmService,
-		// 	ImgName:      d.ImgName,
-		// 	Env:          d.Env,
-		// 	IsPublic:     d.IsPublic,
-		// 	NetworkName:  d.NetworkName,
-		// })
+		d.redeploy(&deployData{
+			deploymentID: data.DeploymentID,
+			swarmService: data.SwarmService,
+			imgName:      data.ImgName,
+			env:          data.Env,
+			isPublic:     data.IsPublic,
+			networkName:  data.NetworkName,
+		})
+
 	default:
 		fmt.Printf("BuildWorker: unknown job type: %v\n", data.JobType)
 	}

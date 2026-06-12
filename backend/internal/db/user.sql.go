@@ -7,6 +7,7 @@ package db
 
 import (
 	"context"
+	"database/sql"
 	"time"
 
 	"github.com/Roshan-anand/godploy/internal/lib/types"
@@ -119,7 +120,7 @@ type GetUserProfileRow struct {
 	Name      string         `json:"name"`
 	Email     string         `json:"email"`
 	Role      types.UserRole `json:"role"`
-	Avatar    string         `json:"avatar"`
+	Avatar    sql.NullString `json:"avatar"`
 	CreatedAt time.Time      `json:"created_at"`
 }
 
@@ -190,10 +191,10 @@ WHERE id = ?
 `
 
 type UpdateUserProfileParams struct {
-	Name   string    `json:"name"`
-	Email  string    `json:"email"`
-	Avatar string    `json:"avatar"`
-	ID     uuid.UUID `json:"id"`
+	Name   string         `json:"name"`
+	Email  string         `json:"email"`
+	Avatar sql.NullString `json:"avatar"`
+	ID     uuid.UUID      `json:"id"`
 }
 
 func (q *Queries) UpdateUserProfile(ctx context.Context, arg UpdateUserProfileParams) error {

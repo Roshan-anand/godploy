@@ -199,7 +199,6 @@ func (d *DeploymentService) Submit(ctx context.Context, body *DeploymentServiceP
 		ctx:  ctx,
 		Body: body,
 	}:
-		fmt.Println("job submitted successfully")
 		return nil
 	}
 }

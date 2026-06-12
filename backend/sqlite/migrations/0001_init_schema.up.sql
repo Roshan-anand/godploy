@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS user (
     email TEXT UNIQUE NOT NULL,
     hash_pass TEXT NOT NULL,
     role TEXT NOT NULL,
+    avatar TEXT,
     current_org_id uuid NOT NULL REFERENCES organization(id),
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL
 );

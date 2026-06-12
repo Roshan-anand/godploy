@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"database/sql"
 	"net/http"
 
 	"github.com/Roshan-anand/godploy/internal/config"
@@ -76,7 +77,7 @@ func (h *ProfileHandler) GetProfile(c *echo.Context) error {
 			Name:      profile.Name,
 			Email:     profile.Email,
 			Role:      profile.Role,
-			Avatar:    profile.Avatar,
+			Avatar:    profile.Avatar.String,
 			CreatedAt: profile.CreatedAt.Format("2006-01-02T15:04:05Z"),
 		},
 	})
@@ -104,10 +105,13 @@ func (h *ProfileHandler) UpdateProfile(c *echo.Context) error {
 	}
 
 	if err := q.UpdateUserProfile(h.qCtx, db.UpdateUserProfileParams{
-		ID:     user.ID,
-		Name:   b.Name,
-		Email:  b.Email,
-		Avatar: b.Avatar,
+		ID:    user.ID,
+		Name:  b.Name,
+		Email: b.Email,
+		Avatar: sql.NullString{
+			Valid:  true,
+			String: b.Avatar,
+		},
 	}); err != nil {
 		return c.JSON(http.StatusInternalServerError, types.Res[struct{}]{Message: "Internal Server Error"})
 	}

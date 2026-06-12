@@ -144,9 +144,9 @@ type User struct {
 	Email        string         `json:"email"`
 	HashPass     string         `json:"hash_pass"`
 	Role         types.UserRole `json:"role"`
+	Avatar       sql.NullString `json:"avatar"`
 	CurrentOrgID uuid.UUID      `json:"current_org_id"`
 	CreatedAt    time.Time      `json:"created_at"`
-	Avatar       string         `json:"avatar"`
 }
 
 type UserOrganization struct {
