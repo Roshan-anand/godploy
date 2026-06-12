@@ -17,7 +17,7 @@ import (
 
 	"github.com/Roshan-anand/godploy/internal/config"
 	"github.com/Roshan-anand/godploy/internal/db"
-	deploymentqueue "github.com/Roshan-anand/godploy/internal/jobs/deployment/queue"
+	deployjob "github.com/Roshan-anand/godploy/internal/jobs/deployment"
 	"github.com/Roshan-anand/godploy/internal/lib/auth"
 	ghservice "github.com/Roshan-anand/godploy/internal/lib/gh"
 	"github.com/Roshan-anand/godploy/internal/lib/security"
@@ -541,8 +541,8 @@ func (h *GitHandler) GithubWebhook(c *echo.Context) error {
 			}
 
 			// push a new deployment job to the queue
-			h.Server.DeploymentQ.EnqueuePullJob(&deploymentqueue.PullJobData{
-				Type:              deploymentqueue.RebuildJob,
+			h.Server.Services.Deployment.Submit(context.Background(), &deployjob.DeploymentServiceParams{
+				JobType:           deployjob.RebuildJob,
 				DeploymentID:      dID,
 				Token:             gh.Token,
 				Url:               s.GhRepoUrl,

@@ -2,6 +2,7 @@ package testing
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -16,8 +17,6 @@ import (
 	"github.com/Roshan-anand/godploy/internal/config"
 	"github.com/Roshan-anand/godploy/internal/db"
 	"github.com/Roshan-anand/godploy/internal/handlers"
-	deploymentjob "github.com/Roshan-anand/godploy/internal/jobs/deployment"
-	"github.com/Roshan-anand/godploy/internal/jobs/logbroker"
 	"github.com/Roshan-anand/godploy/internal/lib/auth"
 	"github.com/Roshan-anand/godploy/internal/lib/types"
 	"github.com/Roshan-anand/godploy/internal/routes"
@@ -177,9 +176,8 @@ func GetDummyServerHandler() (*config.Server, *handlers.Handler, error) {
 		return nil, nil, fmt.Errorf("failed to initialize server: %w", err)
 	}
 
-	dj := deploymentjob.NewJob(server)
-	dj.StartAllDeploymentWorker()
-	logbroker.InitLogsBroker(server)
+	server.Services.Deployment.Start(context.Background(), cfg.CodeStoreDir)
+	server.Services.LogBroker.Start(context.Background())
 
 	h := handlers.NewHandeler(server)
 

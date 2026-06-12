@@ -1,17 +1,23 @@
 package main
 
 import (
-	"log"
-	"net/url"
+	"sync"
+	"sync/atomic"
 )
 
 func main() {
-	fullurl := "github.com/Roshan-anand/godploy"
-	u, err := url.Parse(fullurl)
-	if err != nil {
-		log.Fatal(err)
+	// workers := 3
+	wg := new(sync.WaitGroup)
+	var id atomic.Int32
+
+	for range 10 {
+		wg.Go(func() {
+			newID := id.Add(1)
+			println("Generated ID:", newID)
+		})
 	}
-	log.Printf("Host: %s", u.Host)
-	log.Printf("Path: %s", u.Path)
-	log.Printf("full url: %s", fullurl)
+
+	if wg.Wait(); true {
+		println("All goroutines completed.")
+	}
 }

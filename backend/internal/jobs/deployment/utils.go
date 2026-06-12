@@ -1,4 +1,4 @@
-package deploymentjob
+package deployjob
 
 import (
 	"bufio"
@@ -6,8 +6,10 @@ import (
 	"fmt"
 	"io"
 	"os/exec"
+	"path"
+	"strings"
 
-	logbrokerqueue "github.com/Roshan-anand/godploy/internal/jobs/logbroker/queue"
+	"github.com/Roshan-anand/godploy/internal/jobs/logbroker"
 	"github.com/creack/pty"
 	"github.com/docker/docker/api/types/swarm"
 	"github.com/google/uuid"
@@ -19,13 +21,13 @@ func getTitle(msg string) string {
 }
 
 // scans the reader line by line and publish the logs
-func scanAndPublish(l *logbrokerqueue.LogBrokerQueue, dID uuid.UUID, r io.Reader) {
+func scanAndPublish(l *logbroker.LogBrokerService, dID uuid.UUID, r io.Reader) {
 	reader := bufio.NewReader(r)
 
 	for {
 		line, err := reader.ReadString('\n')
 		if len(line) > 0 {
-			l.PublishLog(&logbrokerqueue.PubData{
+			l.PublishLog(&logbroker.PubData{
 				ID:  dID,
 				Msg: line,
 			})
@@ -41,7 +43,7 @@ func scanAndPublish(l *logbrokerqueue.LogBrokerQueue, dID uuid.UUID, r io.Reader
 }
 
 // runs the given cmd in a psuedo terminal and publishes the logs to the log broker
-func runWorkerCmd(l *logbrokerqueue.LogBrokerQueue, dID uuid.UUID, cmd *exec.Cmd, worker string) error {
+func runWorkerCmd(l *logbroker.LogBrokerService, dID uuid.UUID, cmd *exec.Cmd, worker string) error {
 	ptmx, err := pty.Start(cmd)
 	if err != nil {
 		return fmt.Errorf("%s:err:pty:start: %v", worker, err)
@@ -104,4 +106,48 @@ func getBaseSpec(imgName string, networkName string, swarmName string, env []str
 	}
 
 	return spec
+}
+
+type dockerBuildCmdData struct {
+	dockerFilePath    string
+	dockerContextPath string
+	dockerBuildStage  string
+	imgName           string
+	buildArgs         []string
+	outputPath        string
+}
+
+func getDockerBuildCmd(d *dockerBuildCmdData) *exec.Cmd {
+	// 	"--secret", "id=npm_token,src=/tmp/npm_token",
+	// 	"--secret", "id=github_token,src=/tmp/github_token",
+
+	cmd := exec.Command("docker", "build", "--progress=plain")
+
+	if d.dockerFilePath != "" {
+		cmd.Args = append(cmd.Args, "--file", d.dockerFilePath)
+	}
+
+	// Guard against empty build args that break docker buildx parsing.
+	for _, arg := range d.buildArgs {
+		trimmed := strings.TrimSpace(arg)
+		if trimmed == "" || strings.HasPrefix(trimmed, "=") {
+			continue
+		}
+		cmd.Args = append(cmd.Args, "--build-arg", trimmed)
+	}
+
+	// TODO : add build secrets to the cmd
+
+	if d.imgName != "" {
+		cmd.Args = append(cmd.Args, "--tag", d.imgName)
+	}
+
+	if d.dockerBuildStage != "" {
+		cmd.Args = append(cmd.Args, "--target", d.dockerBuildStage)
+	}
+
+	dockerCtxPath := path.Join(d.outputPath + d.dockerContextPath)
+	cmd.Args = append(cmd.Args, dockerCtxPath)
+
+	return cmd
 }

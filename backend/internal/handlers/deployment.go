@@ -7,8 +7,8 @@ import (
 
 	"github.com/Roshan-anand/godploy/internal/config"
 	"github.com/Roshan-anand/godploy/internal/db"
-	deploymentqueue "github.com/Roshan-anand/godploy/internal/jobs/deployment/queue"
-	logbrokerqueue "github.com/Roshan-anand/godploy/internal/jobs/logbroker/queue"
+	deployjob "github.com/Roshan-anand/godploy/internal/jobs/deployment"
+	"github.com/Roshan-anand/godploy/internal/jobs/logbroker"
 	"github.com/Roshan-anand/godploy/internal/lib/security"
 	"github.com/Roshan-anand/godploy/internal/lib/sse"
 	"github.com/Roshan-anand/godploy/internal/lib/types"
@@ -113,10 +113,10 @@ func (h *DeploymentHandler) SubscribeServiceDeploymentLogs(c *echo.Context) erro
 		return nil
 	}
 
-	l := h.Server.LogBrokerQ
+	l := h.Server.Services.LogBroker
 
 	// subscribe to log broker queue to get real-time logs of the deployment
-	l.SubscribeLogs(userID, &logbrokerqueue.Subscriber{
+	l.Subscribe(userID, &logbroker.Subscriber{
 		SSE:          sse,
 		DeploymentID: dID,
 	})
@@ -125,7 +125,7 @@ func (h *DeploymentHandler) SubscribeServiceDeploymentLogs(c *echo.Context) erro
 		select {
 		case <-c.Request().Context().Done():
 			log.Printf("SSE client disconnected, ip: %v", c.RealIP())
-			l.UnsubscribeLogs(userID)
+			l.Unsubscribe(userID)
 			return nil
 		}
 	}
@@ -209,8 +209,8 @@ func (h *DeploymentHandler) RebuildAppService(c *echo.Context) error {
 	}
 
 	// push a new deployment job to the queue
-	h.Server.DeploymentQ.EnqueuePullJob(&deploymentqueue.PullJobData{
-		Type:              deploymentqueue.RebuildJob,
+	h.Server.Services.Deployment.Submit(context.Background(), &deployjob.DeploymentServiceParams{
+		JobType:           deployjob.RebuildJob,
 		DeploymentID:      dID,
 		Token:             ghData.Token,
 		Url:               s.GhRepoUrl,
@@ -283,7 +283,8 @@ func (h *DeploymentHandler) RollbackAppService(c *echo.Context) error {
 			// check if deployment image exists
 			if newDyp.Status != types.DeploymentPruned && newDyp.Image.Valid {
 
-				h.Server.DeploymentQ.EnqueueRedeployJob(&deploymentqueue.RedeployJobData{
+				h.Server.Services.Deployment.Submit(context.Background(), &deployjob.DeploymentServiceParams{
+					JobType:      deployjob.ReDeployJob,
 					DeploymentID: newDyp.ID,
 					ImgName:      newDyp.Image.String,
 					SwarmService: newDyp.SwarmService,

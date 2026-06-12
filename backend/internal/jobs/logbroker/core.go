@@ -2,111 +2,145 @@ package logbroker
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
+	"sync"
 
-	"github.com/Roshan-anand/godploy/internal/config"
 	"github.com/Roshan-anand/godploy/internal/db"
-	logbrokerqueue "github.com/Roshan-anand/godploy/internal/jobs/logbroker/queue"
+	"github.com/Roshan-anand/godploy/internal/lib/database"
+	"github.com/Roshan-anand/godploy/internal/lib/sse"
 	"github.com/Roshan-anand/godploy/internal/lib/types"
 	"github.com/google/uuid"
+	"golang.org/x/sync/errgroup"
 )
+
+type PubData struct {
+	ID  uuid.UUID
+	Msg string
+}
+
+type EndLogData struct {
+	DeploymentID uuid.UUID
+	Status       types.DeploymentStatus
+	Message      string
+}
+
+type Subscriber struct {
+	SSE          *sse.SSE
+	DeploymentID uuid.UUID
+	IsNew        bool
+}
 
 type LogBuffer map[uuid.UUID][]string
 
-type LogsBroker struct {
-	Server    *config.Server
-	LogBuffer LogBuffer
+type LogBrokerService struct {
+	mu          sync.Mutex
+	badgerDB    *database.BadgerDB
+	quries      *db.Queries
+	eg          *errgroup.Group
+	egCtx       context.Context
+	cancel      context.CancelFunc
+	pubData     chan *PubData
+	endData     chan *EndLogData
+	subscribers map[uuid.UUID]*Subscriber
+	logBuffer   LogBuffer
 }
 
-func InitLogsBroker(s *config.Server) {
+func NewLogBrokerService(q *db.Queries, db *database.BadgerDB) *LogBrokerService {
+	pub := make(chan *PubData, 100)
+	end := make(chan *EndLogData, 100)
+	sub := make(map[uuid.UUID]*Subscriber, 100)
 	logBuffer := make(LogBuffer)
-	broker := &LogsBroker{
-		Server:    s,
-		LogBuffer: logBuffer,
-	}
 
-	q := s.LogBrokerQ
-	go broker.LogsBrokerJob(context.Background(), q.Pub, q.End)
+	return &LogBrokerService{
+		pubData:     pub,
+		endData:     end,
+		subscribers: sub,
+		badgerDB:    db,
+		quries:      q,
+		logBuffer:   logBuffer,
+	}
 }
 
-func (job *LogsBroker) LogsBrokerJob(ctx context.Context, pub chan *logbrokerqueue.PubData, end chan *logbrokerqueue.EndLogData) {
+func (l *LogBrokerService) Start(ctx context.Context) {
+	l.egCtx, l.cancel = context.WithCancel(ctx)
+	l.eg, _ = errgroup.WithContext(l.egCtx)
+
+	l.eg.Go(func() error {
+		return l.worker(l.egCtx)
+	})
+
+}
+
+func (l *LogBrokerService) Stop(ctx context.Context) error {
+	close(l.pubData)
+	close(l.endData)
+
+	done := make(chan error, 1)
+	go func() {
+		done <- l.eg.Wait()
+	}()
+
+	select {
+	case err := <-done:
+		return err
+	case <-ctx.Done():
+		l.cancel()
+		return ctx.Err()
+	}
+}
+
+func (l *LogBrokerService) worker(ctx context.Context) error {
 	for {
 		select {
-		case p, ok := <-pub:
-			if !ok {
-				fmt.Println("Publisher channel closed, exiting logBroker")
-				return
-			}
-
-			// check for subscribers
-			for _, sub := range job.Server.LogBrokerQ.Subscribers {
-				if sub.DeploymentID == p.ID {
-					// is new subscriber send all logs from buffer
-					if sub.IsNew {
-						logs := job.bufferGet(p.ID)
-						logsB, err := json.Marshal(logs)
-						if err != nil {
-							fmt.Println("Error marshalling logs to JSON:", err)
-							continue
-						}
-						sub.SSE.SendEvent("logs", logsB)
-						sub.IsNew = false
-					}
-
-					sub.SSE.SendEvent("log", []byte(p.Msg))
-				}
-			}
-
-			// push to buffer
-			job.bufferPush(p.ID, p.Msg)
-
-		case e, ok := <-end:
-			if !ok {
-				fmt.Println("End channel closed, exiting logBroker")
-				return
-			}
-			dID := e.DeploymentID
-
-			if e.Status == types.DeploymentError {
-				if e.Message == "" {
-					e.Message = "something went wrong !!"
-				}
-			}
-
-			// push all logs from buffer to badgerDB
-			logs := job.bufferGet(dID)
-			logs = append(logs, e.Message)
-			job.Server.BadgerDB.AddLogs(dID, logs)
-
-			// update deployment status in database
-			if err := job.Server.DB.Queries.UpdateDeploymentStatus(context.Background(), db.UpdateDeploymentStatusParams{
-				Status: e.Status,
-				ID:     dID,
-			}); err != nil {
-				fmt.Println("Error updating deployment status in database:", err)
-			}
-
-			// remove subscribers of the deployment
-			for userID, sub := range job.Server.LogBrokerQ.Subscribers {
-				if sub.DeploymentID == dID {
-					sub.SSE.SendEvent("log", []byte(e.Message))
-					job.Server.LogBrokerQ.UnsubscribeLogs(userID)
-				}
-			}
 		case <-ctx.Done():
-			fmt.Println("Context cancelled, exiting logBroker")
-			return
+			fmt.Println("LogBrokerService worker received shutdown signal, exiting...")
+			return ctx.Err()
+
+		case p, ok := <-l.pubData:
+			if !ok {
+				return fmt.Errorf("pubData channel closed, worker exiting")
+			}
+			l.publisher(p)
+
+		case e, ok := <-l.endData:
+			if !ok {
+				return fmt.Errorf("pubData channel closed, worker exiting")
+			}
+			l.ender(e)
 		}
 	}
 }
 
-// push log message to buffer array
-func (job *LogsBroker) bufferPush(dID uuid.UUID, msg string) {
-	job.LogBuffer[dID] = append(job.LogBuffer[dID], msg)
+func (l *LogBrokerService) PublishLog(data *PubData) error {
+	select {
+	case <-l.egCtx.Done():
+		return fmt.Errorf("cannot publish log, service is shutting down")
+	case l.pubData <- data:
+		return nil
+	}
 }
 
-// get log messages from buffer array
-func (job *LogsBroker) bufferGet(dID uuid.UUID) []string {
-	return job.LogBuffer[dID]
+func (l *LogBrokerService) EndLogs(data *EndLogData) error {
+	select {
+	case <-l.egCtx.Done():
+		return fmt.Errorf("cannot publish log, service is shutting down")
+	case l.endData <- data:
+		return nil
+	}
+}
+
+// subscribe to logs of the deployment
+func (l *LogBrokerService) Subscribe(userID uuid.UUID, sub *Subscriber) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+
+	sub.IsNew = true
+	l.subscribers[userID] = sub
+}
+
+// unsubscribe user from logs of the deployment
+func (l *LogBrokerService) Unsubscribe(userID uuid.UUID) {
+	l.mu.Lock()
+	delete(l.subscribers, userID)
+	l.mu.Unlock()
 }

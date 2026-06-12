@@ -5,7 +5,7 @@ import (
 	"os"
 	"os/exec"
 
-	"github.com/Roshan-anand/godploy/internal/config"
+	"github.com/Roshan-anand/godploy/internal/lib/docker"
 )
 
 func runCommand(name string, args ...string) error {
@@ -17,7 +17,7 @@ func runCommand(name string, args ...string) error {
 
 // to setup local development env
 func main() {
-	docker, err := config.InitDockerClient()
+	docker, err := docker.InitDockerClient()
 	if err != nil {
 		fmt.Println(err)
 		return

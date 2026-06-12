@@ -60,6 +60,16 @@ func (s *Server) ShutDownServer() error {
 		return fmt.Errorf("http server shutdown error : %w", err)
 	}
 
+	// close deployment workers
+	if err := s.Services.Deployment.Stop(context.Background()); err != nil {
+		return err
+	}
+
+	// close log broker workers
+	if err := s.Services.LogBroker.Stop(context.Background()); err != nil {
+		return err
+	}
+
 	// close database connections
 	if err := s.DB.CloseDb(); err != nil {
 		return err
@@ -74,10 +84,6 @@ func (s *Server) ShutDownServer() error {
 	if err := s.Docker.CloseClient(); err != nil {
 		return err
 	}
-
-	// close queue channels
-	s.DeploymentQ.Close()
-	s.LogBrokerQ.Close()
 
 	return nil
 }

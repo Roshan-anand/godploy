@@ -10,7 +10,7 @@ import (
 	"strings"
 
 	"github.com/Roshan-anand/godploy/internal/db"
-	deploymentqueue "github.com/Roshan-anand/godploy/internal/jobs/deployment/queue"
+	deployjob "github.com/Roshan-anand/godploy/internal/jobs/deployment"
 	"github.com/Roshan-anand/godploy/internal/lib/security"
 	"github.com/Roshan-anand/godploy/internal/lib/types"
 	"github.com/Roshan-anand/godploy/internal/lib/utils"
@@ -208,8 +208,8 @@ func (h *ServiceHandler) CreateAppService(c *echo.Context) error {
 	}
 
 	// push a new deployment job to the queue
-	h.Server.DeploymentQ.EnqueuePullJob(&deploymentqueue.PullJobData{
-		Type:              deploymentqueue.DeployJob,
+	h.Server.Services.Deployment.Submit(context.Background(), &deployjob.DeploymentServiceParams{
+		JobType:           deployjob.DeployJob,
 		DeploymentID:      dID,
 		Token:             ghData.Token,
 		Url:               url,

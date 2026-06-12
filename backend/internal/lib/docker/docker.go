@@ -1,4 +1,4 @@
-package config
+package docker
 
 import (
 	"context"

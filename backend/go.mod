@@ -17,6 +17,7 @@ require (
 	github.com/labstack/echo/v5 v5.0.0
 	github.com/mattn/go-sqlite3 v1.14.33
 	golang.org/x/crypto v0.49.0
+	golang.org/x/sync v0.20.0
 )
 
 require (
