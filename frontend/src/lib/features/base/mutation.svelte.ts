@@ -17,7 +17,8 @@ import type {
 	TransferProjectPayload,
 	RenameProjectPayload,
 	RenameProjectResponse,
-	RenameInstancePayload
+	RenameInstancePayload,
+	RenameVolumePayload
 } from './type';
 import { getOrgProjectsQueryKey, getOrgsQueryKey } from './const';
 import { goto } from '$app/navigation';
@@ -181,5 +182,17 @@ export function useRenameInstanceMutation() {
 			toast.success(message || 'Instance renamed successfully');
 		},
 		onError: (error) => axiosErr(error, 'Failed to rename instance')
+	}));
+}
+
+export function useRenameVolumeMutation() {
+	return createMutation(() => ({
+		mutationFn: (payload: RenameVolumePayload) =>
+			api.patch<ApiRes<null>>('/volume', payload).then((res) => res.data),
+		onSuccess: ({ message }) => {
+			queryClient.invalidateQueries({ queryKey: ['orphan-volumes'] });
+			toast.success(message || 'Volume renamed successfully');
+		},
+		onError: (error) => axiosErr(error, 'Failed to rename volume')
 	}));
 }
