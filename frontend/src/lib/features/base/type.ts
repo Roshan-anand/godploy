@@ -78,3 +78,17 @@ export type RenameInstancePayload = {
 	project_id: string;
 	name: string;
 };
+
+export type TransferVolumePayload = {
+	volume_id: string;
+	target_org_id: string;
+	source_org_id: string;
+};
+
+export type OrgVolume = {
+	id: string;
+	organization_id: string;
+	volume: string;
+	type: string;
+	created_at: string;
+};
