@@ -1,5 +1,4 @@
 <script lang="ts" module>
-	/* eslint-disable svelte/no-navigation-without-resolve */
 	import type { ResolvedPathname } from '$app/types';
 	import { cn, type WithElementRef } from '@/utils.js';
 	import type { HTMLAnchorAttributes, HTMLButtonAttributes } from 'svelte/elements';
@@ -72,6 +71,7 @@
 </script>
 
 {#if href}
+	<!-- eslint-disable svelte/no-navigation-without-resolve -->
 	<a
 		bind:this={ref}
 		data-slot="button"

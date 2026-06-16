@@ -59,7 +59,7 @@ func (h *ServiceHandler) GetAllServices(c *echo.Context) error {
 	})
 }
 
-// get all services of a project
+// get given service ID
 //
 // route: GET /api/service/:name?instance_id=
 func (h *ServiceHandler) GetServiceID(c *echo.Context) error {
@@ -166,7 +166,6 @@ type PredefServiceReq struct {
 }
 
 // StopPredefService — stops a predefined (PSQL/Redis) service
-// Scales swarm replicas to 0, sets status to "paused"
 //
 // route: POST /api/service/stop
 func (h *ServiceHandler) StopPredefService(c *echo.Context) error {
@@ -200,11 +199,11 @@ func (h *ServiceHandler) StopPredefService(c *echo.Context) error {
 
 	// update status in both tables — one will be a no-op (no matching id)
 	q.UpdatePsqlServiceStatus(h.qCtx, db.UpdatePsqlServiceStatusParams{
-		Status: "paused",
+		Status: types.PredefServicePaused,
 		ID:     b.ServiceID,
 	})
 	q.UpdateRedisServiceStatus(h.qCtx, db.UpdateRedisServiceStatusParams{
-		Status: "paused",
+		Status: types.PredefServicePaused,
 		ID:     b.ServiceID,
 	})
 
@@ -214,7 +213,6 @@ func (h *ServiceHandler) StopPredefService(c *echo.Context) error {
 }
 
 // StartPredefService — starts a predefined (PSQL/Redis) service
-// Scales swarm replicas to 1, sets status to "running"
 //
 // route: POST /api/service/start
 func (h *ServiceHandler) StartPredefService(c *echo.Context) error {
@@ -248,11 +246,11 @@ func (h *ServiceHandler) StartPredefService(c *echo.Context) error {
 
 	// update status in both tables — one will be a no-op (no matching id)
 	q.UpdatePsqlServiceStatus(h.qCtx, db.UpdatePsqlServiceStatusParams{
-		Status: "running",
+		Status: types.PredefServiceRunning,
 		ID:     b.ServiceID,
 	})
 	q.UpdateRedisServiceStatus(h.qCtx, db.UpdateRedisServiceStatusParams{
-		Status: "running",
+		Status: types.PredefServiceRunning,
 		ID:     b.ServiceID,
 	})
 
