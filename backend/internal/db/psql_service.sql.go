@@ -314,6 +314,7 @@ func (q *Queries) GetOrphanVolumesByOrgId(ctx context.Context, organizationID uu
 			&i.Volume,
 			&i.Type,
 			&i.CreatedAt,
+			&i.DisplayName,
 		); err != nil {
 			return nil, err
 		}
@@ -329,7 +330,7 @@ func (q *Queries) GetOrphanVolumesByOrgId(ctx context.Context, organizationID uu
 }
 
 const getPsqlServiceById = `-- name: GetPsqlServiceById :one
-SELECT ps.id, ps.instance_id, ps.type, ps.name, ps.swarm_service, ps.db_name, ps.db_user, ps.db_password, ps.image, ps.volume, ps.internal_url, ps.created_at, p.organization_id
+SELECT ps.id, ps.instance_id, ps.type, ps.name, ps.swarm_service, ps.db_name, ps.db_user, ps.db_password, ps.image, ps.volume, ps.internal_url, ps.created_at, ps.status, p.organization_id
 FROM psql_service ps
 JOIN instance i ON i.id = ps.instance_id
 JOIN project p ON p.id = i.project_id
@@ -349,6 +350,7 @@ type GetPsqlServiceByIdRow struct {
 	Volume         string            `json:"volume"`
 	InternalUrl    string            `json:"internal_url"`
 	CreatedAt      time.Time         `json:"created_at"`
+	Status         string            `json:"status"`
 	OrganizationID uuid.UUID         `json:"organization_id"`
 }
 
@@ -368,6 +370,7 @@ func (q *Queries) GetPsqlServiceById(ctx context.Context, serviceID uuid.UUID) (
 		&i.Volume,
 		&i.InternalUrl,
 		&i.CreatedAt,
+		&i.Status,
 		&i.OrganizationID,
 	)
 	return i, err
