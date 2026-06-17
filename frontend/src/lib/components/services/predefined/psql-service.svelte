@@ -20,6 +20,12 @@
 	const isPaused = $derived(serviceQuery.data?.status === 'paused');
 
 	let isPasswordVisible = $state(false);
+	let isInternalUrlPasswordVisible = $state(false);
+
+	const maskedInternalUrl = $derived.by(() => {
+		if (!serviceQuery.data?.internal_url) return '';
+		return serviceQuery.data.internal_url.replace(/(postgres:\/\/[^:]+:).*(@.*)/, '$1***$2');
+	});
 
 	let dbName = $state('');
 	let dbUser = $state('');
@@ -148,8 +154,21 @@
 							<div class="space-y-1.5">
 								<p class="text-xs font-medium text-muted-foreground">Internal URL</p>
 								<div class="flex min-w-0 items-center gap-2 rounded-md bg-muted px-2.5 py-2">
-									<code class="min-w-0 flex-1 truncate text-xs text-foreground">{internal_url}</code
+									<code class="min-w-0 flex-1 truncate text-xs text-foreground">{isInternalUrlPasswordVisible ? internal_url : maskedInternalUrl}</code
 									>
+									<button
+										type="button"
+										onclick={() => (isInternalUrlPasswordVisible = !isInternalUrlPasswordVisible)}
+										class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-background hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+										title={isInternalUrlPasswordVisible ? 'Hide password in URL' : 'Show password in URL'}
+										aria-label={isInternalUrlPasswordVisible ? 'Hide password in URL' : 'Show password in URL'}
+									>
+										{#if isInternalUrlPasswordVisible}
+											<EyeOff class="h-3.5 w-3.5" />
+										{:else}
+											<Eye class="h-3.5 w-3.5" />
+										{/if}
+									</button>
 									<button
 										type="button"
 										onclick={async () => {

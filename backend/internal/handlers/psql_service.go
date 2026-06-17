@@ -73,9 +73,9 @@ func buildPsqlInternalURL(dbUser, dbPassword, serviceName, dbName string) string
 //
 // route: POST /api/service/psql
 func (h *ServiceHandler) CreatePsqlService(c *echo.Context) error {
+	b := new(CreatePsqlServiceReq)
 	u := c.Get(h.Server.Config.EchoCtxUserKey).(auth.AuthUser)
 	q := h.Server.DB.Queries
-	b := new(CreatePsqlServiceReq)
 	docker := h.Server.Docker.Client
 
 	if Res := BindAndValidate(b, c, h.Validate); Res != nil {

@@ -58,7 +58,7 @@
 	>
 		<form.Field
 			name="name"
-			validators={{ onChange: z.string().min(3, 'Service name must be at least 3 characters') }}
+			validators={{ onChange: z.string().min(3, 'Service name must be at least 3 characters').regex(/^\S*$/, 'Service name should not contain spaces. Use "-" instead.') }}
 		>
 			{#snippet children(field)}
 				<div class="space-y-1.5">
