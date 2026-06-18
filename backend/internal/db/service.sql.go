@@ -166,29 +166,31 @@ func (q *Queries) GetAllAppServicesByRepo(ctx context.Context, arg GetAllAppServ
 }
 
 const getAllService = `-- name: GetAllService :many
-SELECT ps.id, ps.type, ps.name, ps.status, '' AS gh_repo_name, '' AS gh_repo_url, '' AS git_provider, '' AS branch_name, ps.created_at
+SELECT ps.id, ps.type, ps.name, ps.status, ps.volume, '' AS gh_repo_name, '' AS gh_repo_url, '' AS git_provider, '' AS branch_name, '' AS swarm_service, ps.created_at
 FROM psql_service ps
 WHERE ps.instance_id = ?1
 UNION ALL
-SELECT rs.id, rs.type, rs.name, rs.status, '' AS gh_repo_name, '' AS gh_repo_url, '' AS git_provider, '' AS branch_name, rs.created_at
+SELECT rs.id, rs.type, rs.name, rs.status, rs.volume, '' AS gh_repo_name, '' AS gh_repo_url, '' AS git_provider, '' AS branch_name,'' AS swarm_service, rs.created_at
 FROM redis_service rs
 WHERE rs.instance_id = ?1
 UNION ALL
-SELECT aps.id, aps.type, aps.name, '' AS status,aps.gh_repo_url, aps.gh_repo_url, aps.git_provider, aps.branch, aps.created_at
+SELECT aps.id, aps.type, aps.name, '' AS status, '' AS volume, aps.gh_repo_url, aps.gh_repo_url, aps.git_provider, aps.branch, aps.swarm_service, aps.created_at
 FROM app_service aps
 WHERE aps.instance_id = ?1
 `
 
 type GetAllServiceRow struct {
-	ID          uuid.UUID                     `json:"id"`
-	Type        types.ServiceType             `json:"type"`
-	Name        string                        `json:"name"`
-	Status      types.PredefinedServiceStatus `json:"status"`
-	GhRepoName  string                        `json:"gh_repo_name"`
-	GhRepoUrl   string                        `json:"gh_repo_url"`
-	GitProvider string                        `json:"git_provider"`
-	BranchName  string                        `json:"branch_name"`
-	CreatedAt   time.Time                     `json:"created_at"`
+	ID           uuid.UUID                     `json:"id"`
+	Type         types.ServiceType             `json:"type"`
+	Name         string                        `json:"name"`
+	Status       types.PredefinedServiceStatus `json:"status"`
+	Volume       string                        `json:"volume"`
+	GhRepoName   string                        `json:"gh_repo_name"`
+	GhRepoUrl    string                        `json:"gh_repo_url"`
+	GitProvider  string                        `json:"git_provider"`
+	BranchName   string                        `json:"branch_name"`
+	SwarmService string                        `json:"swarm_service"`
+	CreatedAt    time.Time                     `json:"created_at"`
 }
 
 func (q *Queries) GetAllService(ctx context.Context, instanceID uuid.UUID) ([]GetAllServiceRow, error) {
@@ -205,10 +207,12 @@ func (q *Queries) GetAllService(ctx context.Context, instanceID uuid.UUID) ([]Ge
 			&i.Type,
 			&i.Name,
 			&i.Status,
+			&i.Volume,
 			&i.GhRepoName,
 			&i.GhRepoUrl,
 			&i.GitProvider,
 			&i.BranchName,
+			&i.SwarmService,
 			&i.CreatedAt,
 		); err != nil {
 			return nil, err

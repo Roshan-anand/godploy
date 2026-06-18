@@ -9,18 +9,22 @@ type ServiceListBase = {
 
 type PredefinedServiceStatus = 'running' | 'paused';
 
-export type ServiceListResponse =
-	| (ServiceListBase & {
-			type: PsqlServiceName;
-			status: PredefinedServiceStatus;
-	  })
-	| (ServiceListBase & {
-			type: AppServiceName;
-			gh_repo_name: string;
-			gh_repo_url: string;
-			git_provider: string;
-			branch_name: string;
-	  });
+export type ServiceListPSQL = ServiceListBase & {
+	type: PsqlServiceName;
+	status: PredefinedServiceStatus;
+	volume: string;
+};
+
+export type ServiceListApp = ServiceListBase & {
+	type: AppServiceName;
+	gh_repo_name: string;
+	gh_repo_url: string;
+	git_provider: string;
+	branch_name: string;
+	replicas: number;
+};
+
+export type ServiceListResponse = ServiceListPSQL | ServiceListApp;
 
 type DeleteServicePayload = {
 	service_id: string;
@@ -118,6 +122,7 @@ export type PsqlServiceDetails = {
 	db_password: string;
 	image: string;
 	internal_url: string;
+	volume: string;
 	status: PredefinedServiceStatus;
 	created_at: string;
 };

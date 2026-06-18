@@ -25,17 +25,17 @@ func TestAppServiceDomainUpdate(t *testing.T) {
 	}
 
 	createAppServiceReq := &handlers.CreateAppServiceReq{
-		InstanceID:  user.InstanceID,
-		Name:        "domain-test-app",
-		GitProvider: "github",
-		Public:      false,
-		Port:        80,
-		BuildPath:   "/",
-		WatchPath:   "/",
+		InstanceID:   user.InstanceID,
+		Name:         "domain-test-app",
+		GitProvider:  "github",
+		Public:       false,
+		Port:         80,
+		BuildPath:    "/",
+		WatchPath:    "/",
 		Env:          []string{},
 		BuildArgs:    []string{},
 		BuildSecrets: []string{},
-		DockerBuild: &handlers.DockerBuildReq{},
+		DockerBuild:  &handlers.DockerBuildReq{},
 	}
 
 	var appServiceID uuid.UUID

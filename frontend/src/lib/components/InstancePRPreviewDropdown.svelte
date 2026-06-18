@@ -1,16 +1,14 @@
 <script lang="ts">
 	import { Button } from '@/components/ui/button';
 	import * as Dialog from '@/components/ui/dialog';
-	import * as DropdownMenu from '@/components/ui/dropdown-menu';
 	import { Input } from '@/components/ui/input';
-	import { Settings, X, Search, GitPullRequest } from '@lucide/svelte';
+	import { X, Search, GitPullRequest } from '@lucide/svelte';
 	import { useGetGithubPRListByInstanceQuery } from '@/features/services';
 	import type { PRInfo } from '@/features/services';
 	import { DotmSquare } from '@/components/loader';
 
 	let { onSelect }: { onSelect: (serviceName: string, pr: PRInfo) => void } = $props();
 
-	let dropdownOpen = $state(false);
 	let dialogOpen = $state(false);
 	let searchQuery = $state('');
 	let selectedPRState = $state<{ serviceName: string; pr: PRInfo } | null>(null);
@@ -18,7 +16,6 @@
 	const prQuery = useGetGithubPRListByInstanceQuery();
 
 	const handleOpenPreviewDialog = () => {
-		dropdownOpen = false;
 		dialogOpen = true;
 		searchQuery = '';
 		selectedPRState = null;
@@ -55,18 +52,7 @@
 	const hasPRs = $derived(Object.keys(filteredGroupedPRs).length > 0);
 </script>
 
-<DropdownMenu.Root bind:open={dropdownOpen}>
-	<DropdownMenu.Trigger>
-		{#snippet child({ props })}
-			<Button variant="outline" size="icon" {...props}>
-				<Settings class="size-4" />
-			</Button>
-		{/snippet}
-	</DropdownMenu.Trigger>
-	<DropdownMenu.Content align="end" class="w-48">
-		<DropdownMenu.Item onSelect={handleOpenPreviewDialog}>Create preview</DropdownMenu.Item>
-	</DropdownMenu.Content>
-</DropdownMenu.Root>
+<Button onclick={handleOpenPreviewDialog}>Create preview</Button>
 
 <Dialog.Root bind:open={dialogOpen}>
 	<Dialog.Portal>

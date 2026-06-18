@@ -36,6 +36,11 @@ func InitServiceHandlers(s *config.Server) *ServiceHandler {
 	}
 }
 
+type GetAllServicesRes struct {
+	db.GetAllServiceRow
+	Replicas int32 `json:"replicas"`
+}
+
 // get all services of a project
 //
 // route: GET /api/service/all?instace_id=
@@ -48,12 +53,33 @@ func (h *ServiceHandler) GetAllServices(c *echo.Context) error {
 	}
 
 	// get all services of the project
-	services, err := q.GetAllService(h.qCtx, instanceID)
+	allServices, err := q.GetAllService(h.qCtx, instanceID)
 	if err != nil {
+		fmt.Println("error getting all services: ", err)
 		return c.JSON(http.StatusInternalServerError, types.Res[struct{}]{Message: "failed to get services"})
 	}
 
-	return c.JSON(http.StatusOK, types.Res[[]db.GetAllServiceRow]{
+	services := make([]GetAllServicesRes, 0, len(allServices))
+
+	for _, s := range allServices {
+		service := GetAllServicesRes{
+			GetAllServiceRow: s,
+		}
+
+		if s.Type == types.AppServiceType {
+			// get live replica count from the Docker swarm service spec
+			replicas := int32(0)
+			swarmService, _, err := h.Server.Docker.Client.ServiceInspectWithRaw(context.Background(), s.SwarmService, swarm.ServiceInspectOptions{})
+			if err == nil && swarmService.Spec.Mode.Replicated != nil && swarmService.Spec.Mode.Replicated.Replicas != nil {
+				replicas = int32(*swarmService.Spec.Mode.Replicated.Replicas)
+			}
+			service.Replicas = replicas
+		}
+
+		services = append(services, service)
+	}
+
+	return c.JSON(http.StatusOK, types.Res[[]GetAllServicesRes]{
 		Message: "",
 		Data:    services,
 	})

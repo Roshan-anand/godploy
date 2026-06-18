@@ -2,21 +2,20 @@
 	import { Button } from '@/components/ui/button';
 	import { Input } from '@/components/ui/input';
 	import { Label } from '@/components/ui/label';
-	import { Grid2x2Plus, Search, ExternalLink } from '@lucide/svelte';
+	import { Grid2x2Plus, Search } from '@lucide/svelte';
 	import { resolve } from '$app/paths';
 	import { goto } from '$app/navigation';
 	import * as DropdownMenu from '$lib/components/ui/dropdown-menu/index.js';
 	import { ChevronDown } from '@lucide/svelte';
 	import { useGetAllServicesQuery } from '@/features/services';
-	import { AppDeletion } from '@/components/conformation';
 	import { DotmSquare } from '@/components/loader';
 	import InstancePRPreviewDropdown from '@/components/InstancePRPreviewDropdown.svelte';
 	import { X } from '@lucide/svelte';
 	import type { PRInfo } from '@/features/services';
 	import { PsqlService } from '@/components/services/predefined';
 	import { InlinePanel } from '@/components/ui/inline-panel';
-	import Icon from '@iconify/svelte';
-	import { timeAgo } from '@/utils/time';
+	import AppServiceCard from './AppServiceCard.svelte';
+	import PsqlServiceCard from './PsqlServiceCard.svelte';
 
 	let searchQuery = $state('');
 	let selectedPR = $state<{ serviceName: string; pr: PRInfo } | null>(null);
@@ -52,14 +51,6 @@
 			})
 		}
 	];
-
-	function getServiceLabel(type: string) {
-		return type === 'app' ? 'App' : 'PostgreSQL';
-	}
-
-	function getServiceIcon(type: string) {
-		return type === 'app' ? 'akar-icons:github-fill' : 'logos:postgresql';
-	}
 
 	function handleServiceClick(service: { type: string; name: string; id: string }) {
 		if (service.type === 'app') {
@@ -136,69 +127,11 @@
 	{:else if filteredServices.length > 0}
 		<div class="grid gap-3" style="grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));">
 			{#each filteredServices as service, i (service.id || i)}
-				{@const isApp = service.type === 'app'}
-				<button
-					class="group flex flex-col gap-3 rounded-lg border bg-card p-4 text-left transition-shadow hover:shadow-sm focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-					onclick={() => handleServiceClick(service)}
-				>
-					<div class="flex items-start gap-3">
-						<Icon icon={getServiceIcon(service.type)} class="mt-0.5 size-6 shrink-0" />
-						<div class="min-w-0 flex-1">
-							<p class="truncate font-semibold text-sm">{service.name}</p>
-							<p class="text-xs text-muted-foreground">{timeAgo(service.created_at)}</p>
-						</div>
-						<div class="flex items-center gap-2 shrink-0">
-							<span
-								class="rounded-md bg-secondary px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-secondary-foreground"
-							>
-								{getServiceLabel(service.type)}
-							</span>
-							{#if isApp}
-								<AppDeletion serviceId={service.id} name={service.name} />
-							{/if}
-						</div>
-					</div>
-
-					<div class="flex flex-col gap-2">
-						{#if isApp}
-							<div class="flex items-center gap-1.5 text-xs text-muted-foreground">
-								<Icon icon="lucide:git-branch" class="size-3 shrink-0" />
-								<span class="truncate font-mono">{service.branch_name}</span>
-							</div>
-							<a
-								href={service.gh_repo_url}
-								target="_blank"
-								rel="noopener noreferrer"
-								onclick={(e) => e.stopPropagation()}
-								class="inline-flex items-center gap-1.5 self-start rounded-full bg-muted px-2.5 py-1 text-xs text-muted-foreground transition-colors hover:bg-muted/80 hover:text-foreground no-underline"
-							>
-								<Icon icon="akar-icons:github-fill" class="size-3" />
-								<span class="max-w-40 truncate">{service.gh_repo_name}</span>
-								<ExternalLink class="size-3 shrink-0" />
-							</a>
-						{:else}
-							<div class="flex items-center gap-2">
-								{#if service.status === 'running'}
-									<div class="flex items-center gap-1.5">
-										<span class="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
-										<span class="text-xs font-medium text-emerald-600 dark:text-emerald-400"
-											>Running</span
-										>
-									</div>
-								{:else if service.status === 'paused'}
-									<div class="flex items-center gap-1.5">
-										<span class="h-2 w-2 rounded-full bg-amber-500"></span>
-										<span class="text-xs font-medium text-amber-600 dark:text-amber-400"
-											>Paused</span
-										>
-									</div>
-								{:else}
-									<span class="text-xs text-muted-foreground capitalize">{service.status}</span>
-								{/if}
-							</div>
-						{/if}
-					</div>
-				</button>
+				{#if service.type === 'app'}
+					<AppServiceCard {service} onclick={() => handleServiceClick(service)} />
+				{:else}
+					<PsqlServiceCard {service} onclick={() => handleServiceClick(service)} />
+				{/if}
 			{/each}
 		</div>
 	{:else}
