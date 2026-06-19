@@ -2,7 +2,7 @@
 	import { Button } from '@/components/ui/button';
 	import { Input } from '@/components/ui/input';
 	import { Label } from '@/components/ui/label';
-	import { Grid2x2Plus, Search } from '@lucide/svelte';
+	import { Grid2x2Plus, Search, Network, Grid2x2, RotateCcw } from '@lucide/svelte';
 	import { resolve } from '$app/paths';
 	import { goto } from '$app/navigation';
 	import * as DropdownMenu from '$lib/components/ui/dropdown-menu/index.js';
@@ -15,11 +15,14 @@
 	import PsqlServiceCard from './PsqlServiceCard.svelte';
 	import ProjectSettings from '@/components/settings/ProjectSettings.svelte';
 	import { getInstanceState } from '@/features/instance/store.svelte.js';
+	import GraphView from './GraphView.svelte';
 
 	let searchQuery = $state('');
 	let selectedServiceId = $state('');
 	let selectedServiceType = $state('');
 	let drawerOpen = $state(false);
+	let viewMode = $state<'list' | 'graph'>('list');
+	let graphViewRef = $state<GraphView | null>(null);
 
 	const { data } = $props();
 	const servicesQuery = useGetAllServicesQuery();
@@ -78,6 +81,36 @@
 		<Label class="absolute top-0 right-0 m-1 opacity-75" for="service-search"><Search /></Label>
 	</div>
 	<ProjectSettings name={getProjectName()} projectId={instance.projectID} />
+	{#if viewMode === 'graph'}
+		<Button
+			variant="ghost"
+			size="icon"
+			onclick={() => graphViewRef?.resetView()}
+			title="Reset graph view"
+		>
+			<RotateCcw class="size-4" />
+		</Button>
+	{/if}
+	<div class="flex items-center gap-1 rounded-md border bg-card p-0.5">
+		<Button
+			variant={viewMode === 'list' ? 'default' : 'ghost'}
+			size="icon"
+			class="size-8"
+			onclick={() => (viewMode = 'list')}
+			title="List view"
+		>
+			<Grid2x2 class="size-4" />
+		</Button>
+		<Button
+			variant={viewMode === 'graph' ? 'default' : 'ghost'}
+			size="icon"
+			class="size-8"
+			onclick={() => (viewMode = 'graph')}
+			title="Graph view"
+		>
+			<Network class="size-4" />
+		</Button>
+	</div>
 	<DropdownMenu.Root>
 		<DropdownMenu.Trigger>
 			{#snippet child({ props })}
@@ -106,15 +139,23 @@
 	{:else if servicesQuery.isError}
 		<p class="text-destructive">Failed to load services</p>
 	{:else if filteredServices.length > 0}
-		<div class="grid gap-3" style="grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));">
-			{#each filteredServices as service, i (service.id || i)}
-				{#if service.type === 'app'}
-					<AppServiceCard {service} onclick={() => handleServiceClick(service)} />
-				{:else}
-					<PsqlServiceCard {service} onclick={() => handleServiceClick(service)} />
-				{/if}
-			{/each}
-		</div>
+		{#if viewMode === 'graph'}
+			<GraphView
+				bind:this={graphViewRef}
+				services={filteredServices}
+				onNodeClick={handleServiceClick}
+			/>
+		{:else}
+			<div class="grid gap-3" style="grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));">
+				{#each filteredServices as service, i (service.id || i)}
+					{#if service.type === 'app'}
+						<AppServiceCard {service} onclick={() => handleServiceClick(service)} />
+					{:else}
+						<PsqlServiceCard {service} onclick={() => handleServiceClick(service)} />
+					{/if}
+				{/each}
+			</div>
+		{/if}
 	{:else}
 		<div class="size-full flex flex-col items-center justify-center gap-2">
 			<Grid2x2Plus class="text-primary" />

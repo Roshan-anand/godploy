@@ -232,3 +232,23 @@ export type PRInfo = {
 	state: string;
 	html_url: string;
 };
+
+// dependency graph types
+export type GraphNode = {
+	id: string;
+	name: string;
+	type: string;
+	service_type: string;
+};
+
+export type GraphEdge = {
+	source: string;
+	target: string;
+	target_col: string;
+	env_key: string;
+};
+
+export type DependencyGraphResponse = {
+	nodes: GraphNode[];
+	edges: GraphEdge[];
+};

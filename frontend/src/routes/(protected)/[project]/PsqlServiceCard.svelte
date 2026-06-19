@@ -11,7 +11,7 @@
 	let { service, onclick }: Props = $props();
 </script>
 
-<section class="flex flex-col">
+<section class="flex flex-col size-full">
 	<button
 		class="flex-1 flex flex-col justify-between gap-3 rounded-lg border bg-card p-4 text-left transition-shadow hover:shadow-sm focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
 		{onclick}

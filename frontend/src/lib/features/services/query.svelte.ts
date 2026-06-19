@@ -8,7 +8,8 @@ import type {
 	ServiceListResponse,
 	PRInfo,
 	ServiceDependency,
-	DependencyTarget
+	DependencyTarget,
+	DependencyGraphResponse
 } from './type';
 import type { ApiRes } from '@/types';
 import { getInstanceState } from '../instance';
@@ -167,6 +168,20 @@ export function useGetGithubPRListByInstanceQuery() {
 					.get<ApiRes<Record<string, PRInfo[]>>>('/provider/github/pr/instance', {
 						params: { instance_id: instance.current.id }
 					})
+					.then((res) => res.data.data),
+			enabled: !!instance.current.id
+		};
+	});
+}
+
+export function useGetDependencyGraphQuery() {
+	return createQuery(() => {
+		const instance = getInstanceState();
+		return {
+			queryKey: ['dependency-graph', instance.current.id as string],
+			queryFn: async () =>
+				api
+					.get<ApiRes<DependencyGraphResponse>>(`/instance/${instance.current.id}/dependency-graph`)
 					.then((res) => res.data.data),
 			enabled: !!instance.current.id
 		};
