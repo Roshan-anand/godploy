@@ -60,6 +60,7 @@ export function useDeleteProjectMutation() {
 					return cachedRows.filter((row) => row.id !== project_id);
 				}
 			);
+			goto(resolve('/'));
 			toast.success(message || 'Project deleted successfully');
 		},
 		onError: (error) => axiosErr(error as Error, 'Failed to delete project')

@@ -3,6 +3,7 @@
 	import { Button } from '@/components/ui/button';
 	import { useUpdateEnvMutation } from '@/features/services';
 	import { useGetServiceEnvQuery } from '@/features/services';
+	import AppDependency from './app-dependency.svelte';
 
 	let { serviceID }: { serviceID: string } = $props();
 
@@ -23,32 +24,38 @@
 	};
 </script>
 
-{#if getEnvQuery.data}
-	<SecretTextarea
-		title="Environment Variables"
-		name="env"
-		value={getEnvQuery.data.env.join('\n')}
-		oninput={(e) => (env = e.currentTarget.value)}
-		submitPending={updateEnv.isPending}
-	/>
-	<SecretTextarea
-		title="Build Args"
-		name="build-args"
-		value={getEnvQuery.data.build_args.join('\n')}
-		oninput={(e) => (buildArgs = e.currentTarget.value)}
-		submitPending={updateEnv.isPending}
-	/>
-	<SecretTextarea
-		title="Build Secrets"
-		name="build-secrets"
-		value={getEnvQuery.data.build_secrets.join('\n')}
-		oninput={(e) => (buildSecrets = e.currentTarget.value)}
-		submitPending={updateEnv.isPending}
-	/>
-
-	<Button onclick={handleUpdateEnv} disabled={updateEnv.isPending}>
-		{updateEnv.isPending ? 'updating ...' : 'update'}
-	</Button>
-{:else}
-	<p>no env found</p>
-{/if}
+<section class="flex flex-col gap-5">
+	{#if getEnvQuery.data}
+		<div class="justify-end flex">
+			<Button onclick={handleUpdateEnv} disabled={updateEnv.isPending}>
+				{updateEnv.isPending ? 'updating ...' : 'update'}
+			</Button>
+		</div>
+		<div>
+			<SecretTextarea
+				title="Environment Variables"
+				name="env"
+				value={getEnvQuery.data.env.join('\n')}
+				oninput={(e) => (env = e.currentTarget.value)}
+				submitPending={updateEnv.isPending}
+			/>
+			<AppDependency {serviceID} />
+		</div>
+		<SecretTextarea
+			title="Build Args"
+			name="build-args"
+			value={getEnvQuery.data.build_args.join('\n')}
+			oninput={(e) => (buildArgs = e.currentTarget.value)}
+			submitPending={updateEnv.isPending}
+		/>
+		<SecretTextarea
+			title="Build Secrets"
+			name="build-secrets"
+			value={getEnvQuery.data.build_secrets.join('\n')}
+			oninput={(e) => (buildSecrets = e.currentTarget.value)}
+			submitPending={updateEnv.isPending}
+		/>
+	{:else}
+		<p>no env found</p>
+	{/if}
+</section>

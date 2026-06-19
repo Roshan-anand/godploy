@@ -52,7 +52,7 @@
 	const hasPRs = $derived(Object.keys(filteredGroupedPRs).length > 0);
 </script>
 
-<Button onclick={handleOpenPreviewDialog}>Create preview</Button>
+<Button class="w-full" onclick={handleOpenPreviewDialog}>Create preview</Button>
 
 <Dialog.Root bind:open={dialogOpen}>
 	<Dialog.Portal>

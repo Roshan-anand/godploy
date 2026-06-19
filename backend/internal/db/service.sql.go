@@ -166,15 +166,48 @@ func (q *Queries) GetAllAppServicesByRepo(ctx context.Context, arg GetAllAppServ
 }
 
 const getAllService = `-- name: GetAllService :many
-SELECT ps.id, ps.type, ps.name, ps.status, ps.volume, '' AS gh_repo_name, '' AS gh_repo_url, '' AS git_provider, '' AS branch_name, '' AS swarm_service, ps.created_at
+SELECT
+    ps.id,
+    ps.type,
+    ps.name,
+    ps.status,
+    ps.volume,
+    '' AS gh_repo_name,
+    '' AS gh_repo_url,
+    '' AS git_provider,
+    '' AS branch_name,
+    '' AS swarm_service,
+    ps.created_at
 FROM psql_service ps
 WHERE ps.instance_id = ?1
 UNION ALL
-SELECT rs.id, rs.type, rs.name, rs.status, rs.volume, '' AS gh_repo_name, '' AS gh_repo_url, '' AS git_provider, '' AS branch_name,'' AS swarm_service, rs.created_at
+SELECT
+    rs.id,
+    rs.type,
+    rs.name,
+    rs.status,
+    rs.volume,
+    '',
+    '',
+    '',
+    '',
+    '',
+    rs.created_at
 FROM redis_service rs
 WHERE rs.instance_id = ?1
 UNION ALL
-SELECT aps.id, aps.type, aps.name, '' AS status, '' AS volume, aps.gh_repo_url, aps.gh_repo_url, aps.git_provider, aps.branch, aps.swarm_service, aps.created_at
+SELECT
+    aps.id,
+    aps.type,
+    aps.name,
+    '',
+    '',
+    aps.gh_repo_name,
+    aps.gh_repo_url,
+    aps.git_provider,
+    aps.branch,
+    aps.swarm_service,
+    aps.created_at
 FROM app_service aps
 WHERE aps.instance_id = ?1
 `

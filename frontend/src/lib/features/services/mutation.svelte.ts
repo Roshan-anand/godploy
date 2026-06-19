@@ -17,7 +17,10 @@ import type {
 	CreateServiceResponse,
 	CreateAppServiceForm,
 	CreatePsqlServiceBody,
-	ScaleAppServicePayload
+	ScaleAppServicePayload,
+	CreateDependencyPayload,
+	UpdateDependencyPayload,
+	ServiceDependency
 } from './type';
 import type { ApiRes } from '@/types';
 import { queryClient } from '@/query';
@@ -301,5 +304,49 @@ export function useStartPredefServiceMutation(getServiceId: () => string) {
 			toast.success(message || 'Service started');
 		},
 		onError: (error) => axiosErr(error as Error, 'Failed to start service')
+	}));
+}
+
+export function useCreateDependencyMutation() {
+	return createMutation(() => ({
+		mutationFn: async (payload: CreateDependencyPayload) =>
+			api
+				.post<ApiRes<{ dependencies: ServiceDependency[] }>>('/service/app/dependencies', payload)
+				.then((res) => res.data),
+		onSuccess: (_, variables) => {
+			queryClient.invalidateQueries({
+				queryKey: ['service-dependencies', variables.source_service_id]
+			});
+			toast.success('Dependency created');
+		},
+		onError: (error) => axiosErr(error as Error, 'Failed to create dependency')
+	}));
+}
+
+export function useDeleteDependencyMutation() {
+	return createMutation(() => ({
+		mutationFn: async ({ id }: { id: string; sourceServiceId: string }) =>
+			api.delete<ApiRes<null>>(`/service/app/dependencies/${id}`).then((res) => res.data),
+		onSuccess: (_, variables) => {
+			queryClient.invalidateQueries({
+				queryKey: ['service-dependencies', variables.sourceServiceId]
+			});
+			toast.success('Dependency deleted');
+		},
+		onError: (error) => axiosErr(error as Error, 'Failed to delete dependency')
+	}));
+}
+
+export function useUpdateDependencyMutation() {
+	return createMutation(() => ({
+		mutationFn: async ({ id, payload }: { id: string; payload: UpdateDependencyPayload }) =>
+			api
+				.put<ApiRes<ServiceDependency>>(`/service/app/dependencies/${id}`, payload)
+				.then((res) => res.data),
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ['service-dependencies'] });
+			toast.success('Dependency updated');
+		},
+		onError: (error) => axiosErr(error as Error, 'Failed to update dependency')
 	}));
 }

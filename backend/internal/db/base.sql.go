@@ -12,26 +12,6 @@ import (
 	"github.com/google/uuid"
 )
 
-const checkInstanceExists = `-- name: CheckInstanceExists :one
-SELECT CAST(EXISTS(
-    SELECT 1
-    FROM instance
-    WHERE project_id = ? AND name = ?
-) AS BOOLEAN)
-`
-
-type CheckInstanceExistsParams struct {
-	ProjectID    uuid.UUID `json:"project_id"`
-	InstanceName string    `json:"instance_name"`
-}
-
-func (q *Queries) CheckInstanceExists(ctx context.Context, arg CheckInstanceExistsParams) (bool, error) {
-	row := q.db.QueryRowContext(ctx, checkInstanceExists, arg.ProjectID, arg.InstanceName)
-	var column_1 bool
-	err := row.Scan(&column_1)
-	return column_1, err
-}
-
 const checkInstanceHasServices = `-- name: CheckInstanceHasServices :one
 SELECT CAST(EXISTS(
     SELECT 1
@@ -50,46 +30,6 @@ SELECT CAST(EXISTS(
 
 func (q *Queries) CheckInstanceHasServices(ctx context.Context, instanceID uuid.UUID) (bool, error) {
 	row := q.db.QueryRowContext(ctx, checkInstanceHasServices, instanceID)
-	var column_1 bool
-	err := row.Scan(&column_1)
-	return column_1, err
-}
-
-const checkOrgExists = `-- name: CheckOrgExists :one
-SELECT CAST(EXISTS(
-    SELECT 1 FROM organization o
-    JOIN user_organization uo ON o.id = uo.organization_id
-    WHERE uo.user_email = ? AND o.name = ?
-) AS BOOLEAN)
-`
-
-type CheckOrgExistsParams struct {
-	UserEmail string `json:"user_email"`
-	OrgName   string `json:"org_name"`
-}
-
-func (q *Queries) CheckOrgExists(ctx context.Context, arg CheckOrgExistsParams) (bool, error) {
-	row := q.db.QueryRowContext(ctx, checkOrgExists, arg.UserEmail, arg.OrgName)
-	var column_1 bool
-	err := row.Scan(&column_1)
-	return column_1, err
-}
-
-const checkProjectExists = `-- name: CheckProjectExists :one
-SELECT CAST(EXISTS(
-    SELECT 1
-    FROM project
-    WHERE organization_id = ? AND name = ?
-) AS BOOLEAN)
-`
-
-type CheckProjectExistsParams struct {
-	OrganizationID uuid.UUID `json:"organization_id"`
-	ProjectName    string    `json:"project_name"`
-}
-
-func (q *Queries) CheckProjectExists(ctx context.Context, arg CheckProjectExistsParams) (bool, error) {
-	row := q.db.QueryRowContext(ctx, checkProjectExists, arg.OrganizationID, arg.ProjectName)
 	var column_1 bool
 	err := row.Scan(&column_1)
 	return column_1, err
@@ -484,6 +424,24 @@ func (q *Queries) GetOrgById(ctx context.Context, id uuid.UUID) (GetOrgByIdRow, 
 	var i GetOrgByIdRow
 	err := row.Scan(&i.ID, &i.Name)
 	return i, err
+}
+
+const getProjectIDByName = `-- name: GetProjectIDByName :one
+SELECT id
+FROM project
+WHERE organization_id = ? AND name = ?
+`
+
+type GetProjectIDByNameParams struct {
+	OrganizationID uuid.UUID `json:"organization_id"`
+	Name           string    `json:"name"`
+}
+
+func (q *Queries) GetProjectIDByName(ctx context.Context, arg GetProjectIDByNameParams) (uuid.UUID, error) {
+	row := q.db.QueryRowContext(ctx, getProjectIDByName, arg.OrganizationID, arg.Name)
+	var id uuid.UUID
+	err := row.Scan(&id)
+	return id, err
 }
 
 const getProjectsByOrgId = `-- name: GetProjectsByOrgId :many

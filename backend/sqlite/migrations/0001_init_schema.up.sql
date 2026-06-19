@@ -34,7 +34,8 @@ CREATE TABLE IF NOT EXISTS project(
     id uuid PRIMARY KEY,
     organization_id uuid NOT NULL REFERENCES organization(id) ON DELETE CASCADE,
     name TEXT NOT NULL,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    UNIQUE (organization_id, name)
 );
 
 CREATE TABLE IF NOT EXISTS instance(
@@ -43,7 +44,8 @@ CREATE TABLE IF NOT EXISTS instance(
     is_production BOOLEAN NOT NULL,
     name TEXT NOT NULL,
     network TEXT NOT NULL UNIQUE,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    UNIQUE (project_id, name)
 );
 
 CREATE TABLE IF NOT EXISTS app_service (

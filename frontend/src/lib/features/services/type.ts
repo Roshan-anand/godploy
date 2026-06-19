@@ -174,7 +174,7 @@ export type UpdateEnvPayload = {
 export type GetEnvRes = Omit<UpdateEnvPayload, 'service_id'>;
 
 // navigation types
-export type ServiceTab = '' | 'deployment' | 'env' | 'settings';
+export type ServiceTab = '' | 'deployment' | 'env' | 'settings' | 'dependencies';
 
 export type NavItem = {
 	label: string;
@@ -191,6 +191,38 @@ export type AppServiceSettings = {
 export type ScaleAppServicePayload = {
 	service_id: string;
 	replicas: number;
+};
+
+export type DependencyTarget = {
+	id: string;
+	name: string;
+	service_type: string;
+	allowed_cols: string[];
+};
+
+export type ServiceDependency = {
+	id: string;
+	source_service_id: string;
+	target_service_id: string;
+	target_service_name: string;
+	target_service_type: string;
+	target_col: string;
+	env_key: string;
+	created_at: string;
+	updated_at: string;
+};
+
+export type CreateDependencyPayload = {
+	source_service_id: string;
+	target_service_id: string;
+	target_col: string;
+	env_key: string;
+};
+
+export type UpdateDependencyPayload = {
+	target_service_id: string;
+	target_col: string;
+	env_key: string;
 };
 
 export type PRInfo = {

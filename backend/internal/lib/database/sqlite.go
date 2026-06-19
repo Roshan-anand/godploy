@@ -10,11 +10,12 @@ import (
 	"time"
 
 	"github.com/Roshan-anand/godploy/internal/db"
-	migration "github.com/Roshan-anand/godploy/sqlite"
+	localSql "github.com/Roshan-anand/godploy/sqlite"
 
 	"github.com/golang-migrate/migrate/v4"
-	"github.com/golang-migrate/migrate/v4/database/sqlite3"
+	migrateSqlite "github.com/golang-migrate/migrate/v4/database/sqlite3"
 	"github.com/golang-migrate/migrate/v4/source/iofs"
+	"github.com/mattn/go-sqlite3"
 )
 
 type DataBase struct {
@@ -32,7 +33,7 @@ var Pool_Close_Err = fmt.Errorf("DB pool close err")
 
 // for migrating the database
 func MigrateDb(db *sql.DB) error {
-	mFs, err := migration.GetMigrationFS()
+	mFs, err := localSql.GetMigrationFS()
 	if err != nil {
 		return err
 	}
@@ -42,7 +43,7 @@ func MigrateDb(db *sql.DB) error {
 		return err
 	}
 
-	driver, err := sqlite3.WithInstance(db, &sqlite3.Config{})
+	driver, err := migrateSqlite.WithInstance(db, &migrateSqlite.Config{})
 	if err != nil {
 		return err
 	}
@@ -122,4 +123,15 @@ func (db *DataBase) CloseDb() error {
 	}
 
 	return nil
+}
+
+// helper function to check if UNIQUE constraint error
+func (_ *DataBase) IsUniqueConstraintError(err error) bool {
+	var sqlErr sqlite3.Error
+	return errors.As(err, &sqlErr) && (sqlErr.ExtendedCode == sqlite3.ErrConstraintUnique)
+}
+
+// helper function to check if UNIQUE constraint error
+func (_ *DataBase) IsNoRowsError(err error) bool {
+	return errors.Is(err, sql.ErrNoRows)
 }

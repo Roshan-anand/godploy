@@ -15,6 +15,7 @@ type Handler struct {
 	Deployment   *DeploymentHandler
 	Volume       *VolumeHandler
 	Instance     *InstanceHandler
+	Dependency   *DependencyHandler
 }
 
 func NewHandeler(srv *config.Server) *Handler {
@@ -31,5 +32,6 @@ func NewHandeler(srv *config.Server) *Handler {
 		Deployment:   InitDeploymentHandlers(srv),
 		Volume:       InitVolumeHandlers(srv),
 		Instance:     InitInstanceHandlers(srv),
+		Dependency:   InitDependencyHandlers(srv),
 	}
 }

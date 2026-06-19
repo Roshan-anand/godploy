@@ -165,6 +165,9 @@ func (h *OrgHandler) RenameOrg(c *echo.Context) error {
 		ID:   b.OrgID,
 	})
 	if err != nil {
+		if h.Server.DB.IsUniqueConstraintError(err) {
+			return c.JSON(http.StatusConflict, types.Res[struct{}]{Message: "Organization with this name already exists"})
+		}
 		return c.JSON(http.StatusInternalServerError, types.Res[struct{}]{Message: "Failed to rename organization"})
 	}
 

@@ -1,26 +1,27 @@
 package main
 
-import (
-	"fmt"
-
-	"github.com/go-playground/validator/v10"
-)
-
-type sample struct {
-	chekc bool `validate:"required"`
-}
+import "fmt"
 
 func main() {
+	envs := []string{"PROT=8080", "HOST=localhost", "DEBUG=true"}
 
-	data := &sample{
-		chekc: false,
+	resolver := []struct {
+		Key   string
+		Value interface{}
+	}{
+		{"PROT", 8080},
+		{"HOST", "localhost"},
+		{"DEBUG", true},
 	}
 
-	v := validator.New()
-
-	if err := v.Struct(data); err != nil {
-		fmt.Println(err)
-	} else {
-		println("validation passed")
+	for _, env := range resolver {
+		val, ok := env.Value.(string)
+		if ok {
+			envs = append(envs, env.Key+"="+val)
+		} else {
+			envs = append(envs, env.Key+"="+fmt.Sprintf("%v", env.Value))
+		}
 	}
+
+	fmt.Println(envs)
 }

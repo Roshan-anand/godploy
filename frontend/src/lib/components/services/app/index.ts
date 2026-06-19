@@ -4,3 +4,4 @@ export { default as AppSettings } from './app-settings.svelte';
 export { default as AppEnv } from './app-env.svelte';
 export { default as AppServicePRPreviewButton } from './AppServicePRPreviewButton.svelte';
 export { default as DeployementLogs } from './deployement_logs.svelte';
+export { default as AppDependency } from './app-dependency.svelte';

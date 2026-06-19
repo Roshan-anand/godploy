@@ -69,6 +69,7 @@ func SetupRoutes(srv *config.Server) (*echo.Echo, error) {
 	instance := protected.Group("/instance")
 	instance.GET("", h.Instance.GetAllInstance)
 	instance.PUT("/rename", h.Instance.RenameInstance)
+	instance.GET("/:id/dependency-graph", h.Instance.GetDependencyGraph)
 
 	volume := protected.Group("/volume")
 	volume.GET("", h.Service.GetAllVolume)
@@ -115,6 +116,11 @@ func SetupRoutes(srv *config.Server) (*echo.Echo, error) {
 	app.POST("/resume", h.Service.ResumeAppService)
 	app.POST("/rebuild", h.Deployment.RebuildAppService)
 	app.POST("/rollback", h.Deployment.RollbackAppService)
+	app.GET("/dependencies", h.Dependency.GetServiceDependencies)
+	app.POST("/dependencies", h.Dependency.CreateServiceDependency)
+	app.PUT("/dependencies/:id", h.Dependency.UpdateServiceDependency)
+	app.DELETE("/dependencies/:id", h.Dependency.DeleteServiceDependency)
+	app.GET("/dependency-targets", h.Dependency.GetDependencyTargets)
 
 	gh := protected.Group("/provider/github")
 	gh.GET("/app/create", h.Git.CreateGithubApp)

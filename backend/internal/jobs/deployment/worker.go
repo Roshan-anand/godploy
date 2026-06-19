@@ -34,6 +34,7 @@ type ReDeployData struct {
 type DeploymentServiceParams struct {
 	DeploymentID      uuid.UUID `validate:"required"`
 	InstanceID        uuid.UUID `validate:"required"`
+	ServiceID         uuid.UUID `validate:"required"`
 	Token             string    `validate:"required"`
 	Url               string    `validate:"required"`
 	Branch            string    `validate:"required"`
@@ -46,7 +47,7 @@ type DeploymentServiceParams struct {
 	Env               []string `validate:"required"`
 	BuildArgs         []string `validate:"required"`
 	BuildSecrets      []string `validate:"required"`
-	IsPublic          bool     `validate:"required"`
+	IsPublic          bool
 }
 
 type RebuildServiceParams struct {
@@ -61,6 +62,9 @@ func (d *DeploymentService) runDeploymentPipeline(ctx context.Context, data *Dep
 		DeploymentID: data.DeploymentID,
 		Status:       types.DeploymentError,
 	}
+
+	// resolve and merge dependency env values
+	data.Env = MergeDependencyEnv(d.db.Queries, data.ServiceID, data.Env)
 
 	// create the deployment utils
 	outputPath := path.Join(d.codeStoreDir, data.SwarmService)
@@ -146,6 +150,9 @@ func (d *DeploymentService) runRebuildPipeline(ctx context.Context, data *Rebuil
 		d.log.EndLogs(errLog)
 		return // TODO : trigger retry logic
 	}
+
+	// resolve and merge dependency env values
+	envStr.Env = MergeDependencyEnv(d.db.Queries, data.ServiceID, envStr.Env)
 
 	// create new github client
 	gh, err := ghservice.New(q, s.GhAppID)

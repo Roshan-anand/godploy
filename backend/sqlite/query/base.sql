@@ -38,13 +38,6 @@ SELECT CAST(EXISTS(
     WHERE uo.user_email = ? AND uo.organization_id = ?
 )AS BOOLEAN);
 
--- name: CheckOrgExists :one
-SELECT CAST(EXISTS(
-    SELECT 1 FROM organization o
-    JOIN user_organization uo ON o.id = uo.organization_id
-    WHERE uo.user_email = ? AND o.name = @org_name
-) AS BOOLEAN);
-
 -- name: RenameOrg :one
 UPDATE organization
 SET name = ?
@@ -61,17 +54,15 @@ INSERT INTO project (id, organization_id, name)
 VALUES (?, ?, ?)
 RETURNING id, name, created_at;
 
+-- name: GetProjectIDByName :one
+SELECT id
+FROM project
+WHERE organization_id = ? AND name = ?;
+
 -- name: GetAllProjects :many
 SELECT id, name, created_at
 FROM project
 WHERE organization_id = ?;
-
--- name: CheckProjectExists :one
-SELECT CAST(EXISTS(
-    SELECT 1
-    FROM project
-    WHERE organization_id = ? AND name = @project_name
-) AS BOOLEAN);
 
 -- name: CheckProjectHasInstance :one
 SELECT CAST(EXISTS(
@@ -98,13 +89,6 @@ SELECT i.id, i.name, i.is_production
 FROM instance i
 JOIN project p ON i.project_id = p.id
 WHERE p.organization_id = ? AND p.name = @project;
-
--- name: CheckInstanceExists :one
-SELECT CAST(EXISTS(
-    SELECT 1
-    FROM instance
-    WHERE project_id = ? AND name = @instance_name
-) AS BOOLEAN);
 
 -- name: CheckInstanceHasServices :one
 SELECT CAST(EXISTS(

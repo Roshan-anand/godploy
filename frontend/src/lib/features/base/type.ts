@@ -1,3 +1,5 @@
+import type { Instance } from '../auth';
+
 export type ProjectResponse = {
 	id: string;
 	name: string;
@@ -59,6 +61,11 @@ export type OrgProject = {
 	id: string;
 	name: string;
 	created_at: string;
+};
+
+export type GetAllInstancesResponse = {
+	instances: Instance[];
+	project_id: string;
 };
 
 export type RenameProjectPayload = {

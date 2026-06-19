@@ -63,16 +63,6 @@ func (h *ProjectHandler) CreateProject(c *echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, types.Res[struct{}]{Message: "Failed to get current organization"})
 	}
 
-	// check if project already exists in the organization
-	if exists, err := q.CheckProjectExists(h.qCtx, db.CheckProjectExistsParams{
-		OrganizationID: org.ID,
-		ProjectName:    b.Name,
-	}); err != nil {
-		return c.JSON(http.StatusInternalServerError, types.Res[struct{}]{Message: "Failed to check project name"})
-	} else if exists {
-		return c.JSON(http.StatusConflict, types.Res[struct{}]{Message: "Project with this name already exists in the organization"})
-	}
-
 	tx, err := h.Server.DB.Pool.BeginTx(h.qCtx, nil)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, types.Res[struct{}]{Message: "Failed to start database transaction"})
@@ -87,6 +77,9 @@ func (h *ProjectHandler) CreateProject(c *echo.Context) error {
 	})
 	if err != nil {
 		tx.Rollback()
+		if h.Server.DB.IsUniqueConstraintError(err) {
+			return c.JSON(http.StatusConflict, types.Res[struct{}]{Message: "Project with this name already exists in the organization"})
+		}
 		return c.JSON(http.StatusInternalServerError, types.Res[struct{}]{Message: "Failed to create project"})
 	}
 
@@ -224,21 +217,14 @@ func (h *ProjectHandler) RenameProject(c *echo.Context) error {
 
 	q := h.Server.DB.Queries
 
-	// check if project name already exists in the org
-	if exists, err := q.CheckProjectExists(h.qCtx, db.CheckProjectExistsParams{
-		OrganizationID: b.OrgID,
-		ProjectName:    b.Name,
-	}); err != nil {
-		return c.JSON(http.StatusInternalServerError, types.Res[struct{}]{Message: "internal server error"})
-	} else if exists {
-		return c.JSON(http.StatusConflict, types.Res[struct{}]{Message: "Project with this name already exists in the organization"})
-	}
-
 	project, err := q.RenameProject(h.qCtx, db.RenameProjectParams{
 		Name: b.Name,
 		ID:   b.ProjectID,
 	})
 	if err != nil {
+		if h.Server.DB.IsUniqueConstraintError(err) {
+			return c.JSON(http.StatusConflict, types.Res[struct{}]{Message: "Project with this name already exists in the organization"})
+		}
 		return c.JSON(http.StatusInternalServerError, types.Res[struct{}]{Message: "Failed to rename project"})
 	}
 

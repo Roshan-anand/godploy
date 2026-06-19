@@ -224,6 +224,7 @@ func (h *ServiceHandler) CreateAppService(c *echo.Context) error {
 	if err := h.Server.Services.Deployment.AssignDeploy(context.Background(), &deployjob.DeploymentServiceParams{
 		DeploymentID:      dID,
 		InstanceID:        b.InstanceID,
+		ServiceID:         service.ID,
 		Token:             ghData.Token,
 		Url:               url,
 		Branch:            b.DefaultBranch,
@@ -696,7 +697,12 @@ func (h *ServiceHandler) DeleteAppService(c *echo.Context) error {
 	// delete all logs related to the service deployments
 	go h.Server.BadgerDB.DeleteAllLogsByDeploymentID(dIDs)
 
-	// delete the app service
+	// clean up incoming dependency records where this service is the target
+	if err := q.DeleteIncomingDependencies(h.qCtx, b.ServiceId); err != nil {
+		return c.JSON(http.StatusInternalServerError, types.Res[struct{}]{Message: "Failed to clean up dependency records"})
+	}
+
+	// delete the app service (outgoing dependencies cascade via FK)
 	if err := h.Server.DB.Queries.DeleteAppService(h.qCtx, b.ServiceId); err != nil {
 		return c.JSON(http.StatusInternalServerError, types.Res[struct{}]{Message: "Failed to delete service"})
 	}

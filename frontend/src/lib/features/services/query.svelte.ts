@@ -6,7 +6,9 @@ import type {
 	GetEnvRes,
 	PsqlServiceDetails,
 	ServiceListResponse,
-	PRInfo
+	PRInfo,
+	ServiceDependency,
+	DependencyTarget
 } from './type';
 import type { ApiRes } from '@/types';
 import { getInstanceState } from '../instance';
@@ -26,6 +28,38 @@ export function useGetAllServicesQuery() {
 					})
 					.then((res) => res.data.data),
 			enabled: !!instance.current.id
+		};
+	});
+}
+
+export function useGetServiceDependenciesQuery(getServiceId: () => string) {
+	return createQuery(() => {
+		const serviceId = getServiceId();
+		return {
+			queryKey: ['service-dependencies', serviceId],
+			queryFn: async () =>
+				api
+					.get<ApiRes<{ dependencies: ServiceDependency[] }>>('/service/app/dependencies', {
+						params: { service_id: serviceId }
+					})
+					.then((res) => res.data.data.dependencies),
+			enabled: serviceId !== ''
+		};
+	});
+}
+
+export function useGetDependencyTargetsQuery(getServiceId: () => string) {
+	return createQuery(() => {
+		const serviceId = getServiceId();
+		return {
+			queryKey: ['dependency-targets', serviceId],
+			queryFn: async () =>
+				api
+					.get<ApiRes<{ targets: DependencyTarget[] }>>('/service/app/dependency-targets', {
+						params: { service_id: serviceId }
+					})
+					.then((res) => res.data.data.targets),
+			enabled: serviceId !== ''
 		};
 	});
 }

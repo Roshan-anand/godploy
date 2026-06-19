@@ -361,6 +361,12 @@ func (h *ServiceHandler) DeletePsqlService(c *echo.Context) error {
 		}(service.Volume)
 	}
 
+	// clean up incoming dependency records where this service is the target
+	if err := tq.DeleteIncomingDependencies(h.qCtx, b.ServiceId); err != nil {
+		tx.Rollback()
+		return c.JSON(http.StatusInternalServerError, types.Res[struct{}]{Message: "Failed to clean up dependency records"})
+	}
+
 	if err := tq.DeletePsqlService(h.qCtx, b.ServiceId); err != nil {
 		tx.Rollback()
 		return c.JSON(http.StatusInternalServerError, types.Res[struct{}]{Message: "Failed to create service"})

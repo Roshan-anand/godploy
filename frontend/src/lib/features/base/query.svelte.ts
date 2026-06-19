@@ -1,8 +1,14 @@
 import { api } from '@/axios';
 import { createQuery } from '@tanstack/svelte-query';
 import type { ApiRes } from '@/types';
-import type { Instance, Organization } from '@/features/auth';
-import type { OrphanVolume, ProjectListResponse, OrgProject, OrgVolume } from './type';
+import type { Organization } from '@/features/auth';
+import type {
+	OrphanVolume,
+	ProjectListResponse,
+	OrgProject,
+	OrgVolume,
+	GetAllInstancesResponse
+} from './type';
 import {
 	getOrphanVolumesQueryKey,
 	getOrgProjectsQueryKey,
@@ -86,11 +92,12 @@ export function useGetAllInstanceQuery(getProject: () => string) {
 		return {
 			queryKey: getAllInstanceQueryKey(project),
 			queryFn: async () => {
-				const res = await api.get<ApiRes<Instance[]>>('/instance', {
+				const res = await api.get<ApiRes<GetAllInstancesResponse>>('/instance', {
 					params: { project, org_id }
 				});
 
-				instance.setInstances(res.data.data);
+				instance.setInstances(res.data.data.instances);
+				instance.setProjectID(res.data.data.project_id);
 				return res.data.data;
 			},
 			enabled: project != '' && org_id !== ''

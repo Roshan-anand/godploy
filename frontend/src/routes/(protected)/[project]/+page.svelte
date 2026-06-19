@@ -9,22 +9,21 @@
 	import { ChevronDown } from '@lucide/svelte';
 	import { useGetAllServicesQuery } from '@/features/services';
 	import { DotmSquare } from '@/components/loader';
-	import InstancePRPreviewDropdown from '@/components/InstancePRPreviewDropdown.svelte';
-	import { X } from '@lucide/svelte';
-	import type { PRInfo } from '@/features/services';
 	import { PsqlService } from '@/components/services/predefined';
 	import { InlinePanel } from '@/components/ui/inline-panel';
 	import AppServiceCard from './AppServiceCard.svelte';
 	import PsqlServiceCard from './PsqlServiceCard.svelte';
+	import ProjectSettings from '@/components/settings/ProjectSettings.svelte';
+	import { getInstanceState } from '@/features/instance/store.svelte.js';
 
 	let searchQuery = $state('');
-	let selectedPR = $state<{ serviceName: string; pr: PRInfo } | null>(null);
 	let selectedServiceId = $state('');
 	let selectedServiceType = $state('');
 	let drawerOpen = $state(false);
 
 	const { data } = $props();
 	const servicesQuery = useGetAllServicesQuery();
+	const instance = getInstanceState();
 
 	const getProjectName = () => data.projectName;
 
@@ -68,24 +67,6 @@
 	}
 </script>
 
-{#if selectedPR}
-	<div
-		class="mb-3 p-2 bg-accent text-accent-foreground rounded-lg flex items-center justify-between border"
-	>
-		<div class="flex items-center gap-2">
-			<span class="text-xs bg-primary text-primary-foreground px-2 py-0.5 rounded font-semibold"
-				>PR Preview</span
-			>
-			<span class="font-medium text-sm"
-				>{selectedPR.serviceName} - #{selectedPR.pr.number}: {selectedPR.pr.title}</span
-			>
-		</div>
-		<Button variant="ghost" size="icon" class="h-6 w-6" onclick={() => (selectedPR = null)}>
-			<X class="h-4 w-4" />
-		</Button>
-	</div>
-{/if}
-
 <nav class="flex gap-4">
 	<div class="flex-1 flex relative">
 		<Input
@@ -96,7 +77,7 @@
 		/>
 		<Label class="absolute top-0 right-0 m-1 opacity-75" for="service-search"><Search /></Label>
 	</div>
-	<InstancePRPreviewDropdown onSelect={(serviceName, pr) => (selectedPR = { serviceName, pr })} />
+	<ProjectSettings name={getProjectName()} projectId={instance.projectID} />
 	<DropdownMenu.Root>
 		<DropdownMenu.Trigger>
 			{#snippet child({ props })}

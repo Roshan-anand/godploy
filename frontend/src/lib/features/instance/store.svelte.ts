@@ -2,6 +2,7 @@ import { getContext, setContext } from 'svelte';
 import type { Instance } from '../auth';
 
 interface InstanceState {
+	projectID: string;
 	current: {
 		id: string | null;
 		name: string;
@@ -9,12 +10,18 @@ interface InstanceState {
 	all: Instance[];
 	setCurrent: (id: string, name: string) => void;
 	setInstances: (instance: Instance[]) => void;
+	setProjectID: (project_id: string) => void;
 }
 
 class InstanceStateClass implements InstanceState {
+	private project_id: string = $state('');
 	private id: string | null = $state(null);
 	private name: string = $state('');
 	private instance: Instance[] = $state([]);
+
+	get projectID() {
+		return this.project_id;
+	}
 
 	get current() {
 		return {
@@ -33,12 +40,17 @@ class InstanceStateClass implements InstanceState {
 	};
 
 	setInstances = (instance: Instance[]) => {
-		instance.forEach(({ is_production, id, name }) => {
-			if (!is_production) return;
-			this.id = id;
-			this.name = name;
+		this.instance = instance.map((i) => {
+			if (i.is_production) {
+				this.id = i.id;
+				this.name = i.name;
+			}
+			return i;
 		});
-		this.instance = instance;
+	};
+
+	setProjectID = (project_id: string) => {
+		this.project_id = project_id;
 	};
 }
 

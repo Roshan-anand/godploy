@@ -348,3 +348,18 @@ func (d *DeploymentServiceUtils) buildImg(data *DeploymentService) error {
 
 	return nil
 }
+
+// MergeDependencyEnv resolves dependency env values for a source service and appends them to
+// the manual env slice. Manual env values take precedence on key conflict.
+func MergeDependencyEnv(q *db.Queries, sourceServiceID uuid.UUID, manualEnv []string) []string {
+	rows, err := q.ResolveDependencyEnv(context.Background(), sourceServiceID)
+	if err != nil {
+		return nil
+	}
+
+	for _, row := range rows {
+		manualEnv = append(manualEnv, fmt.Sprintf("%s=%s", row.EnvKey, row.ResolvedValue))
+	}
+
+	return manualEnv
+}
