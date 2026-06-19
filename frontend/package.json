@@ -50,6 +50,7 @@
 		"vitest-browser-svelte": "^2.1.1"
 	},
 	"dependencies": {
+		"@dagrejs/dagre": "^3.0.0",
 		"@iconify/svelte": "^5.2.2",
 		"@tailwindcss/vite": "^4.3.1",
 		"@tanstack/svelte-form": "^1.33.0",

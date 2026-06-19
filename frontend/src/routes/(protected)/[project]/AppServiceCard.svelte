@@ -16,7 +16,7 @@
 </script>
 
 <section
-	class={['service-card-stack', hasReplicaLayers && 'has-replica-layers']}
+	class={['service-card-stack', hasReplicaLayers && 'has-replica-layers', 'size-full']}
 	style:--replica-layer-count={replicaLayerCount}
 >
 	{#if hasReplicaLayers}
