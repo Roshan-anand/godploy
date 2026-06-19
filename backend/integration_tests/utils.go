@@ -354,16 +354,16 @@ func mockUserRejister(h *handlers.Handler, t *testing.T, project bool) *MockUser
 			t.Fatalf("expected status code %d, got %d", http.StatusOK, rec.Code)
 		}
 
-		var instanceRes types.Res[[]db.GetAllInstanceRow]
+		var instanceRes types.Res[handlers.GetAllInstanceRes]
 		if err := readAndUnmarshl(body, &instanceRes); err != nil {
 			t.Fatal(err)
 		}
 
-		if len(instanceRes.Data) == 0 {
+		if len(instanceRes.Data.Instances) == 0 {
 			t.Fatal("expected at least one instance, got 0")
 		}
 
-		mockUser.InstanceID = instanceRes.Data[0].ID
+		mockUser.InstanceID = instanceRes.Data.Instances[0].ID
 	}
 
 	// mockUser.InstanceID = res.Data.InstanceID
