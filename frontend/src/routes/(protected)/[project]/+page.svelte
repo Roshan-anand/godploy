@@ -16,11 +16,13 @@
 	import ProjectSettings from '@/components/settings/ProjectSettings.svelte';
 	import { getInstanceState } from '@/features/instance/store.svelte.js';
 	import GraphView from './GraphView.svelte';
+	import { getBaseState } from '@/features/base';
+
+	const base = getBaseState();
 
 	let searchQuery = $state('');
 	let selectedServiceId = $state('');
 	let selectedServiceType = $state('');
-	let drawerOpen = $state(false);
 	let viewMode = $state<'list' | 'graph'>('list');
 	let graphViewRef = $state<GraphView | null>(null);
 
@@ -30,13 +32,22 @@
 
 	const getProjectName = () => data.projectName;
 
+	// instance status derived from API message — cooking / deleting / ready
+	const instanceStatus = $derived.by(() => {
+		if (servicesQuery.isPending) return 'loading';
+		if (!servicesQuery.data) return 'loading';
+		return servicesQuery.data.message || 'ready';
+	});
+
+	const services = $derived(servicesQuery.data?.data ?? []);
+
 	const filteredServices = $derived.by(() => {
-		if (!servicesQuery.data) return [];
+		if (services.length === 0) return [];
 
 		const keyword = searchQuery.trim().toLowerCase();
-		if (keyword === '') return servicesQuery.data;
+		if (keyword === '') return services;
 
-		return servicesQuery.data.filter((service) => service.name.toLowerCase().includes(keyword));
+		return services.filter((service) => service.name.toLowerCase().includes(keyword));
 	});
 
 	const createOptions = [
@@ -65,7 +76,7 @@
 		} else {
 			selectedServiceId = service.id;
 			selectedServiceType = service.type;
-			drawerOpen = true;
+			base.setPanelDrawerState(true);
 		}
 	}
 </script>
@@ -132,12 +143,22 @@
 </nav>
 
 <section class="relative flex-1 overflow-hidden p-4">
-	{#if servicesQuery.isPending}
+	{#if instanceStatus === 'loading'}
 		<div class="size-full flex items-center justify-center">
 			<DotmSquare size={65} dotSize={8} />
 		</div>
 	{:else if servicesQuery.isError}
 		<p class="text-destructive">Failed to load services</p>
+	{:else if instanceStatus === 'cooking'}
+		<div class="size-full flex flex-col items-center justify-center gap-2">
+			<DotmSquare size={65} dotSize={8} />
+			<p class="text-muted-foreground text-sm">cooking the instance</p>
+		</div>
+	{:else if instanceStatus === 'deleting'}
+		<div class="size-full flex flex-col items-center justify-center gap-2">
+			<DotmSquare size={65} dotSize={8} />
+			<p class="text-muted-foreground text-sm">deleting the instance</p>
+		</div>
 	{:else if filteredServices.length > 0}
 		{#if viewMode === 'graph'}
 			<GraphView
@@ -165,13 +186,13 @@
 	{/if}
 
 	<InlinePanel
-		bind:open={drawerOpen}
+		bind:open={base.inlinePanelDrawer}
 		class="border-l bg-background shadow border border-r-0 w-2/3"
 		showOverlay={true}
 	>
 		<div class="min-h-0 flex-1 overflow-y-auto">
 			{#if selectedServiceType === 'psql'}
-				<PsqlService serviceID={selectedServiceId} {drawerOpen} />
+				<PsqlService serviceID={selectedServiceId} />
 			{:else}
 				<p class="p-4 text-muted-foreground">Service details coming soon</p>
 			{/if}

@@ -2,6 +2,8 @@ package handlers
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"log"
 	"net/http"
 
@@ -12,6 +14,8 @@ import (
 	"github.com/Roshan-anand/godploy/internal/lib/security"
 	"github.com/Roshan-anand/godploy/internal/lib/sse"
 	"github.com/Roshan-anand/godploy/internal/lib/types"
+	"github.com/Roshan-anand/godploy/internal/lib/utils"
+	"github.com/docker/docker/api/types/swarm"
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v5"
@@ -21,6 +25,18 @@ type DeploymentHandler struct {
 	Server   *config.Server
 	Validate *validator.Validate
 	qCtx     context.Context
+}
+
+type RebuildServiceReq struct {
+	ServiceID uuid.UUID `json:"service_id" validate:"required"`
+}
+
+type RoolbackServiceReq struct {
+	ServiceID uuid.UUID `json:"service_id" validate:"required"`
+}
+
+type RedeployServiceReq struct {
+	ServiceID uuid.UUID `json:"service_id" validate:"required"`
 }
 
 func InitDeploymentHandlers(s *config.Server) *DeploymentHandler {
@@ -128,14 +144,10 @@ func (h *DeploymentHandler) SubscribeServiceDeploymentLogs(c *echo.Context) erro
 		DeploymentID: dID,
 	})
 
-	for {
-		select {
-		case <-c.Request().Context().Done():
-			log.Printf("SSE client disconnected, ip: %v", c.RealIP())
-			l.Unsubscribe(userID)
-			return nil
-		}
-	}
+	<-c.Request().Context().Done()
+	log.Printf("SSE client disconnected, ip: %v", c.RealIP())
+	l.Unsubscribe(userID)
+	return nil
 }
 
 // rebuild app service
@@ -160,11 +172,14 @@ func (h *DeploymentHandler) RebuildAppService(c *echo.Context) error {
 	}
 
 	// push a new deployment job to the queue
-	h.Server.Services.Deployment.AssignRebuild(context.Background(), &deployjob.RebuildServiceParams{
+	if _, _, _, err := h.Server.Services.Deployment.AssignRebuild(context.Background(), &deployjob.RebuildServiceParams{
 		ServiceID:  s.ID,
 		CommitHash: ghData.CommitHash,
 		CommitMsg:  ghData.CommitMsg,
-	})
+		Source:     "manual",
+	}); err != nil {
+		return c.JSON(http.StatusInternalServerError, types.Res[struct{}]{Message: "failed to assign rebuild"})
+	}
 
 	return c.JSON(http.StatusOK, types.Res[string]{Message: "Successfully assigned rebuild", Data: s.Name})
 }
@@ -178,6 +193,13 @@ func (h *DeploymentHandler) RollbackAppService(c *echo.Context) error {
 
 	if Res := BindAndValidate(b, c, h.Validate); Res != nil {
 		return c.JSON(http.StatusBadRequest, Res)
+	}
+
+	// TODO : current - checks if ongoing rebuild work and stops the Rollback
+	// update it to - cancle the rebuild work and do rollback (do some validation)
+
+	if h.Server.Services.Deployment.HasActiveRebuild(b.ServiceID) {
+		return c.JSON(http.StatusConflict, types.Res[struct{}]{Message: "rebuild in progress, cannot rollback now"})
 	}
 
 	// get all deployments
@@ -245,4 +267,85 @@ func (h *DeploymentHandler) RollbackAppService(c *echo.Context) error {
 	}
 
 	return c.JSON(http.StatusNotImplemented, types.Res[struct{}]{Message: "old deployment not found to rollback"})
+}
+
+// cancel a deployment by deployment id
+//
+// route: POST /api/service/deployment/cancel
+func (h *DeploymentHandler) CancelDeployment(c *echo.Context) error {
+	b := new(DeploymentReq)
+
+	if Res := BindAndValidate(b, c, h.Validate); Res != nil {
+		return c.JSON(http.StatusBadRequest, Res)
+	}
+
+	if err := h.Server.Services.Deployment.CancelDeployment(b.DeploymentID); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return c.JSON(http.StatusNotFound, types.Res[struct{}]{Message: "deployment not found"})
+		}
+		if errors.Is(err, deployjob.ErrCancelFinishedDeployment) {
+			return c.JSON(http.StatusConflict, types.Res[struct{}]{Message: err.Error()})
+		}
+		if errors.Is(err, deployjob.ErrCancelNotOwnedByRebuild) {
+			return c.JSON(http.StatusConflict, types.Res[struct{}]{Message: err.Error()})
+		}
+		// catches ErrCancelInvalidStatus and any other unexpected errors
+		return c.JSON(http.StatusBadRequest, types.Res[struct{}]{Message: err.Error()})
+	}
+
+	return c.JSON(http.StatusOK, types.Res[struct{}]{Message: "deployment canceled successfully"})
+}
+
+// redeploy app service to use updated envs
+//
+// route: POST /api/service/app/redeploy
+func (h *DeploymentHandler) RedeployAppService(c *echo.Context) error {
+	b := new(RedeployServiceReq)
+	q := h.Server.DB.Queries
+	docker := h.Server.Docker.Client
+
+	if Res := BindAndValidate(b, c, h.Validate); Res != nil {
+		return c.JSON(http.StatusBadRequest, Res)
+	}
+
+	if h.Server.Services.Deployment.HasActiveRebuild(b.ServiceID) {
+		return c.JSON(http.StatusConflict, types.Res[struct{}]{Message: "rebuild in progress, cannot redeploy now"})
+	}
+
+	s, err := q.GetAppServiceForRedeploy(h.qCtx, b.ServiceID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return c.JSON(http.StatusNotFound, types.Res[struct{}]{Message: "no current deployment for service"})
+		}
+		return c.JSON(http.StatusInternalServerError, types.Res[struct{}]{Message: "Failed to get service"})
+	}
+
+	// validate if the image and swarm exists
+	if _, err := docker.ImageInspect(context.Background(), s.Image.String); err != nil {
+		return c.JSON(http.StatusNotFound, types.Res[struct{}]{Message: "deployment image not found in docker"})
+	}
+
+	if _, _, err := docker.ServiceInspectWithRaw(context.Background(), s.SwarmService, swarm.ServiceInspectOptions{}); err != nil {
+		return c.JSON(http.StatusNotFound, types.Res[struct{}]{Message: "swarm service not found"})
+	}
+
+	env, err := utils.UnmarshalServiceEnv(&utils.ServiceEnvByte{
+		Env: s.Env,
+	})
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, types.Res[struct{}]{Message: "Internal server error"})
+	}
+
+	env.Env = deployjob.MergeDependencyEnv(q, b.ServiceID, env.Env)
+
+	if err := h.Server.Services.Deployment.AssignRedeploy(context.Background(), &deployjob.ReDeployData{
+		DeploymentID: s.DeploymentID,
+		SwarmService: s.SwarmService,
+		Env:          env.Env,
+		ImgName:      s.Image.String,
+	}); err != nil {
+		return c.JSON(http.StatusInternalServerError, types.Res[struct{}]{Message: "Failed to redeploy service"})
+	}
+
+	return c.JSON(http.StatusOK, types.Res[struct{}]{Message: "successfully started redeploy"})
 }

@@ -20,6 +20,18 @@ _Avoid_: Environment, workspace clone, branch runtime
 A deployable runtime unit that belongs to exactly one project instance.
 _Avoid_: App, container
 
+**Deployment**:
+One attempt to build and apply a service version for a Service.
+_Avoid_: Dyp, deploy job, build record
+
+**Current Deployment**:
+The Deployment whose service version is currently intended to serve traffic for a Service. A Service may have no Current Deployment before its first successful deploy.
+_Avoid_: Latest deployment, active job
+
+**Canceled Deployment**:
+A Deployment that was intentionally stopped before completion because a newer Deployment for the same Service replaced it.
+_Avoid_: Stale deployment, killed deploy
+
 **Git Source**:
 The selected repository source used by an application service in an instance, such as a branch or pull request.
 _Avoid_: Service branch, deploy branch, runtime branch
@@ -117,6 +129,8 @@ _Avoid_: Disk size, storage quota
 - A **Project Instance** belongs to exactly one **Project**
 - A **Project Instance** contains one or more **Services**
 - A **Service** belongs to exactly one **Project Instance**
+- A **Service** may have one or more **Deployments**
+- A **Service** may have zero or one **Current Deployment**
 - An application **Service** uses exactly one active **Git Source** inside an instance
 - A **Project Instance** provides exactly one **Instance Network** for its **Services**
 - A **Predefined Database Service** is a kind of **Service**
@@ -187,3 +201,4 @@ _Avoid_: Disk size, storage quota
 - `suspend` was used to describe taking a service offline; resolved: use **Pause** for application services and **Stop** for predefined database services.
 - `domain override` was used loosely; resolved: a **Service Domain** that is user-entered is a **Custom Domain**, distinct from the **Auto-generated Domain** for previews.
 - `service connection` was used ambiguously to mean both manual env copy-paste and automated dependency injection; resolved: manual copy-paste is just environment configuration, while **Service Dependency** is the explicit declared connection that the system manages and resolves at deploy time.
+- `dyp` was used as shorthand for deploy attempts; resolved: use **Deployment** for the user-visible attempt record.

@@ -6,13 +6,9 @@
 	import { ServiceVisibility, ReplicaSelector, BuildSettings } from './settings';
 	import type { PRInfo } from '@/features/services';
 
-	let { serviceID }: { serviceID: string } = $props();
+	let { serviceID, serviceName }: { serviceName: string; serviceID: string } = $props();
 
 	const settingsQuery = useGetAppServiceSettingsQuery(() => serviceID);
-
-	function handlePRSelect(_serviceName: string, _pr: PRInfo) {
-		// preview creation handled by the InstancePRPreviewDropdown internally
-	}
 </script>
 
 {#if settingsQuery.isPending}
@@ -64,7 +60,8 @@
 			<p class="text-sm text-muted-foreground mb-3">
 				Create preview deployments from pull requests.
 			</p>
-			<InstancePRPreviewDropdown onSelect={handlePRSelect} />
+			<InstancePRPreviewDropdown />
 		</CardContent>
 	</Card>
+	<AppDeletion serviceId={serviceID} name={serviceName} />
 {/if}

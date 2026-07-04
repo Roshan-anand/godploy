@@ -8,7 +8,6 @@ import type {
 	GetReposPayload,
 	GithubRepo,
 	RedeployPsqlServicePayload,
-	ServiceListResponse,
 	UpdateServiceDomainPayload,
 	UpdateEnvPayload,
 	UpdatePsqlServicePayload,
@@ -165,17 +164,15 @@ export function useDeleteAppServiceMutation() {
 	return createMutation(() => ({
 		mutationFn: async (payload: DeleteAppServicePayload) =>
 			api.delete<ApiRes<null>>('/service/app', { data: payload }).then((res) => res.data),
-		onSuccess: ({ message }, { service_id }) => {
+		onSuccess: ({ message }) => {
+			if (!instance.current.id) return;
+			queryClient.invalidateQueries({
+				queryKey: getInstanceServicesQueryKey(instance.current.id)
+			});
 			toast.success(message || 'Application deleted successfully');
 
-			if (!instance.current.id) return;
-			queryClient.setQueryData(
-				getInstanceServicesQueryKey(instance.current.id),
-				(cachedRows: ServiceListResponse[] | undefined) => {
-					if (!cachedRows) return [];
-					return cachedRows.filter((row) => row.id !== service_id);
-				}
-			);
+			// eslint-disable svelte/no-navigation-without-resolve
+			// goto('.');
 		},
 		onError: (error) => axiosErr(error as Error, 'Failed to delete Application')
 	}));
@@ -187,14 +184,11 @@ export function useDeletePsqlServiceMutation() {
 	return createMutation(() => ({
 		mutationFn: async (payload: DeletePsqlServicePayload) =>
 			api.delete<ApiRes<null>>('/service/psql', { data: payload }).then((res) => res.data),
-		onSuccess: ({ message }, { service_id }) => {
-			queryClient.setQueryData(
-				getInstanceServicesQueryKey(instance.current.id as string),
-				(cachedRows: ServiceListResponse[] | undefined) => {
-					if (!cachedRows) return [];
-					return cachedRows.filter((row) => row.id !== service_id);
-				}
-			);
+		onSuccess: ({ message }) => {
+			if (!instance.current.id) return;
+			queryClient.invalidateQueries({
+				queryKey: getInstanceServicesQueryKey(instance.current.id)
+			});
 			toast.success(message || 'psql deleted successfully');
 		},
 		onError: (error) => axiosErr(error as Error, 'Failed to delete psql')
@@ -297,26 +291,22 @@ export function useUpdateBuildSettingsMutation(getServiceId: () => string) {
 
 export function usePauseAppServiceMutation(getServiceId: () => string) {
 	return createMutation(() => ({
-		mutationFn: async () =>
-			api
-				.post<ApiRes<null>>('/service/app/pause', { service_id: getServiceId() })
-				.then((res) => res.data),
-		onSuccess: ({ message }) => {
-			queryClient.invalidateQueries({ queryKey: ['service-details', getServiceId()] });
+		mutationFn: async ({ service_id }: { service_id: string }) =>
+			api.post<ApiRes<null>>('/service/app/pause', { service_id }).then((res) => res.data),
+		onSuccess: ({ message }, { service_id }) => {
+			queryClient.invalidateQueries({ queryKey: ['service-details', service_id] });
 			toast.success(message || 'Service paused');
 		},
 		onError: (error) => axiosErr(error as Error, 'Failed to pause service')
 	}));
 }
 
-export function useResumeAppServiceMutation(getServiceId: () => string) {
+export function useResumeAppServiceMutation() {
 	return createMutation(() => ({
-		mutationFn: async () =>
-			api
-				.post<ApiRes<null>>('/service/app/resume', { service_id: getServiceId() })
-				.then((res) => res.data),
-		onSuccess: ({ message }) => {
-			queryClient.invalidateQueries({ queryKey: ['service-details', getServiceId()] });
+		mutationFn: async ({ service_id }: { service_id: string }) =>
+			api.post<ApiRes<null>>('/service/app/resume', { service_id }).then((res) => res.data),
+		onSuccess: ({ message }, { service_id }) => {
+			queryClient.invalidateQueries({ queryKey: ['service-details', service_id] });
 			toast.success(message || 'Service resumed');
 		},
 		onError: (error) => axiosErr(error as Error, 'Failed to resume service')
@@ -392,5 +382,28 @@ export function useUpdateDependencyMutation() {
 			toast.success('Dependency updated');
 		},
 		onError: (error) => axiosErr(error as Error, 'Failed to update dependency')
+	}));
+}
+
+export function useCreatePreviewMutation() {
+	const instance = getInstanceState();
+
+	return createMutation(() => ({
+		mutationFn: async (payload: {
+			project_id: string;
+			name: string;
+			pr_number: number;
+			repo_id: number;
+			head_branch: string;
+			git_source_type: string;
+			git_source_value: string;
+		}) => api.post<ApiRes<null>>('/instance/preview', payload).then((res) => res.data),
+		onSuccess: ({ message }) => {
+			queryClient.invalidateQueries({
+				queryKey: ['github-prs', 'instance', instance.current.id]
+			});
+			toast.success(message || 'Preview creation queued');
+		},
+		onError: (error) => axiosErr(error as Error, 'Failed to create preview')
 	}));
 }

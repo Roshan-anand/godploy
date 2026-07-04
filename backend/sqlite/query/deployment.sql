@@ -26,6 +26,11 @@ SELECT d.id, d.image
 FROM deployments d
 WHERE d.id = ?;
 
+-- name: GetDeployment :one
+SELECT *
+FROM deployments
+WHERE id = ?;
+
 -- name: GetDeploymentStatus :one
 SELECT status
 FROM deployments
@@ -53,6 +58,15 @@ WHERE id = ?;
 
 -- name: GetCurrentDeploymentByServiceId :one
 SELECT id, status FROM deployments WHERE service_id = ? AND is_current = TRUE;
+
+-- name: GetCurrentDeploymentWithImageByServiceId :one
+SELECT id, status, image FROM deployments WHERE service_id = ? AND is_current = TRUE;
+
+-- name: GetDeploymentsByStatus :many
+SELECT id, is_current, service_id, status, commit_hash, commit_msg, image, created_at
+FROM deployments
+WHERE status = ?
+ORDER BY created_at DESC;
 
 -- name: DeleteDeploymentByID :exec
 DELETE FROM deployments

@@ -55,8 +55,8 @@ func (q *Queries) CheckServiceIsProduction(ctx context.Context, serviceID uuid.U
 }
 
 const createAppService = `-- name: CreateAppService :one
-INSERT INTO app_service (id, instance_id, type, name, git_provider, gh_app_id, gh_repo_id, gh_repo_name, gh_repo_url, build_path, watch_path, env, build_args, build_secrets, docker_filepath, docker_contextpath, docker_buildstage, is_public, branch, swarm_service, port, internal_url)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+INSERT INTO app_service (id, instance_id, type, name, git_provider, gh_app_id, gh_repo_id, gh_repo_name, gh_repo_url, build_path, watch_path, env, build_args, build_secrets, docker_filepath, docker_contextpath, docker_buildstage, is_public, branch, swarm_service, domain, port, internal_url)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 RETURNING id, name, type
 `
 
@@ -81,6 +81,7 @@ type CreateAppServiceParams struct {
 	IsPublic          bool              `json:"is_public"`
 	Branch            string            `json:"branch"`
 	SwarmService      string            `json:"swarm_service"`
+	Domain            sql.NullString    `json:"domain"`
 	Port              int32             `json:"port"`
 	InternalUrl       string            `json:"internal_url"`
 }
@@ -113,6 +114,7 @@ func (q *Queries) CreateAppService(ctx context.Context, arg CreateAppServicePara
 		arg.IsPublic,
 		arg.Branch,
 		arg.SwarmService,
+		arg.Domain,
 		arg.Port,
 		arg.InternalUrl,
 	)
@@ -314,7 +316,7 @@ type GetAppServiceByIdRow struct {
 	IsPublic     bool                   `json:"is_public"`
 	Branch       string                 `json:"branch"`
 	SwarmService string                 `json:"swarm_service"`
-	Domain       string                 `json:"domain"`
+	Domain       sql.NullString         `json:"domain"`
 	InternalUrl  string                 `json:"internal_url"`
 	Port         int32                  `json:"port"`
 	CreatedAt    time.Time              `json:"created_at"`
@@ -345,7 +347,7 @@ func (q *Queries) GetAppServiceById(ctx context.Context, id uuid.UUID) (GetAppSe
 
 const getAppServiceForRebuild = `-- name: GetAppServiceForRebuild :one
 SELECT
-    a.id, a.name, a.gh_repo_url, a.gh_app_id, a.gh_repo_id, a.branch, a.build_path, a.docker_filepath, a.docker_contextpath, a.docker_buildstage, a.env, a.build_args, a.build_secrets, a.swarm_service,
+    a.id, a.instance_id, a.name, a.gh_repo_url, a.gh_app_id, a.gh_repo_id, a.branch, a.build_path, a.docker_filepath, a.docker_contextpath, a.docker_buildstage, a.env, a.build_args, a.build_secrets, a.swarm_service, a.is_public, a.domain, a.port,
     d.id AS deployment_id, d.status AS deployment_status
 FROM app_service a
 JOIN deployments d ON d.service_id = a.id AND d.is_current
@@ -354,6 +356,7 @@ WHERE a.id = ?
 
 type GetAppServiceForRebuildRow struct {
 	ID                uuid.UUID              `json:"id"`
+	InstanceID        uuid.UUID              `json:"instance_id"`
 	Name              string                 `json:"name"`
 	GhRepoUrl         string                 `json:"gh_repo_url"`
 	GhAppID           int64                  `json:"gh_app_id"`
@@ -367,6 +370,9 @@ type GetAppServiceForRebuildRow struct {
 	BuildArgs         []byte                 `json:"build_args"`
 	BuildSecrets      []byte                 `json:"build_secrets"`
 	SwarmService      string                 `json:"swarm_service"`
+	IsPublic          bool                   `json:"is_public"`
+	Domain            sql.NullString         `json:"domain"`
+	Port              int32                  `json:"port"`
 	DeploymentID      uuid.UUID              `json:"deployment_id"`
 	DeploymentStatus  types.DeploymentStatus `json:"deployment_status"`
 }
@@ -376,6 +382,7 @@ func (q *Queries) GetAppServiceForRebuild(ctx context.Context, id uuid.UUID) (Ge
 	var i GetAppServiceForRebuildRow
 	err := row.Scan(
 		&i.ID,
+		&i.InstanceID,
 		&i.Name,
 		&i.GhRepoUrl,
 		&i.GhAppID,
@@ -389,8 +396,38 @@ func (q *Queries) GetAppServiceForRebuild(ctx context.Context, id uuid.UUID) (Ge
 		&i.BuildArgs,
 		&i.BuildSecrets,
 		&i.SwarmService,
+		&i.IsPublic,
+		&i.Domain,
+		&i.Port,
 		&i.DeploymentID,
 		&i.DeploymentStatus,
+	)
+	return i, err
+}
+
+const getAppServiceForRedeploy = `-- name: GetAppServiceForRedeploy :one
+SELECT
+    a.swarm_service, a.env, d.id AS deployment_id, d.image
+FROM app_service a
+JOIN deployments d ON d.service_id = a.id AND d.is_current
+WHERE a.id = ?
+`
+
+type GetAppServiceForRedeployRow struct {
+	SwarmService string         `json:"swarm_service"`
+	Env          []byte         `json:"env"`
+	DeploymentID uuid.UUID      `json:"deployment_id"`
+	Image        sql.NullString `json:"image"`
+}
+
+func (q *Queries) GetAppServiceForRedeploy(ctx context.Context, id uuid.UUID) (GetAppServiceForRedeployRow, error) {
+	row := q.db.QueryRowContext(ctx, getAppServiceForRedeploy, id)
+	var i GetAppServiceForRedeployRow
+	err := row.Scan(
+		&i.SwarmService,
+		&i.Env,
+		&i.DeploymentID,
+		&i.Image,
 	)
 	return i, err
 }
@@ -544,8 +581,8 @@ WHERE id = ?1
 `
 
 type GetDomainAndPortByServiceIdRow struct {
-	Domain string `json:"domain"`
-	Port   int32  `json:"port"`
+	Domain sql.NullString `json:"domain"`
+	Port   int32          `json:"port"`
 }
 
 func (q *Queries) GetDomainAndPortByServiceId(ctx context.Context, serviceID uuid.UUID) (GetDomainAndPortByServiceIdRow, error) {
@@ -553,6 +590,58 @@ func (q *Queries) GetDomainAndPortByServiceId(ctx context.Context, serviceID uui
 	var i GetDomainAndPortByServiceIdRow
 	err := row.Scan(&i.Domain, &i.Port)
 	return i, err
+}
+
+const getFullAppServicesByInstanceId = `-- name: GetFullAppServicesByInstanceId :many
+SELECT id, instance_id, type, name, git_provider, gh_app_id, gh_repo_id, gh_repo_name, gh_repo_url, build_path, watch_path, docker_filepath, docker_contextpath, docker_buildstage, env, build_args, build_secrets, is_public, branch, swarm_service, domain, internal_url, port, created_at FROM app_service WHERE instance_id = ?
+`
+
+func (q *Queries) GetFullAppServicesByInstanceId(ctx context.Context, instanceID uuid.UUID) ([]AppService, error) {
+	rows, err := q.db.QueryContext(ctx, getFullAppServicesByInstanceId, instanceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []AppService
+	for rows.Next() {
+		var i AppService
+		if err := rows.Scan(
+			&i.ID,
+			&i.InstanceID,
+			&i.Type,
+			&i.Name,
+			&i.GitProvider,
+			&i.GhAppID,
+			&i.GhRepoID,
+			&i.GhRepoName,
+			&i.GhRepoUrl,
+			&i.BuildPath,
+			&i.WatchPath,
+			&i.DockerFilepath,
+			&i.DockerContextpath,
+			&i.DockerBuildstage,
+			&i.Env,
+			&i.BuildArgs,
+			&i.BuildSecrets,
+			&i.IsPublic,
+			&i.Branch,
+			&i.SwarmService,
+			&i.Domain,
+			&i.InternalUrl,
+			&i.Port,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const getPredefSwarmServiceById = `-- name: GetPredefSwarmServiceById :one
@@ -730,10 +819,10 @@ WHERE id = ?
 `
 
 type UpdateDomianAndPortParams struct {
-	Domain    string    `json:"domain"`
-	Port      int32     `json:"port"`
-	IsPublic  bool      `json:"is_public"`
-	ServiceID uuid.UUID `json:"service_id"`
+	Domain    sql.NullString `json:"domain"`
+	Port      int32          `json:"port"`
+	IsPublic  bool           `json:"is_public"`
+	ServiceID uuid.UUID      `json:"service_id"`
 }
 
 func (q *Queries) UpdateDomianAndPort(ctx context.Context, arg UpdateDomianAndPortParams) error {

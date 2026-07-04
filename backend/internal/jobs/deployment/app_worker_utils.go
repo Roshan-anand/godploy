@@ -76,15 +76,31 @@ func runWorkerCmd(l *logbroker.LogBrokerService, dID uuid.UUID, cmd *exec.Cmd, w
 	return nil
 }
 
+// generates a unique output path for the given swarm service.
+func getOutputPath(baseDir, swarmService string) string {
+	outputPath := path.Join(baseDir, swarmService)
+	for i := 1; ; i++ {
+		if _, err := os.Stat(outputPath); os.IsNotExist(err) {
+			break
+		}
+		outputPath = outputPath + strconv.Itoa(i)
+	}
+	return outputPath
+}
+
 // returns a base service spec for the given parameters
 func (d *deployData) getBaseSpec() *swarm.ServiceSpec {
+	lbPort := d.port
+	if lbPort == 0 {
+		lbPort = 80
+	}
 
 	spec := &swarm.ServiceSpec{
 		Annotations: swarm.Annotations{
 			Name: d.swarmService,
 			Labels: map[string]string{
 				fmt.Sprintf("traefik.http.routers.%s.entrypoints", d.swarmService):               "websecure",
-				fmt.Sprintf("traefik.http.services.%s.loadbalancer.server.port", d.swarmService): "80",
+				fmt.Sprintf("traefik.http.services.%s.loadbalancer.server.port", d.swarmService): fmt.Sprintf("%d", lbPort),
 				fmt.Sprintf("traefik.http.routers.%s.tls.certresolver", d.swarmService):          "le",
 				"traefik.constraint-label": "head-proxy",
 			},
@@ -123,15 +139,20 @@ func (d *deployData) getBaseSpec() *swarm.ServiceSpec {
 		spec.TaskTemplate.ContainerSpec.Env = d.env
 	}
 
+	// if a preview domain is set, add explicit Host rule
+	if d.domain != "" {
+		spec.Annotations.Labels[fmt.Sprintf("traefik.http.routers.%s.rule", d.swarmService)] = fmt.Sprintf("Host(`%s`)", d.domain)
+	}
+
 	return spec
 }
 
 // helper function to get the docker build command based on the given parameters
-func (d *DeploymentServiceUtils) getDockerBuildCmd(outputPath string) *exec.Cmd {
+func (d *DeploymentServiceUtils) getDockerBuildCmd(ctx context.Context, outputPath string) *exec.Cmd {
 	// 	"--secret", "id=npm_token,src=/tmp/npm_token",
 	// 	"--secret", "id=github_token,src=/tmp/github_token",
 
-	cmd := exec.Command("docker", "build", "--progress=plain")
+	cmd := exec.CommandContext(ctx, "docker", "build", "--progress=plain")
 
 	if d.DockerFilePath != "" {
 		cmd.Args = append(cmd.Args, "--file", d.DockerFilePath)
@@ -156,14 +177,14 @@ func (d *DeploymentServiceUtils) getDockerBuildCmd(outputPath string) *exec.Cmd 
 		cmd.Args = append(cmd.Args, "--target", d.DockerBuildStage)
 	}
 
-	dockerCtxPath := path.Join(outputPath + d.DockerContextPath)
+	dockerCtxPath := path.Join(outputPath, d.BuildPath, d.DockerContextPath)
 	cmd.Args = append(cmd.Args, dockerCtxPath)
 
 	return cmd
 }
 
 // helper function to get the git clone command based on the repo type
-func (d *DeploymentServiceUtils) getCloneRepoCmd() *exec.Cmd {
+func (d *DeploymentServiceUtils) getCloneRepoCmd(ctx context.Context) *exec.Cmd {
 	repoURL := fmt.Sprintf("https://oauth2:%s@%s", d.Token, d.Url)
 
 	cmdStr := fmt.Sprintf(`
@@ -178,7 +199,7 @@ func (d *DeploymentServiceUtils) getCloneRepoCmd() *exec.Cmd {
 		strconv.Quote(d.OutputPath),
 	)
 
-	return exec.Command("bash", "-c", cmdStr)
+	return exec.CommandContext(ctx, "bash", "-c", cmdStr)
 }
 
 // helper fucntion to fill deploy data
@@ -190,6 +211,7 @@ func (d *DeploymentServiceParams) getDeployData(network string) *deployData {
 		isPublic:     d.IsPublic,
 		env:          d.Env,
 		imgName:      d.ImgName,
+		port:         80,
 	}
 }
 
@@ -211,51 +233,20 @@ func (d *DeploymentService) getServiceNetwork(instanceID uuid.UUID) (string, err
 	return network, nil
 }
 
-// helper function to create a new deployment and update the previous deployment status
+// helper function to create a new rebuild candidate deployment.
+// The candidate starts as non-current; promotion to Current happens only after
+// Docker accepts the rebuilt image (see runRebuildPipeline / redeploy).
 func (d *RebuildServiceParams) createNewDeploymentData(data *DeploymentService, s *db.GetAppServiceForRebuildRow) (uuid.UUID, error) {
-	var newStatus types.DeploymentStatus
-	switch s.DeploymentStatus {
-	case types.DeploymentReady:
-		newStatus = types.DeploymentInactive
-	default:
-		newStatus = types.DeploymentPruned
-	}
-
-	// start a new db transaction
-	tx, err := data.db.Pool.BeginTx(context.Background(), nil)
-	if err != nil {
-		fmt.Println("RebuildWorker: error starting transaction:", err)
-		return uuid.UUID{}, err
-	}
-	tq := data.db.Queries.WithTx(tx)
-
-	// change deployment status
-	// update the previous deployment is_latest to false
-	if err := tq.DownGradeDeployment(data.qCtx, db.DownGradeDeploymentParams{
-		DeploymentID: s.DeploymentID,
-		Status:       newStatus,
-	}); err != nil {
-		tx.Rollback()
-		fmt.Println("RebuildWorker: error downgrading deployment:", err)
-		return uuid.UUID{}, err
-	}
-
-	// create a new deployment
-	dID, err := tq.CreateDeployment(data.qCtx, db.CreateDeploymentParams{
+	// create a new deployment as a non-current candidate
+	dID, err := data.db.Queries.CreateDeployment(data.qCtx, db.CreateDeploymentParams{
 		ID:         security.GeneratePrimaryKey(),
 		ServiceID:  s.ID,
 		CommitHash: d.CommitHash,
 		CommitMsg:  d.CommitMsg,
-		IsCurrent:  true,
+		IsCurrent:  false,
 	})
 	if err != nil {
-		tx.Rollback()
 		fmt.Println("RebuildWorker: error creating new deployment:", err)
-		return uuid.UUID{}, err
-	}
-
-	if tx.Commit() != nil {
-		fmt.Println("RebuildWorker: error committing transaction:", err)
 		return uuid.UUID{}, err
 	}
 
@@ -272,7 +263,7 @@ func (d *DeploymentService) newDeploymentServiceUtils(data *DeploymentServiceUti
 }
 
 // deployment utils function to pull the code from the repo and return the output path
-func (d *DeploymentServiceUtils) pullCode(data *DeploymentService) error {
+func (d *DeploymentServiceUtils) pullCode(ctx context.Context, data *DeploymentService) error {
 	log := data.log
 	q := data.db.Queries
 
@@ -282,7 +273,7 @@ func (d *DeploymentServiceUtils) pullCode(data *DeploymentService) error {
 	})
 
 	// update the deployment status to building
-	if err := q.UpdateDeploymentStatus(context.Background(), db.UpdateDeploymentStatusParams{
+	if err := q.UpdateDeploymentStatus(ctx, db.UpdateDeploymentStatusParams{
 		Status: types.DeploymentBuilding,
 		ID:     d.DeploymentID,
 	}); err != nil {
@@ -290,7 +281,7 @@ func (d *DeploymentServiceUtils) pullCode(data *DeploymentService) error {
 	}
 
 	// clone the repo and get the code path
-	cmd := d.getCloneRepoCmd()
+	cmd := d.getCloneRepoCmd(ctx)
 	if err := runWorkerCmd(log, d.DeploymentID, cmd, "pull"); err != nil {
 		return err
 	}
@@ -304,7 +295,7 @@ func (d *DeploymentServiceUtils) pullCode(data *DeploymentService) error {
 }
 
 // deployment utils function to build the docker image and update the deployment with the image name
-func (d *DeploymentServiceUtils) buildImg(data *DeploymentService) error {
+func (d *DeploymentServiceUtils) buildImg(ctx context.Context, data *DeploymentService) error {
 	log := data.log
 	q := data.db.Queries
 
@@ -314,7 +305,7 @@ func (d *DeploymentServiceUtils) buildImg(data *DeploymentService) error {
 	})
 
 	// generate a new docker build cmd
-	buildCmd := d.getDockerBuildCmd(d.OutputPath)
+	buildCmd := d.getDockerBuildCmd(ctx, d.OutputPath)
 
 	if err := runWorkerCmd(log, d.DeploymentID, buildCmd, "build"); err != nil {
 		fmt.Printf("BuildWorker: error running command: %v\n", err)
@@ -322,7 +313,7 @@ func (d *DeploymentServiceUtils) buildImg(data *DeploymentService) error {
 	}
 
 	// update the deployment with the built image name
-	if err := q.SetDeploymentImageName(data.qCtx, db.SetDeploymentImageNameParams{
+	if err := q.SetDeploymentImageName(ctx, db.SetDeploymentImageNameParams{
 		ID: d.DeploymentID,
 		Image: sql.NullString{
 			Valid:  true,
@@ -339,12 +330,10 @@ func (d *DeploymentServiceUtils) buildImg(data *DeploymentService) error {
 	})
 
 	// remove the code folder
-	go func() {
-		if err := os.RemoveAll(d.OutputPath); err != nil {
-			fmt.Printf("BuildWorker: error removing code folder: %v\n", err)
-		}
-		fmt.Println("succesfully removed :", d.OutputPath)
-	}()
+	if err := os.RemoveAll(d.OutputPath); err != nil {
+		fmt.Printf("BuildWorker: error removing code folder: %v\n", err)
+	}
+	fmt.Println("succesfully removed :", d.OutputPath)
 
 	return nil
 }
@@ -354,7 +343,7 @@ func (d *DeploymentServiceUtils) buildImg(data *DeploymentService) error {
 func MergeDependencyEnv(q *db.Queries, sourceServiceID uuid.UUID, manualEnv []string) []string {
 	rows, err := q.ResolveDependencyEnv(context.Background(), sourceServiceID)
 	if err != nil {
-		return nil
+		return manualEnv
 	}
 
 	for _, row := range rows {

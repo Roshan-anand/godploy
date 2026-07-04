@@ -38,6 +38,12 @@ type TransferProjectReq struct {
 	TargetOrgID uuid.UUID `json:"target_org_id" validate:"required"`
 }
 
+type RenameProjectReq struct {
+	ProjectID uuid.UUID `json:"project_id" validate:"required"`
+	OrgID     uuid.UUID `json:"org_id" validate:"required"`
+	Name      string    `json:"name" validate:"required,min=3"`
+}
+
 func InitProjectHandlers(s *config.Server) *ProjectHandler {
 	return &ProjectHandler{
 		Server:   s,
@@ -97,6 +103,7 @@ func (h *ProjectHandler) CreateProject(c *echo.Context) error {
 		ProjectID:    project.ID,
 		Network:      networkName,
 		IsProduction: true,
+		Status:       types.InstanceReady,
 	}); err != nil {
 		tx.Rollback()
 		return c.JSON(http.StatusInternalServerError, types.Res[struct{}]{Message: "Failed to create default instance for project"})
@@ -134,6 +141,7 @@ func (h *ProjectHandler) GetAllProject(c *echo.Context) error {
 
 // delete a project
 //
+// TODO : also remove all preview instances
 // route: DELETE /api/project
 func (h *ProjectHandler) DeleteProject(c *echo.Context) error {
 	b := new(DeleteProjectReq)
@@ -199,12 +207,6 @@ func (h *ProjectHandler) TransferProject(c *echo.Context) error {
 	return c.JSON(http.StatusOK, types.Res[struct{}]{Message: "Project transferred successfully"})
 }
 
-type RenameProjectReq struct {
-	ProjectID uuid.UUID `json:"project_id" validate:"required"`
-	OrgID     uuid.UUID `json:"org_id" validate:"required"`
-	Name      string    `json:"name" validate:"required,min=3"`
-}
-
 // rename a project
 //
 // route: PUT /api/project/rename
@@ -229,10 +231,4 @@ func (h *ProjectHandler) RenameProject(c *echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, types.Res[db.RenameProjectRow]{Message: "", Data: project})
-}
-
-// TODO : make route to shut down an instance
-// by remving all the services,swarm service, volumes etc
-func (h *ProjectHandler) ShutDownInstance(c *echo.Context) error {
-	return nil
 }

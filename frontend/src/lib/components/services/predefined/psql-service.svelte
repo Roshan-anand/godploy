@@ -10,8 +10,11 @@
 	import StreamLogs from '../stream-logs.svelte';
 	import FormError from '@/components/services/FormError.svelte';
 	import PsqlSettings from './psql-settings.svelte';
+	import { getBaseState } from '@/features/base';
 
-	let { serviceID, drawerOpen }: { serviceID: string; drawerOpen: boolean } = $props();
+	let { serviceID }: { serviceID: string } = $props();
+
+	const base = getBaseState();
 
 	const serviceQuery = useGetPsqlServiceDetailsQuery(() => serviceID);
 	const updatePsqlService = useUpdatePsqlServiceMutation(() => serviceID);
@@ -95,7 +98,7 @@
 				variant="ghost"
 				size="icon"
 				class="-mr-1 h-8 w-8 shrink-0"
-				onclick={() => (drawerOpen = false)}
+				onclick={() => base.setPanelDrawerState(false)}
 				aria-label="Close service drawer"
 			>
 				<X class="h-4 w-4" />
@@ -265,7 +268,7 @@
 				</form>
 			</div>
 
-			<StreamLogs url={`/api/service/logs?service_id=${serviceID}`} open={drawerOpen} />
+			<StreamLogs url={`/api/service/logs?service_id=${serviceID}`} open={base.inlinePanelDrawer} />
 		</div>
 	{:else}
 		<div class="px-5 py-5">
