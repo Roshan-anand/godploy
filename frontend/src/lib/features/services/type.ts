@@ -138,6 +138,43 @@ export type RedeployPsqlServicePayload = {
 	service_id: string;
 };
 
+export type CreateRedisServiceBody = {
+	name: string;
+	password: string;
+	image: string;
+	volume?: string;
+};
+
+export type CreateRedisServicePayload = CreateRedisServiceBody & {
+	instance_id: string;
+};
+
+export type RedisServiceDetails = {
+	id: string;
+	name: string;
+	swarm_service: string;
+	password: string;
+	image: string;
+	internal_url: string;
+	volume: string;
+	status: PredefinedServiceStatus;
+	created_at: string;
+};
+
+export type DeleteRedisServicePayload = {
+	service_id: string;
+	keep_data: boolean;
+};
+
+export type UpdateRedisServicePayload = {
+	service_id: string;
+	password: string;
+};
+
+export type RedeployRedisServicePayload = {
+	service_id: string;
+};
+
 export type AppServiceDetails = {
 	id: string;
 	name: string;
@@ -186,11 +223,25 @@ export type AppServiceSettings = {
 	port: number;
 	is_public: boolean;
 	replicas: number;
+	build_path: string;
+	watch_path: string;
+	docker_filepath: string;
+	docker_contextpath: string;
+	docker_buildstage: string;
 };
 
 export type ScaleAppServicePayload = {
 	service_id: string;
 	replicas: number;
+};
+
+export type UpdateBuildSettingsPayload = {
+	service_id: string;
+	build_path: string;
+	watch_path: string;
+	docker_filepath: string;
+	docker_contextpath: string;
+	docker_buildstage: string;
 };
 
 export type DependencyTarget = {
