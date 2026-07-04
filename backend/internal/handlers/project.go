@@ -141,6 +141,7 @@ func (h *ProjectHandler) GetAllProject(c *echo.Context) error {
 
 // delete a project
 //
+// TODO : also remove all preview instances
 // route: DELETE /api/project
 func (h *ProjectHandler) DeleteProject(c *echo.Context) error {
 	b := new(DeleteProjectReq)
@@ -230,12 +231,4 @@ func (h *ProjectHandler) RenameProject(c *echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, types.Res[db.RenameProjectRow]{Message: "", Data: project})
-}
-
-// shutdown an instance by removing all services and resources
-//
-// TODO: implement
-// route: POST /api/instance/shutdown
-func (h *ProjectHandler) ShutDownInstance(c *echo.Context) error {
-	return nil
 }

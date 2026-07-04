@@ -123,7 +123,7 @@ WHERE a.id = ?;
 
 -- name: GetAppServiceForRebuild :one
 SELECT
-    a.id, a.name, a.gh_repo_url, a.gh_app_id, a.gh_repo_id, a.branch, a.build_path, a.docker_filepath, a.docker_contextpath, a.docker_buildstage, a.env, a.build_args, a.build_secrets, a.swarm_service,
+    a.id, a.instance_id, a.name, a.gh_repo_url, a.gh_app_id, a.gh_repo_id, a.branch, a.build_path, a.docker_filepath, a.docker_contextpath, a.docker_buildstage, a.env, a.build_args, a.build_secrets, a.swarm_service, a.is_public, a.domain, a.port,
     d.id AS deployment_id, d.status AS deployment_status
 FROM app_service a
 JOIN deployments d ON d.service_id = a.id AND d.is_current

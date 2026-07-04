@@ -16,11 +16,13 @@
 	import ProjectSettings from '@/components/settings/ProjectSettings.svelte';
 	import { getInstanceState } from '@/features/instance/store.svelte.js';
 	import GraphView from './GraphView.svelte';
+	import { getBaseState } from '@/features/base';
+
+	const base = getBaseState();
 
 	let searchQuery = $state('');
 	let selectedServiceId = $state('');
 	let selectedServiceType = $state('');
-	let drawerOpen = $state(false);
 	let viewMode = $state<'list' | 'graph'>('list');
 	let graphViewRef = $state<GraphView | null>(null);
 
@@ -74,7 +76,7 @@
 		} else {
 			selectedServiceId = service.id;
 			selectedServiceType = service.type;
-			drawerOpen = true;
+			base.setPanelDrawerState(true);
 		}
 	}
 </script>
@@ -184,13 +186,13 @@
 	{/if}
 
 	<InlinePanel
-		bind:open={drawerOpen}
+		bind:open={base.inlinePanelDrawer}
 		class="border-l bg-background shadow border border-r-0 w-2/3"
 		showOverlay={true}
 	>
 		<div class="min-h-0 flex-1 overflow-y-auto">
 			{#if selectedServiceType === 'psql'}
-				<PsqlService serviceID={selectedServiceId} {drawerOpen} />
+				<PsqlService serviceID={selectedServiceId} />
 			{:else}
 				<p class="p-4 text-muted-foreground">Service details coming soon</p>
 			{/if}

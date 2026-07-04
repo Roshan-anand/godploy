@@ -2,14 +2,18 @@ package deployjob
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"fmt"
 	"log"
 
+	"github.com/Roshan-anand/godploy/internal/db"
 	"github.com/Roshan-anand/godploy/internal/jobs/logbroker"
 	"github.com/Roshan-anand/godploy/internal/lib/docker"
 	ghservice "github.com/Roshan-anand/godploy/internal/lib/gh"
 	"github.com/Roshan-anand/godploy/internal/lib/types"
 	"github.com/Roshan-anand/godploy/internal/lib/utils"
+	"github.com/containerd/errdefs"
 	"github.com/docker/docker/api/types/swarm"
 	"github.com/google/uuid"
 )
@@ -27,9 +31,10 @@ type deployData struct {
 
 type ReDeployData struct {
 	DeploymentID uuid.UUID `validate:"required"`
-	SwarmService string    `validate:"required"`
-	Env          []string  `validate:"required"`
-	ImgName      string    `validate:"required"`
+	ServiceID    uuid.UUID
+	SwarmService string   `validate:"required"`
+	Env          []string `validate:"required"`
+	ImgName      string   `validate:"required"`
 }
 
 type CloneDeployData struct {
@@ -67,6 +72,12 @@ type RebuildServiceParams struct {
 	ServiceID  uuid.UUID `validate:"required"`
 	CommitHash string    `validate:"required"`
 	CommitMsg  string    `validate:"required"`
+	// Source identifies how the rebuild was triggered: "manual" or "webhook".
+	// It is used only for logging/test assertions; it does not change logic.
+	Source string
+	// JobID is the monotonic identity token assigned by the rebuild registry.
+	// Workers use it for identity checks when cleaning up registry entries.
+	JobID int64
 }
 
 // starts the deployment work pipeline
@@ -104,7 +115,7 @@ func (d *DeploymentService) runDeploymentPipeline(ctx context.Context, data *Dep
 	}
 
 	// trigger pull code
-	if err := utils.pullCode(d); err != nil {
+	if err := utils.pullCode(ctx, d); err != nil {
 		fmt.Println("PullWorker: error pulling code:", err)
 		errLog.Message = errorMsg(err.Error())
 		d.log.EndLogs(errLog)
@@ -112,7 +123,7 @@ func (d *DeploymentService) runDeploymentPipeline(ctx context.Context, data *Dep
 	}
 
 	// trigger build image
-	if err := utils.buildImg(d); err != nil {
+	if err := utils.buildImg(ctx, d); err != nil {
 		errLog.Message = errorMsg(err.Error())
 		d.log.EndLogs(errLog)
 		return // TODO : trigger retry logic
@@ -128,8 +139,30 @@ func (d *DeploymentService) runDeploymentPipeline(ctx context.Context, data *Dep
 	d.deploy(data.getDeployData(network))
 }
 
-// starts the rebuild pipeline for the given data
-func (d *DeploymentService) runRebuildPipeline(ctx context.Context, data *RebuildServiceParams) {
+// MarkDeploymentCanceled finalizes the log stream for a canceled rebuild and
+// updates the Deployment status to canceled. It does not touch any Current
+// Deployment.
+func (d *DeploymentService) MarkDeploymentCanceled(deploymentID uuid.UUID, reason string) {
+	if err := d.log.EndLogs(&logbroker.EndLogData{
+		DeploymentID: deploymentID,
+		Status:       types.DeploymentCanceled,
+		Message:      warningMsg("rebuild canceled: " + reason),
+	}); err != nil {
+		fmt.Printf("RebuildWorker: error ending canceled logs: %v\n", err)
+	}
+}
+
+// RunRebuildPipeline starts the rebuild pipeline for the given data.
+// It is exported so integration tests can exercise cancellation behavior
+// directly without invoking the full async queue.
+func (d *DeploymentService) RunRebuildPipeline(ctx context.Context, data *RebuildServiceParams) {
+	// If this rebuild was canceled while queued, exit without creating a
+	// Deployment row and without touching the previous Current Deployment.
+	if err := ctx.Err(); err != nil {
+		fmt.Println("RebuildWorker: rebuild canceled before starting work:", err)
+		return
+	}
+
 	errLog := &logbroker.EndLogData{
 		Status: types.DeploymentError,
 	}
@@ -142,13 +175,24 @@ func (d *DeploymentService) runRebuildPipeline(ctx context.Context, data *Rebuil
 		return // TODO : trigger retry logic
 	}
 
-	// update the deployment status to building
+	// create a new Deployment row for the rebuild candidate.
 	dID, err := data.createNewDeploymentData(d, &s)
 	errLog.DeploymentID = dID
 	if err != nil {
 		fmt.Println("RebuildWorker: error creating new deployment data for rebuild:", err)
 		d.log.EndLogs(errLog)
 		return // TODO : trigger retry logic
+	}
+
+	// Record the candidate Deployment ID in the registry so explicit cancel by
+	// Deployment identifier can locate the active rebuild in later phases.
+	d.SetRebuildDeploymentID(data.ServiceID, data.JobID, dID)
+
+	// If cancellation arrived right after the candidate row was created, mark
+	// it canceled and stop before doing any pull/build work.
+	if err := ctx.Err(); err != nil {
+		d.MarkDeploymentCanceled(dID, "replaced by newer rebuild")
+		return
 	}
 
 	// used as unique image
@@ -168,6 +212,12 @@ func (d *DeploymentService) runRebuildPipeline(ctx context.Context, data *Rebuil
 
 	// resolve and merge dependency env values
 	envStr.Env = MergeDependencyEnv(d.db.Queries, data.ServiceID, envStr.Env)
+
+	// If cancellation arrived before we talk to GitHub, mark canceled and stop.
+	if err := ctx.Err(); err != nil {
+		d.MarkDeploymentCanceled(dID, "replaced by newer rebuild")
+		return
+	}
 
 	// create new github client
 	gh, err := ghservice.New(q, s.GhAppID)
@@ -202,25 +252,63 @@ func (d *DeploymentService) runRebuildPipeline(ctx context.Context, data *Rebuil
 	}
 
 	// trigger pull code
-	if err := utils.pullCode(d); err != nil {
+	if err := utils.pullCode(ctx, d); err != nil {
+		if ctx.Err() != nil {
+			d.MarkDeploymentCanceled(dID, "replaced by newer rebuild")
+			return
+		}
 		errLog.Message = errorMsg(err.Error())
 		d.log.EndLogs(errLog)
 		return // TODO : trigger retry logic
 	}
 
+	// If cancellation arrived after a successful pull, mark canceled and stop.
+	if err := ctx.Err(); err != nil {
+		d.MarkDeploymentCanceled(dID, "replaced by newer rebuild")
+		return
+	}
+
 	// trigger build image
-	if err := utils.buildImg(d); err != nil {
+	if err := utils.buildImg(ctx, d); err != nil {
+		if ctx.Err() != nil {
+			d.MarkDeploymentCanceled(dID, "replaced by newer rebuild")
+			return
+		}
 		errLog.Message = errorMsg(err.Error())
 		d.log.EndLogs(errLog)
 		return // TODO : trigger retry logic
 	}
 
 	fmt.Println("finished building :", unique.ImgName)
-	d.redeploy(&ReDeployData{
-		DeploymentID: dID,
-		SwarmService: s.SwarmService,
-		Env:          envStr.Env,
-		ImgName:      unique.ImgName,
+
+	// If cancellation arrived after a successful build, mark canceled and stop
+	// before touching the Docker swarm service.
+	if err := ctx.Err(); err != nil {
+		d.MarkDeploymentCanceled(dID, "replaced by newer rebuild")
+		return
+	}
+
+	network, err := d.getServiceNetwork(s.InstanceID)
+	if err != nil {
+		fmt.Printf("RebuildWorker: error getting service network: %v\n", err)
+		d.log.EndLogs(errLog)
+		return // TODO : trigger retry logic
+	}
+
+	domain := ""
+	if s.Domain.Valid {
+		domain = s.Domain.String
+	}
+
+	d.applyRebuildDeployment(ctx, s.ID, &deployData{
+		deploymentID: dID,
+		swarmService: s.SwarmService,
+		networkName:  network,
+		isPublic:     s.IsPublic,
+		env:          envStr.Env,
+		imgName:      unique.ImgName,
+		domain:       domain,
+		port:         s.Port,
 	})
 }
 
@@ -259,8 +347,9 @@ func (d *DeploymentService) deploy(data *deployData) {
 	})
 }
 
-// starts the redeploy pipeline for the given data
-func (d *DeploymentService) redeploy(data *ReDeployData) {
+// Redeploy starts the redeploy pipeline for the given data.
+// It is exported so integration tests can exercise Docker-apply failures directly.
+func (d *DeploymentService) Redeploy(data *ReDeployData) {
 	if err := d.v.Struct(data); err != nil {
 		log.Printf("PullWorker: error validating data: %v\n", err)
 		return
@@ -304,12 +393,165 @@ func (d *DeploymentService) redeploy(data *ReDeployData) {
 		return // TODO : trigger retry logic
 	}
 
+	// For rebuilds, promote the candidate to Current and downgrade the previous
+	// Current Deployment in a single transaction. For plain redeploys there is
+	// no candidate to promote, so just end the logs.
+	if data.ServiceID != uuid.Nil {
+		if err := d.PromoteDeploymentToCurrent(data.ServiceID, data.DeploymentID); err != nil {
+			fmt.Printf("DeployWorker: error promoting deployment: %v\n", err)
+			d.log.EndLogs(&logbroker.EndLogData{
+				DeploymentID: data.DeploymentID,
+				Status:       types.DeploymentError,
+				Message:      errorMsg(err.Error()),
+			})
+			return // TODO : trigger retry logic
+		}
+	}
+
 	// end the logs
 	d.log.EndLogs(&logbroker.EndLogData{
 		DeploymentID: data.DeploymentID,
 		Status:       types.DeploymentReady,
 		Message:      successMsg("successfully redeployed"),
 	})
+}
+
+// applyRebuildDeployment applies the rebuilt image to the swarm service. It
+// first inspects the service; if it exists the existing spec is reused and only
+// the image (and env) is replaced. If the service is missing, a fresh spec is
+// built from the saved Service configuration and the candidate image and a new
+// service is created. The candidate is promoted to Current only after Docker
+// accepts the create/update.
+func (d *DeploymentService) applyRebuildDeployment(ctx context.Context, serviceID uuid.UUID, data *deployData) {
+	if err := d.v.Struct(data); err != nil {
+		log.Printf("RebuildWorker: error validating deploy data: %v\n", err)
+		d.log.EndLogs(&logbroker.EndLogData{
+			DeploymentID: data.deploymentID,
+			Status:       types.DeploymentError,
+			Message:      errorMsg(err.Error()),
+		})
+		return
+	}
+
+	d.log.PublishLog(&logbroker.PubData{
+		ID:  data.deploymentID,
+		Msg: infoMsg("Applying rebuilt image to service " + data.swarmService),
+	})
+
+	var (
+		spec    swarm.ServiceSpec
+		version swarm.Version
+		create  bool
+	)
+
+	res, _, err := d.docker.Client.ServiceInspectWithRaw(ctx, data.swarmService, swarm.ServiceInspectOptions{})
+	if err != nil {
+		if ctx.Err() != nil {
+			d.MarkDeploymentCanceled(data.deploymentID, "replaced by newer rebuild")
+			return
+		}
+		if errdefs.IsNotFound(err) {
+			create = true
+			spec = *data.getBaseSpec()
+		} else {
+			fmt.Printf("RebuildWorker: error inspecting service: %v\n", err)
+			d.log.EndLogs(&logbroker.EndLogData{
+				DeploymentID: data.deploymentID,
+				Status:       types.DeploymentError,
+				Message:      errorMsg(err.Error()),
+			})
+			return // TODO : trigger retry logic
+		}
+	} else {
+		version = res.Version
+		spec = res.Spec
+		spec.TaskTemplate.ContainerSpec.Image = data.imgName
+		if len(data.env) > 0 {
+			spec.TaskTemplate.ContainerSpec.Env = data.env
+		}
+	}
+
+	if err := ctx.Err(); err != nil {
+		d.MarkDeploymentCanceled(data.deploymentID, "replaced by newer rebuild")
+		return
+	}
+
+	if create {
+		_, err = d.docker.Client.ServiceCreate(ctx, spec, swarm.ServiceCreateOptions{})
+	} else {
+		_, err = d.docker.Client.ServiceUpdate(ctx, data.swarmService, version, spec, swarm.ServiceUpdateOptions{})
+	}
+	if err != nil {
+		if ctx.Err() != nil {
+			d.MarkDeploymentCanceled(data.deploymentID, "replaced by newer rebuild")
+			return
+		}
+		fmt.Printf("RebuildWorker: error applying service: %v\n", err)
+		d.log.EndLogs(&logbroker.EndLogData{
+			DeploymentID: data.deploymentID,
+			Status:       types.DeploymentError,
+			Message:      errorMsg(err.Error()),
+		})
+		return // TODO : trigger retry logic
+	}
+
+	if err := d.PromoteDeploymentToCurrent(serviceID, data.deploymentID); err != nil {
+		fmt.Printf("RebuildWorker: error promoting deployment: %v\n", err)
+		d.log.EndLogs(&logbroker.EndLogData{
+			DeploymentID: data.deploymentID,
+			Status:       types.DeploymentError,
+			Message:      errorMsg(err.Error()),
+		})
+		return // TODO : trigger retry logic
+	}
+
+	d.log.EndLogs(&logbroker.EndLogData{
+		DeploymentID: data.deploymentID,
+		Status:       types.DeploymentReady,
+		Message:      successMsg("successfully rebuilt and applied : " + data.swarmService),
+	})
+}
+
+// PromoteDeploymentToCurrent promotes the candidate deployment to Current and
+// downgrades the previous Current Deployment in a single database transaction.
+// If no previous Current Deployment exists, it skips the downgrade.
+func (d *DeploymentService) PromoteDeploymentToCurrent(serviceID, candidateID uuid.UUID) error {
+	tx, err := d.db.Pool.BeginTx(context.Background(), nil)
+	if err != nil {
+		return fmt.Errorf("start promotion transaction: %w", err)
+	}
+	defer tx.Rollback()
+
+	tq := d.db.Queries.WithTx(tx)
+
+	prev, err := tq.GetCurrentDeploymentByServiceId(d.qCtx, serviceID)
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return fmt.Errorf("lookup current deployment: %w", err)
+	}
+
+	// downgrade previous current deployment if it exists and is not the candidate itself
+	if err == nil && prev.ID != candidateID {
+		if err := tq.DownGradeDeployment(d.qCtx, db.DownGradeDeploymentParams{
+			DeploymentID: prev.ID,
+			Status:       types.DeploymentInactive,
+		}); err != nil {
+			return fmt.Errorf("downgrade previous current deployment: %w", err)
+		}
+	}
+
+	// promote candidate to current / ready
+	if err := tq.UpgradeDeployment(d.qCtx, db.UpgradeDeploymentParams{
+		DeploymentID: candidateID,
+		Status:       types.DeploymentReady,
+	}); err != nil {
+		return fmt.Errorf("upgrade candidate deployment: %w", err)
+	}
+
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit promotion transaction: %w", err)
+	}
+
+	return nil
 }
 
 // runCloneDeployPipeline creates a new swarm service for a preview instance

@@ -486,11 +486,16 @@ func (h *GitHandler) GithubWebhook(c *echo.Context) error {
 			// TODO : check if watch path matches the pushed code commit
 
 			// push a new deployment job to the queue
-			h.Server.Services.Deployment.AssignRebuild(context.Background(), &deployjob.RebuildServiceParams{
+			if _, _, _, err := h.Server.Services.Deployment.AssignRebuild(context.Background(), &deployjob.RebuildServiceParams{
 				ServiceID:  sID,
 				CommitHash: pushEvent.GetAfter(),
 				CommitMsg:  pushEvent.GetHeadCommit().GetMessage(),
-			})
+				Source:     "webhook",
+			}); err != nil {
+				// Failure for one service should not block others; the error is already
+				// logged by the deployment service.
+				continue
+			}
 		}
 	}
 

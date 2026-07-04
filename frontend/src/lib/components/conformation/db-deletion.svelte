@@ -3,6 +3,7 @@
 	import { Checkbox } from '@/components/ui/checkbox';
 	import * as Dialog from '@/components/ui/dialog';
 	import { Label } from '@/components/ui/label';
+	import { getBaseState } from '@/features/base';
 	import { useDeletePsqlServiceMutation } from '@/features/services';
 	import { Trash2 } from '@lucide/svelte';
 
@@ -12,6 +13,9 @@
 	};
 
 	let { serviceId, name }: Props = $props();
+
+	const base = getBaseState();
+
 	let dialogOpen = $state(false);
 	let keepData = $state(true);
 
@@ -36,6 +40,7 @@
 			{
 				onSuccess: () => {
 					dialogOpen = false;
+					base.setPanelDrawerState(false);
 				}
 			}
 		);

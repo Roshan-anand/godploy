@@ -125,7 +125,7 @@ func (d *DeploymentService) clonePsqlServices(ctx context.Context, q *db.Queries
 	for _, svc := range psqlSvcs {
 		newID := security.GeneratePrimaryKey()
 		idMap[svc.ID] = newID
-		newSwarm := fmt.Sprintf("preview-%s-%s", previewSlug, svc.Name)
+		newSwarm := fmt.Sprintf("%s-%s", previewSlug, svc.Name)
 		newVol := fmt.Sprintf("volume-%s", newID)
 
 		if _, err := d.docker.Client.VolumeCreate(ctx, volume.CreateOptions{
@@ -177,7 +177,7 @@ func (d *DeploymentService) cloneRedisServices(ctx context.Context, q *db.Querie
 	for _, svc := range redisSvcs {
 		newID := security.GeneratePrimaryKey()
 		idMap[svc.ID] = newID
-		newSwarm := fmt.Sprintf("preview-%s-%s", previewSlug, svc.Name)
+		newSwarm := fmt.Sprintf("%s-%s", previewSlug, svc.Name)
 		newVol := fmt.Sprintf("volume-%s", newID)
 
 		if _, err := d.docker.Client.VolumeCreate(ctx, volume.CreateOptions{
@@ -229,7 +229,7 @@ func (d *DeploymentService) cloneAppServices(ctx context.Context, q *db.Queries,
 	for _, svc := range appSvcs {
 		newID := security.GeneratePrimaryKey()
 		idMap[svc.ID] = newID
-		newSwarm := fmt.Sprintf("preview-%s-%s", previewSlug, svc.Name)
+		newSwarm := fmt.Sprintf("%s-%s", previewSlug, svc.Name)
 		branch := svc.Branch
 		isPRMatched := false
 		if repoID > 0 && int(svc.GhRepoID) == repoID {

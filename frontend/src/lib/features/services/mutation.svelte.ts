@@ -8,7 +8,6 @@ import type {
 	GetReposPayload,
 	GithubRepo,
 	RedeployPsqlServicePayload,
-	ServiceListResponse,
 	UpdateServiceDomainPayload,
 	UpdateEnvPayload,
 	UpdatePsqlServicePayload,
@@ -134,15 +133,14 @@ export function useDeleteAppServiceMutation() {
 		mutationFn: async (payload: DeleteAppServicePayload) =>
 			api.delete<ApiRes<null>>('/service/app', { data: payload }).then((res) => res.data),
 		onSuccess: ({ message }) => {
-			toast.success(message || 'Application deleted successfully');
-
 			if (!instance.current.id) return;
 			queryClient.invalidateQueries({
 				queryKey: getInstanceServicesQueryKey(instance.current.id)
 			});
+			toast.success(message || 'Application deleted successfully');
 
 			// eslint-disable svelte/no-navigation-without-resolve
-			goto('..');
+			// goto('.');
 		},
 		onError: (error) => axiosErr(error as Error, 'Failed to delete Application')
 	}));
@@ -154,14 +152,11 @@ export function useDeletePsqlServiceMutation() {
 	return createMutation(() => ({
 		mutationFn: async (payload: DeletePsqlServicePayload) =>
 			api.delete<ApiRes<null>>('/service/psql', { data: payload }).then((res) => res.data),
-		onSuccess: ({ message }, { service_id }) => {
-			queryClient.setQueryData(
-				getInstanceServicesQueryKey(instance.current.id as string),
-				(cachedRows: ServiceListResponse[] | undefined) => {
-					if (!cachedRows) return [];
-					return cachedRows.filter((row) => row.id !== service_id);
-				}
-			);
+		onSuccess: ({ message }) => {
+			if (!instance.current.id) return;
+			queryClient.invalidateQueries({
+				queryKey: getInstanceServicesQueryKey(instance.current.id)
+			});
 			toast.success(message || 'psql deleted successfully');
 		},
 		onError: (error) => axiosErr(error as Error, 'Failed to delete psql')

@@ -347,7 +347,7 @@ func (q *Queries) GetAppServiceById(ctx context.Context, id uuid.UUID) (GetAppSe
 
 const getAppServiceForRebuild = `-- name: GetAppServiceForRebuild :one
 SELECT
-    a.id, a.name, a.gh_repo_url, a.gh_app_id, a.gh_repo_id, a.branch, a.build_path, a.docker_filepath, a.docker_contextpath, a.docker_buildstage, a.env, a.build_args, a.build_secrets, a.swarm_service,
+    a.id, a.instance_id, a.name, a.gh_repo_url, a.gh_app_id, a.gh_repo_id, a.branch, a.build_path, a.docker_filepath, a.docker_contextpath, a.docker_buildstage, a.env, a.build_args, a.build_secrets, a.swarm_service, a.is_public, a.domain, a.port,
     d.id AS deployment_id, d.status AS deployment_status
 FROM app_service a
 JOIN deployments d ON d.service_id = a.id AND d.is_current
@@ -356,6 +356,7 @@ WHERE a.id = ?
 
 type GetAppServiceForRebuildRow struct {
 	ID                uuid.UUID              `json:"id"`
+	InstanceID        uuid.UUID              `json:"instance_id"`
 	Name              string                 `json:"name"`
 	GhRepoUrl         string                 `json:"gh_repo_url"`
 	GhAppID           int64                  `json:"gh_app_id"`
@@ -369,6 +370,9 @@ type GetAppServiceForRebuildRow struct {
 	BuildArgs         []byte                 `json:"build_args"`
 	BuildSecrets      []byte                 `json:"build_secrets"`
 	SwarmService      string                 `json:"swarm_service"`
+	IsPublic          bool                   `json:"is_public"`
+	Domain            sql.NullString         `json:"domain"`
+	Port              int32                  `json:"port"`
 	DeploymentID      uuid.UUID              `json:"deployment_id"`
 	DeploymentStatus  types.DeploymentStatus `json:"deployment_status"`
 }
@@ -378,6 +382,7 @@ func (q *Queries) GetAppServiceForRebuild(ctx context.Context, id uuid.UUID) (Ge
 	var i GetAppServiceForRebuildRow
 	err := row.Scan(
 		&i.ID,
+		&i.InstanceID,
 		&i.Name,
 		&i.GhRepoUrl,
 		&i.GhAppID,
@@ -391,6 +396,9 @@ func (q *Queries) GetAppServiceForRebuild(ctx context.Context, id uuid.UUID) (Ge
 		&i.BuildArgs,
 		&i.BuildSecrets,
 		&i.SwarmService,
+		&i.IsPublic,
+		&i.Domain,
+		&i.Port,
 		&i.DeploymentID,
 		&i.DeploymentStatus,
 	)

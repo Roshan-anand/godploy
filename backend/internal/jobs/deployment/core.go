@@ -2,16 +2,27 @@ package deployjob
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sync"
 	"sync/atomic"
 
+	"github.com/Roshan-anand/godploy/internal/db"
 	"github.com/Roshan-anand/godploy/internal/jobs/logbroker"
 	"github.com/Roshan-anand/godploy/internal/lib/database"
 	"github.com/Roshan-anand/godploy/internal/lib/docker"
+	"github.com/Roshan-anand/godploy/internal/lib/types"
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
 	"golang.org/x/sync/errgroup"
+)
+
+// Sentinel errors returned by CancelDeployment.
+// Handlers use errors.Is to map each error to the correct HTTP status code.
+var (
+	ErrCancelFinishedDeployment = errors.New("cannot cancel finished deployment")
+	ErrCancelNotOwnedByRebuild  = errors.New("deployment is not owned by an active rebuild")
+	ErrCancelInvalidStatus      = errors.New("cannot cancel deployment")
 )
 
 // job is a generic wrapper used by the submit[T] dispatcher.
@@ -22,6 +33,13 @@ type job[T any] struct {
 
 type workerData struct {
 	cancel context.CancelFunc
+}
+
+// rebuildEntry tracks one active rebuild job in the in-memory registry.
+type rebuildEntry struct {
+	cancel       context.CancelFunc
+	deploymentID *uuid.UUID // nil until the candidate Deployment row is created
+	jobID        int64      // monotonic identity token for stale-cleanup checks
 }
 
 // CreatePreviewJobParams carries the input for preview creation jobs.
@@ -56,6 +74,13 @@ type DeploymentService struct {
 	shut            chan struct{}
 	workerID        atomic.Int32
 	workers         map[int32]*workerData
+
+	// rebuildMu protects rebuilds, the in-memory registry of active rebuild work
+	// keyed by Service ID. It is independent from mu so worker lifecycle changes
+	// do not block rebuild coordination.
+	rebuildMu    sync.RWMutex
+	rebuilds     map[uuid.UUID]*rebuildEntry
+	rebuildJobID atomic.Int64
 }
 
 // NewDeploymentService initializes a new deployment service.
@@ -167,7 +192,11 @@ func (d *DeploymentService) worker(ctx context.Context) error {
 				return nil
 			}
 			fmt.Println("Processing rebuild job for service ID:", j.Body.ServiceID)
-			d.runRebuildPipeline(j.ctx, j.Body)
+			d.RunRebuildPipeline(j.ctx, j.Body)
+			// Remove this rebuild from the registry only if it is still the
+			// active entry for the Service. This prevents a stale worker from
+			// wiping out a newer active rebuild when it finishes.
+			d.CleanupRebuild(j.Body.ServiceID, j.Body.JobID)
 
 		case j, ok := <-d.redeployJobs:
 			if !ok {
@@ -175,7 +204,7 @@ func (d *DeploymentService) worker(ctx context.Context) error {
 				return nil
 			}
 			fmt.Println("Processing redeploy job for deployment ID:", j.Body.DeploymentID)
-			d.redeploy(j.Body)
+			d.Redeploy(j.Body)
 
 		case j, ok := <-d.cloneDeployJobs:
 			if !ok {
@@ -283,8 +312,23 @@ func (d *DeploymentService) AssignDeploy(ctx context.Context, body *DeploymentSe
 //
 // rebuild : uses the exixting app_service details to perform
 // pull, build and deploy for a new deployment. It uses the latest commit hash and message from the repo.
-func (d *DeploymentService) AssignRebuild(ctx context.Context, body *RebuildServiceParams) error {
-	return submit(d, ctx, body)
+// It returns the registry job ID, the context the worker will run under, a
+// cancel function for that context, and any error encountered while queuing.
+func (d *DeploymentService) AssignRebuild(ctx context.Context, body *RebuildServiceParams) (jobID int64, rebuildCtx context.Context, cancel context.CancelFunc, err error) {
+	// Register this rebuild in the newest-wins registry keyed by Service ID.
+	// If an active rebuild already exists for the same Service, RegisterRebuild
+	// cancels it and returns true; cross-Service rebuilds remain isolated.
+	// The rebuild job runs with the registry context so replacement by a newer
+	// rebuild cancels its work.
+	jobID, rebuildCtx, cancel, _ = d.RegisterRebuild(d.egCtx, body.ServiceID, nil)
+	body.JobID = jobID
+
+	if err = submit(d, rebuildCtx, body); err != nil {
+		cancel()
+		d.CleanupRebuild(body.ServiceID, jobID)
+		return
+	}
+	return jobID, rebuildCtx, cancel, nil
 }
 
 // AssignRedeploy submits a new redeploy job.
@@ -338,4 +382,266 @@ func (d *DeploymentService) Decriment() error {
 	}
 
 	return fmt.Errorf("no workers to remove")
+}
+
+// RegisterRebuild records a new active rebuild for serviceID. If an entry
+// already exists for the same Service, it is replaced (newest-wins): the
+// previous cancel function is invoked and true is returned. Rebuilds for
+// different Services are isolated because the registry is keyed by Service ID.
+// The returned context is derived from parentCtx so service shutdown also
+// cancels the rebuild.
+func (d *DeploymentService) RegisterRebuild(parentCtx context.Context, serviceID uuid.UUID, deploymentID *uuid.UUID) (jobID int64, ctx context.Context, cancel context.CancelFunc, replaced bool) {
+	d.rebuildMu.Lock()
+	defer d.rebuildMu.Unlock()
+
+	if d.rebuilds == nil {
+		d.rebuilds = make(map[uuid.UUID]*rebuildEntry)
+	}
+
+	jobID = d.rebuildJobID.Add(1)
+
+	var prevCancel context.CancelFunc
+	if prev, ok := d.rebuilds[serviceID]; ok {
+		replaced = true
+		prevCancel = prev.cancel
+	}
+
+	ctx, c := context.WithCancel(parentCtx)
+	d.rebuilds[serviceID] = &rebuildEntry{
+		cancel:       c,
+		deploymentID: deploymentID,
+		jobID:        jobID,
+	}
+	cancel = c
+
+	// Cancel the previous job outside the critical section so any callback
+	// that re-enters the registry cannot deadlock.
+	if prevCancel != nil {
+		prevCancel()
+	}
+
+	return jobID, ctx, cancel, replaced
+}
+
+// CancelRebuild cancels the active rebuild for serviceID only if the registry
+// entry still matches jobID. It returns true when an active entry was found and
+// canceled. The entry is removed so newer rebuilds are not affected.
+func (d *DeploymentService) CancelRebuild(serviceID uuid.UUID, jobID int64) bool {
+	d.rebuildMu.Lock()
+	defer d.rebuildMu.Unlock()
+
+	entry, ok := d.rebuilds[serviceID]
+	if !ok || entry.jobID != jobID {
+		return false
+	}
+
+	delete(d.rebuilds, serviceID)
+	if entry.cancel != nil {
+		entry.cancel()
+	}
+	return true
+}
+
+// CleanupRebuild removes the registry entry for serviceID only if it still
+// matches jobID. This prevents a stale worker from wiping out a newer active
+// rebuild when it finishes. It returns true if the entry was removed.
+func (d *DeploymentService) CleanupRebuild(serviceID uuid.UUID, jobID int64) bool {
+	d.rebuildMu.Lock()
+	defer d.rebuildMu.Unlock()
+
+	entry, ok := d.rebuilds[serviceID]
+	if !ok || entry.jobID != jobID {
+		return false
+	}
+
+	delete(d.rebuilds, serviceID)
+	return true
+}
+
+// SetRebuildDeploymentID updates the registry entry for serviceID with the
+// candidate Deployment ID after the row is created. It only updates the entry
+// if it still matches jobID, and returns true when the update succeeded.
+func (d *DeploymentService) SetRebuildDeploymentID(serviceID uuid.UUID, jobID int64, deploymentID uuid.UUID) bool {
+	d.rebuildMu.Lock()
+	defer d.rebuildMu.Unlock()
+
+	entry, ok := d.rebuilds[serviceID]
+	if !ok || entry.jobID != jobID {
+		return false
+	}
+
+	entry.deploymentID = &deploymentID
+	d.rebuilds[serviceID] = entry
+	return true
+}
+
+// GetRebuildDeploymentID returns the candidate Deployment ID recorded for the
+// active rebuild, or nil if the entry does not exist or does not match jobID.
+// It is exported for integration tests that need to observe the moment the
+// candidate row is created without polling the database.
+func (d *DeploymentService) GetRebuildDeploymentID(serviceID uuid.UUID, jobID int64) *uuid.UUID {
+	d.rebuildMu.RLock()
+	defer d.rebuildMu.RUnlock()
+
+	entry, ok := d.rebuilds[serviceID]
+	if !ok || entry.jobID != jobID {
+		return nil
+	}
+	return entry.deploymentID
+}
+
+// DrainRebuildRegistry clears all active rebuild entries and resets the job
+// sequence. It is used on startup to ensure a restarted server does not keep
+// stale cancel functions from a previous process. Cancel functions are invoked
+// outside the lock to avoid deadlocks with callbacks that re-enter the registry.
+func (d *DeploymentService) DrainRebuildRegistry() {
+	d.rebuildMu.Lock()
+	toCancel := make([]context.CancelFunc, 0, len(d.rebuilds))
+	for _, entry := range d.rebuilds {
+		if entry.cancel != nil {
+			toCancel = append(toCancel, entry.cancel)
+		}
+	}
+	d.rebuilds = make(map[uuid.UUID]*rebuildEntry)
+	d.rebuildJobID.Store(0)
+	d.rebuildMu.Unlock()
+
+	for _, cancel := range toCancel {
+		cancel()
+	}
+}
+
+// CleanupInterruptedDeployments runs on server startup. It marks any deployments
+// that were queued or building when the server stopped as error, finalizes
+// their log streams, and drains the in-memory rebuild registry. The function is
+// idempotent: repeated calls are safe and become no-ops once interrupted work
+// has been cleaned up.
+func (d *DeploymentService) CleanupInterruptedDeployments(ctx context.Context) error {
+	const msg = "interrupted by server restart"
+
+	statuses := []types.DeploymentStatus{types.DeploymentQueued, types.DeploymentBuilding}
+	var interrupted []db.Deployment
+	for _, status := range statuses {
+		deps, err := d.db.Queries.GetDeploymentsByStatus(ctx, status)
+		if err != nil {
+			return fmt.Errorf("list %s deployments: %w", status, err)
+		}
+		interrupted = append(interrupted, deps...)
+	}
+
+	for _, dep := range interrupted {
+		if err := d.db.Queries.UpdateDeploymentStatus(ctx, db.UpdateDeploymentStatusParams{
+			ID:     dep.ID,
+			Status: types.DeploymentError,
+		}); err != nil {
+			fmt.Printf("CleanupInterruptedDeployments: failed to mark deployment %s error: %v\n", dep.ID, err)
+			continue
+		}
+
+		if err := d.log.EndLogs(&logbroker.EndLogData{
+			DeploymentID: dep.ID,
+			Status:       types.DeploymentError,
+			Message:      errorMsg(msg),
+		}); err != nil {
+			fmt.Printf("CleanupInterruptedDeployments: failed to finalize logs for deployment %s: %v\n", dep.ID, err)
+		}
+	}
+
+	d.DrainRebuildRegistry()
+	return nil
+}
+
+// CancelActiveRebuild cancels the active rebuild for serviceID, if any.
+// It is exported for integration tests; production code should prefer
+// cancelRebuild when the job identity is known.
+func (d *DeploymentService) CancelActiveRebuild(serviceID uuid.UUID) bool {
+	d.rebuildMu.Lock()
+	defer d.rebuildMu.Unlock()
+
+	entry, ok := d.rebuilds[serviceID]
+	if !ok {
+		return false
+	}
+
+	delete(d.rebuilds, serviceID)
+	if entry.cancel != nil {
+		entry.cancel()
+	}
+	return true
+}
+
+// ActiveRebuildCount returns the number of active rebuilds in the registry.
+// It is exported for integration tests.
+func (d *DeploymentService) ActiveRebuildCount() int {
+	d.rebuildMu.RLock()
+	defer d.rebuildMu.RUnlock()
+
+	return len(d.rebuilds)
+}
+
+// HasActiveRebuild reports whether an active rebuild exists for serviceID.
+// Handlers use this to reject redeploy and rollback actions while a rebuild
+// is in progress without exposing the internal registry structure.
+func (d *DeploymentService) HasActiveRebuild(serviceID uuid.UUID) bool {
+	d.rebuildMu.RLock()
+	defer d.rebuildMu.RUnlock()
+
+	_, ok := d.rebuilds[serviceID]
+	return ok
+}
+
+// CancelDeployment cancels the Deployment identified by deploymentID.
+//
+// It is idempotent: an already canceled Deployment returns nil. Finished
+// Deployments (ready, error, inactive, pruned, paused) are rejected. For
+// queued or building Deployments, the method triggers the active rebuild's
+// cancel function when the Deployment is the one tracked by the registry,
+// updates the Deployment status to canceled, and finalizes its log stream.
+func (d *DeploymentService) CancelDeployment(deploymentID uuid.UUID) error {
+	ctx := context.Background()
+
+	deployment, err := d.db.Queries.GetDeployment(ctx, deploymentID)
+	if err != nil {
+		return fmt.Errorf("deployment not found: %w", err)
+	}
+
+	switch deployment.Status {
+	case types.DeploymentCanceled:
+		return nil
+	case types.DeploymentReady, types.DeploymentError, types.DeploymentInactive, types.DeploymentPruned, types.DeploymentPaused:
+		return ErrCancelFinishedDeployment
+	case types.DeploymentQueued, types.DeploymentBuilding:
+		// ok
+	default:
+		return fmt.Errorf("%w with status %q", ErrCancelInvalidStatus, deployment.Status)
+	}
+
+	// Find the active rebuild entry that owns this Deployment and trigger its
+	// cancel. We only call cancel when the registry still points to the same
+	// candidate; otherwise the Deployment is not owned by an active rebuild.
+	var cancel context.CancelFunc
+	d.rebuildMu.RLock()
+	entry, ok := d.rebuilds[deployment.ServiceID]
+	if ok && entry.deploymentID != nil && *entry.deploymentID == deploymentID {
+		cancel = entry.cancel
+	}
+	d.rebuildMu.RUnlock()
+
+	if cancel == nil {
+		return ErrCancelNotOwnedByRebuild
+	}
+
+	// Trigger the worker's context cancellation. The worker will also mark the
+	// Deployment canceled, but we update synchronously so the HTTP response
+	// reflects the final state even for queued jobs that may not have started.
+	cancel()
+
+	if err := d.db.Queries.UpdateDeploymentStatus(ctx, db.UpdateDeploymentStatusParams{
+		ID:     deploymentID,
+		Status: types.DeploymentCanceled,
+	}); err != nil {
+		return fmt.Errorf("failed to update deployment status: %w", err)
+	}
+
+	return nil
 }

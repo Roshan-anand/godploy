@@ -39,13 +39,19 @@ func createServer() (*config.Server, error) {
 		return nil, fmt.Errorf("failed to setup routes: %w", err)
 	}
 
-	s.SetupHttp(r) // setup http server with routes
-
 	// start deployment workers
 	s.Services.Deployment.Start(context.Background(), cfg.CodeStoreDir)
 
 	// start log broker workers
 	s.Services.LogBroker.Start(context.Background())
+
+	// clean up deployments that were interrupted by a previous server stop before
+	// any new deployment work can begin.
+	if err := s.Services.Deployment.CleanupInterruptedDeployments(context.Background()); err != nil {
+		return nil, fmt.Errorf("failed to cleanup interrupted deployments: %w", err)
+	}
+
+	s.SetupHttp(r) // setup http server with routes
 
 	return s, nil
 }

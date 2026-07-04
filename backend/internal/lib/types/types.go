@@ -56,6 +56,7 @@ const (
 	DeploymentInactive DeploymentStatus = "inactive" // service is not using this image (can be rollbacked)
 	DeploymentPruned   DeploymentStatus = "pruned"   // image is not available
 	DeploymentPaused   DeploymentStatus = "paused"
+	DeploymentCanceled DeploymentStatus = "canceled"
 )
 
 type PredefinedServiceStatus string

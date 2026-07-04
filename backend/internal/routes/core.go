@@ -92,6 +92,7 @@ func SetupRoutes(srv *config.Server) (*echo.Echo, error) {
 	service.GET("/:name", h.Service.GetServiceID)
 	service.GET("/deployment", h.Deployment.GetServiceDeployments)
 	service.DELETE("/deployment", h.Deployment.DeleteServiceDeployment)
+	service.POST("/deployment/cancel", h.Deployment.CancelDeployment)
 	service.GET("/deployment/logs", h.Deployment.SubscribeServiceDeploymentLogs)
 	service.GET("/logs", h.Service.GetServiceLogs)
 	service.POST("/stop", h.Service.StopPredefService)

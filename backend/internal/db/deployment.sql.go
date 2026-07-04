@@ -113,6 +113,28 @@ func (q *Queries) GetCurrentDeploymentWithImageByServiceId(ctx context.Context, 
 	return i, err
 }
 
+const getDeployment = `-- name: GetDeployment :one
+SELECT id, is_current, service_id, status, commit_hash, commit_msg, image, created_at
+FROM deployments
+WHERE id = ?
+`
+
+func (q *Queries) GetDeployment(ctx context.Context, id uuid.UUID) (Deployment, error) {
+	row := q.db.QueryRowContext(ctx, getDeployment, id)
+	var i Deployment
+	err := row.Scan(
+		&i.ID,
+		&i.IsCurrent,
+		&i.ServiceID,
+		&i.Status,
+		&i.CommitHash,
+		&i.CommitMsg,
+		&i.Image,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
 const getDeploymentImgByID = `-- name: GetDeploymentImgByID :one
 SELECT d.id, d.image
 FROM deployments d
@@ -153,6 +175,45 @@ ORDER BY d.created_at DESC
 
 func (q *Queries) GetDeploymentsByServiceID(ctx context.Context, serviceID uuid.UUID) ([]Deployment, error) {
 	rows, err := q.db.QueryContext(ctx, getDeploymentsByServiceID, serviceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Deployment
+	for rows.Next() {
+		var i Deployment
+		if err := rows.Scan(
+			&i.ID,
+			&i.IsCurrent,
+			&i.ServiceID,
+			&i.Status,
+			&i.CommitHash,
+			&i.CommitMsg,
+			&i.Image,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getDeploymentsByStatus = `-- name: GetDeploymentsByStatus :many
+SELECT id, is_current, service_id, status, commit_hash, commit_msg, image, created_at
+FROM deployments
+WHERE status = ?
+ORDER BY created_at DESC
+`
+
+func (q *Queries) GetDeploymentsByStatus(ctx context.Context, status types.DeploymentStatus) ([]Deployment, error) {
+	rows, err := q.db.QueryContext(ctx, getDeploymentsByStatus, status)
 	if err != nil {
 		return nil, err
 	}
