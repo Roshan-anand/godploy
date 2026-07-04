@@ -289,7 +289,7 @@ export function useUpdateBuildSettingsMutation(getServiceId: () => string) {
 	}));
 }
 
-export function usePauseAppServiceMutation(getServiceId: () => string) {
+export function usePauseAppServiceMutation() {
 	return createMutation(() => ({
 		mutationFn: async ({ service_id }: { service_id: string }) =>
 			api.post<ApiRes<null>>('/service/app/pause', { service_id }).then((res) => res.data),

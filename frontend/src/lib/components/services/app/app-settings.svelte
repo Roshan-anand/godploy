@@ -4,7 +4,7 @@
 	import { DotmSquare } from '@/components/loader';
 	import InstancePRPreviewDropdown from '@/components/InstancePRPreviewDropdown.svelte';
 	import { ServiceVisibility, ReplicaSelector, BuildSettings } from './settings';
-	import type { PRInfo } from '@/features/services';
+	import { AppDeletion } from '@/components/conformation';
 
 	let { serviceID, serviceName }: { serviceName: string; serviceID: string } = $props();
 
