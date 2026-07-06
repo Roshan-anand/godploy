@@ -225,10 +225,24 @@ func (d *DeploymentService) worker(ctx context.Context) error {
 	}
 }
 
-// submit is a generic dispatcher that validates the body and sends it on the given channel.
-// It is a standalone function (not a method) because Go does not allow type parameters on methods.
-// Type switch is done first to determine the target channel, then each case races the send
-// against all cancellation signals so a blocked send never hangs the caller.
+// trySend races the send on ch against all cancellation signals
+// so a blocked send never hangs the caller.
+func trySend[T any](d *DeploymentService, ctx context.Context, ch chan<- job[T], body *T) error {
+	select {
+	case <-d.egCtx.Done():
+		return d.egCtx.Err()
+	case <-d.shut:
+		return fmt.Errorf("deployment service is shutting down, cannot accept new jobs")
+	case <-ctx.Done():
+		return ctx.Err()
+	case ch <- job[T]{ctx: ctx, Body: body}:
+		return nil
+	}
+}
+
+// submit is a generic dispatcher that validates the body and dispatches it to
+// the correct job channel via trySend. It is a standalone function (not a
+// method) because Go does not allow type parameters on methods.
 func submit[T any](d *DeploymentService, ctx context.Context, body *T) error {
 	if err := d.v.Struct(body); err != nil {
 		return fmt.Errorf("validation error: %w", err)
@@ -236,65 +250,15 @@ func submit[T any](d *DeploymentService, ctx context.Context, body *T) error {
 
 	switch v := any(body).(type) {
 	case *DeploymentServiceParams:
-		select {
-		case <-d.egCtx.Done():
-			return d.egCtx.Err()
-		case <-d.shut:
-			return fmt.Errorf("deployment service is shutting down, cannot accept new jobs")
-		case <-ctx.Done():
-			return ctx.Err()
-		case d.deployJobs <- job[DeploymentServiceParams]{ctx: ctx, Body: v}:
-			return nil
-		}
-
+		return trySend(d, ctx, d.deployJobs, v)
 	case *RebuildServiceParams:
-		select {
-		case <-d.egCtx.Done():
-			return d.egCtx.Err()
-		case <-d.shut:
-			return fmt.Errorf("deployment service is shutting down, cannot accept new jobs")
-		case <-ctx.Done():
-			return ctx.Err()
-		case d.rebuildJobs <- job[RebuildServiceParams]{ctx: ctx, Body: v}:
-			return nil
-		}
-
+		return trySend(d, ctx, d.rebuildJobs, v)
 	case *ReDeployData:
-		select {
-		case <-d.egCtx.Done():
-			return d.egCtx.Err()
-		case <-d.shut:
-			return fmt.Errorf("deployment service is shutting down, cannot accept new jobs")
-		case <-ctx.Done():
-			return ctx.Err()
-		case d.redeployJobs <- job[ReDeployData]{ctx: ctx, Body: v}:
-			return nil
-		}
-
+		return trySend(d, ctx, d.redeployJobs, v)
 	case *CloneDeployData:
-		select {
-		case <-d.egCtx.Done():
-			return d.egCtx.Err()
-		case <-d.shut:
-			return fmt.Errorf("deployment service is shutting down, cannot accept new jobs")
-		case <-ctx.Done():
-			return ctx.Err()
-		case d.cloneDeployJobs <- job[CloneDeployData]{ctx: ctx, Body: v}:
-			return nil
-		}
-
+		return trySend(d, ctx, d.cloneDeployJobs, v)
 	case *CreatePreviewJobParams:
-		select {
-		case <-d.egCtx.Done():
-			return d.egCtx.Err()
-		case <-d.shut:
-			return fmt.Errorf("deployment service is shutting down, cannot accept new jobs")
-		case <-ctx.Done():
-			return ctx.Err()
-		case d.previewJobs <- job[CreatePreviewJobParams]{ctx: ctx, Body: v}:
-			return nil
-		}
-
+		return trySend(d, ctx, d.previewJobs, v)
 	default:
 		return fmt.Errorf("unsupported job type: %T", body)
 	}
