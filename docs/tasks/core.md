@@ -35,16 +35,5 @@
 - [ ] 05 — App Service Health Check Override: custom health check over Dockerfile [easy]
 - [ ] 06 — Service Domain Settings: production domain input, preview auto-gen & custom override [easy]
 - [ ] 07 — Project Deletion Warning Update: list running services per instance instead of orphan volumes [easy]
-- [ ] 08 — Predefined DB  Stop/Start: configurable stop/start  [easy]
+- [x] 08 — Predefined DB  Stop/Start: configurable stop/start  [easy]
 - [x] 09 — Orphan Volume Filters & Rename: size sort, type filter, name search, inline rename [easy]
-
-## v1 Preview Feature
-
-- [ ] 01 — DB Schema + CRUD APIs [easy]
-- [ ] 02 — Deploy-Time Env Merging [easy]
-- [ ] 03 — Frontend — Connection Management UI [easy]
-- [ ] 04 — Dependency Graph Visualization [medium]
-- [ ] 05 — Background Update Routine [easy]
-- [ ] 06 — Service Deletion Cleanup [easy]
-- [ ] 07 — Preview Dependency Cloning [easy]
-- [ ] 08 — Env Conflict Warnings + Stale Indicators [easy]

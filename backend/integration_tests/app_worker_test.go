@@ -44,7 +44,6 @@ func TestAppWorker(t *testing.T) {
 	}
 
 	var appServiceID uuid.UUID
-	// var deploymentID uuid.UUID
 
 	t.Run("create new app service", func(t *testing.T) {
 		q := server.DB.Queries

@@ -67,6 +67,7 @@ type DeploymentServiceParams struct {
 	BuildSecrets      []string `validate:"required"`
 	IsPublic          bool
 	GitProvider       types.GitProvider
+	JobID             int64
 }
 
 type RebuildServiceParams struct {
@@ -83,6 +84,16 @@ type RebuildServiceParams struct {
 
 // starts the deployment work pipeline
 func (d *DeploymentService) runDeploymentPipeline(ctx context.Context, data *DeploymentServiceParams) error {
+	// If this deploy work was canceled while queued, exit without creating a Deployment row.
+	if err := ctx.Err(); err != nil {
+		fmt.Println("RebuildWorker: rebuild canceled before starting work:", err)
+		return fmt.Errorf("rebuild:ctx_canceled: %w", err)
+	}
+
+	// Record the candidate Deployment ID in the registry so explicit cancel by
+	// Deployment identifier can locate the active rebuild in later phases.
+	d.SetRebuildDeploymentID(data.ServiceID, data.JobID, data.DeploymentID)
+
 	errLog := &logbroker.EndLogData{
 		DeploymentID: data.DeploymentID,
 		Status:       types.DeploymentError,
@@ -118,17 +129,34 @@ func (d *DeploymentService) runDeploymentPipeline(ctx context.Context, data *Dep
 
 	// trigger pull code
 	if err := utils.pullCode(ctx, d); err != nil {
-		fmt.Println("PullWorker: error pulling code:", err)
+		if ctx.Err() != nil {
+			d.MarkDeploymentCanceled(data.DeploymentID, "canceled")
+			return fmt.Errorf("deploy:pull_code_canceled: %w", err)
+		}
 		errLog.Message = errorMsg(err.Error())
 		d.log.EndLogs(errLog)
 		return fmt.Errorf("deploy:pull_code: %w", err) // TODO : trigger retry logic
 	}
 
+	if err := ctx.Err(); err != nil {
+		d.MarkDeploymentCanceled(data.DeploymentID, "canceled")
+		return fmt.Errorf("deploy:ctx_canceled_after_pull: %w", err)
+	}
+
 	// trigger build image
 	if err := utils.buildImg(ctx, d); err != nil {
+		if ctx.Err() != nil {
+			d.MarkDeploymentCanceled(data.DeploymentID, "canceled")
+			return fmt.Errorf("deploy:build_img_canceled: %w", err)
+		}
 		errLog.Message = errorMsg(err.Error())
 		d.log.EndLogs(errLog)
 		return fmt.Errorf("deploy:build_img: %w", err) // TODO : trigger retry logic
+	}
+
+	if err := ctx.Err(); err != nil {
+		d.MarkDeploymentCanceled(data.DeploymentID, "canceled")
+		return fmt.Errorf("deploy:ctx_canceled_after_build: %w", err)
 	}
 
 	network, err := d.getServiceNetwork(data.InstanceID)
@@ -138,7 +166,7 @@ func (d *DeploymentService) runDeploymentPipeline(ctx context.Context, data *Dep
 		return fmt.Errorf("deploy:get_network: %w", err) // TODO : trigger retry logic
 	}
 
-	if err := d.deploy(data.getDeployData(network)); err != nil {
+	if err := d.deploy(ctx, data.getDeployData(network)); err != nil {
 		return fmt.Errorf("deploy:deploy_service: %w", err)
 	}
 
@@ -323,7 +351,7 @@ func (d *DeploymentService) RunRebuildPipeline(ctx context.Context, data *Rebuil
 }
 
 // starts the deploy pipeline for the given data
-func (d *DeploymentService) deploy(data *deployData) error {
+func (d *DeploymentService) deploy(ctx context.Context, data *deployData) error {
 	if err := d.v.Struct(data); err != nil {
 		log.Printf("PullWorker: error validating data: %v\n", err)
 		return fmt.Errorf("deploy:validate: %w", err)
@@ -337,8 +365,13 @@ func (d *DeploymentService) deploy(data *deployData) error {
 	// get the service spec
 	spec := data.getBaseSpec()
 
-	_, err := d.docker.Client.ServiceCreate(context.Background(), *spec, swarm.ServiceCreateOptions{})
+	_, err := d.docker.Client.ServiceCreate(ctx, *spec, swarm.ServiceCreateOptions{})
 	if err != nil {
+		if ctx.Err() != nil {
+			d.MarkDeploymentCanceled(data.deploymentID, "replaced by newer rebuild")
+			return fmt.Errorf("apply:ctx_canceled_inspect: %w", err)
+		}
+
 		fmt.Printf("DeployWorker: error creating service: %v\n", err)
 		d.log.EndLogs(&logbroker.EndLogData{
 			DeploymentID: data.deploymentID,
@@ -361,7 +394,7 @@ func (d *DeploymentService) deploy(data *deployData) error {
 
 // Redeploy starts the redeploy pipeline for the given data.
 // It is exported so integration tests can exercise Docker-apply failures directly.
-func (d *DeploymentService) Redeploy(data *ReDeployData) error {
+func (d *DeploymentService) Redeploy(ctx context.Context, data *ReDeployData) error {
 	if err := d.v.Struct(data); err != nil {
 		log.Printf("PullWorker: error validating data: %v\n", err)
 		return fmt.Errorf("redeploy:validate: %w", err)
@@ -409,7 +442,7 @@ func (d *DeploymentService) Redeploy(data *ReDeployData) error {
 	// Current Deployment in a single transaction. For plain redeploys there is
 	// no candidate to promote, so just end the logs.
 	if data.ServiceID != uuid.Nil {
-		if err := d.PromoteDeploymentToCurrent(data.ServiceID, data.DeploymentID); err != nil {
+		if err := d.PromoteDeploymentToCurrent(ctx, data.ServiceID, data.DeploymentID); err != nil {
 			fmt.Printf("DeployWorker: error promoting deployment: %v\n", err)
 			d.log.EndLogs(&logbroker.EndLogData{
 				DeploymentID: data.DeploymentID,
@@ -509,7 +542,7 @@ func (d *DeploymentService) applyRebuildDeployment(ctx context.Context, serviceI
 		return fmt.Errorf("apply:apply_service: %w", err) // TODO : trigger retry logic
 	}
 
-	if err := d.PromoteDeploymentToCurrent(serviceID, data.deploymentID); err != nil {
+	if err := d.PromoteDeploymentToCurrent(ctx, serviceID, data.deploymentID); err != nil {
 		fmt.Printf("RebuildWorker: error promoting deployment: %v\n", err)
 		d.log.EndLogs(&logbroker.EndLogData{
 			DeploymentID: data.deploymentID,
@@ -531,8 +564,9 @@ func (d *DeploymentService) applyRebuildDeployment(ctx context.Context, serviceI
 // PromoteDeploymentToCurrent promotes the candidate deployment to Current and
 // downgrades the previous Current Deployment in a single database transaction.
 // If no previous Current Deployment exists, it skips the downgrade.
-func (d *DeploymentService) PromoteDeploymentToCurrent(serviceID, candidateID uuid.UUID) error {
-	tx, err := d.db.Pool.BeginTx(context.Background(), nil)
+// The caller's ctx is used for the transaction so it can be interrupted during shutdown.
+func (d *DeploymentService) PromoteDeploymentToCurrent(ctx context.Context, serviceID, candidateID uuid.UUID) error {
+	tx, err := d.db.Pool.BeginTx(ctx, nil)
 	if err != nil {
 		return fmt.Errorf("start promotion transaction: %w", err)
 	}
@@ -540,14 +574,14 @@ func (d *DeploymentService) PromoteDeploymentToCurrent(serviceID, candidateID uu
 
 	tq := d.db.Queries.WithTx(tx)
 
-	prev, err := tq.GetCurrentDeploymentByServiceId(d.qCtx, serviceID)
+	prev, err := tq.GetCurrentDeploymentByServiceId(ctx, serviceID)
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		return fmt.Errorf("lookup current deployment: %w", err)
 	}
 
 	// downgrade previous current deployment if it exists and is not the candidate itself
 	if err == nil && prev.ID != candidateID {
-		if err := tq.DownGradeDeployment(d.qCtx, db.DownGradeDeploymentParams{
+		if err := tq.DownGradeDeployment(ctx, db.DownGradeDeploymentParams{
 			DeploymentID: prev.ID,
 			Status:       types.DeploymentInactive,
 		}); err != nil {
@@ -556,7 +590,7 @@ func (d *DeploymentService) PromoteDeploymentToCurrent(serviceID, candidateID uu
 	}
 
 	// promote candidate to current / ready
-	if err := tq.UpgradeDeployment(d.qCtx, db.UpgradeDeploymentParams{
+	if err := tq.UpgradeDeployment(ctx, db.UpgradeDeploymentParams{
 		DeploymentID: candidateID,
 		Status:       types.DeploymentReady,
 	}); err != nil {

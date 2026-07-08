@@ -191,6 +191,10 @@ func (d *DeploymentService) worker(ctx context.Context) error {
 			if err := d.runDeploymentPipeline(j.ctx, j.Body); j.done != nil {
 				j.done <- err
 			}
+			// Remove this deploy from the registry only if it is still the
+			// active entry for the Service. This prevents a stale worker from
+			// wiping out a newer active deploy when it finishes.
+			d.CleanupRebuild(j.Body.ServiceID, j.Body.JobID)
 
 		case j, ok := <-d.rebuildJobs:
 			if !ok {
@@ -212,7 +216,7 @@ func (d *DeploymentService) worker(ctx context.Context) error {
 				return nil
 			}
 			fmt.Println("Processing redeploy job for deployment ID:", j.Body.DeploymentID)
-			if err := d.Redeploy(j.Body); j.done != nil {
+			if err := d.Redeploy(j.ctx, j.Body); j.done != nil {
 				j.done <- err
 			}
 
@@ -288,7 +292,17 @@ func submit[T any](d *DeploymentService, ctx context.Context, body *T, done chan
 // done is only needed in integration tests to synchronously receive the
 // pipeline result. Production callers (handlers, utils) must pass nil.
 func (d *DeploymentService) AssignDeploy(ctx context.Context, body *DeploymentServiceParams, done chan error) error {
-	return submit(d, ctx, body, done)
+
+	jobID, ctx, cancel, _ := d.RegisterBuildWork(ctx, body.ServiceID, &body.DeploymentID)
+	body.JobID = jobID
+
+	if err := submit(d, ctx, body, done); err != nil {
+		cancel()
+		d.CleanupRebuild(body.ServiceID, jobID)
+		return err
+	}
+
+	return nil
 }
 
 // AssignRebuild submits a new rebuild job.
@@ -306,7 +320,7 @@ func (d *DeploymentService) AssignRebuild(ctx context.Context, body *RebuildServ
 	// cancels it and returns true; cross-Service rebuilds remain isolated.
 	// The rebuild job runs with the registry context so replacement by a newer
 	// rebuild cancels its work.
-	jobID, rebuildCtx, cancel, _ = d.RegisterRebuild(d.egCtx, body.ServiceID, nil)
+	jobID, rebuildCtx, cancel, _ = d.RegisterBuildWork(ctx, body.ServiceID, nil)
 	body.JobID = jobID
 
 	if err = submit(d, rebuildCtx, body, done); err != nil {
@@ -385,7 +399,7 @@ func (d *DeploymentService) Decriment() error {
 // different Services are isolated because the registry is keyed by Service ID.
 // The returned context is derived from parentCtx so service shutdown also
 // cancels the rebuild.
-func (d *DeploymentService) RegisterRebuild(parentCtx context.Context, serviceID uuid.UUID, deploymentID *uuid.UUID) (jobID int64, ctx context.Context, cancel context.CancelFunc, replaced bool) {
+func (d *DeploymentService) RegisterBuildWork(parentCtx context.Context, serviceID uuid.UUID, deploymentID *uuid.UUID) (jobID int64, ctx context.Context, cancel context.CancelFunc, replaced bool) {
 	d.rebuildMu.Lock()
 	defer d.rebuildMu.Unlock()
 
@@ -413,6 +427,7 @@ func (d *DeploymentService) RegisterRebuild(parentCtx context.Context, serviceID
 	// that re-enters the registry cannot deadlock.
 	if prevCancel != nil {
 		prevCancel()
+		fmt.Println("RegisterRebuild : cancled previous job")
 	}
 
 	return jobID, ctx, cancel, replaced
