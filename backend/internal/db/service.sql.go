@@ -176,7 +176,7 @@ SELECT
     '' AS gh_repo_url,
     '' AS git_provider,
     '' AS branch_name,
-    '' AS swarm_service,
+    ps.swarm_service,
     ps.created_at
 FROM psql_service ps
 WHERE ps.instance_id = ?1
@@ -187,11 +187,11 @@ SELECT
     rs.name,
     rs.status,
     rs.volume,
-    '',
-    '',
-    '',
-    '',
-    '',
+    '' AS gh_repo_name,
+    '' AS gh_repo_url,
+    '' AS git_provider,
+    '' AS branch_name,
+    rs.swarm_service,
     rs.created_at
 FROM redis_service rs
 WHERE rs.instance_id = ?1
