@@ -56,6 +56,7 @@
 		const result: Record<string, PRInfo[]> = {};
 
 		for (const [serviceName, prList] of Object.entries(prQuery.data)) {
+			if (!prList) continue;
 			const matched = prList.filter(
 				(pr) => pr.title.toLowerCase().includes(q) || pr.number.toString().includes(q)
 			);

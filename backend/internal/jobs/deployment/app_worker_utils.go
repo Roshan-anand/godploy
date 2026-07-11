@@ -136,6 +136,7 @@ func (d *deployData) getBaseSpec() *swarm.ServiceSpec {
 		spec.TaskTemplate.ContainerSpec.Env = d.env
 	}
 
+	fmt.Println("getbasespec :", d.domain)
 	// if a preview domain is set, add explicit Host rule
 	if d.domain != "" {
 		spec.Annotations.Labels[fmt.Sprintf("traefik.http.routers.%s.rule", d.swarmService)] = fmt.Sprintf("Host(`%s`)", d.domain)
@@ -215,6 +216,7 @@ func (d *DeploymentServiceParams) getDeployData(network string) *deployData {
 		isPublic:     d.IsPublic,
 		env:          d.Env,
 		imgName:      d.ImgName,
+		domain:       d.Domain,
 		port:         80,
 	}
 }

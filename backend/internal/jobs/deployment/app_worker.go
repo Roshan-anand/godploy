@@ -66,6 +66,7 @@ type DeploymentServiceParams struct {
 	Env               []string `validate:"required"`
 	BuildSecrets      []string `validate:"required"`
 	IsPublic          bool
+	Domain            string
 	GitProvider       types.GitProvider
 	JobID             int64
 }
