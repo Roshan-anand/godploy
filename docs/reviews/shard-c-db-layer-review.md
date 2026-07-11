@@ -153,50 +153,6 @@ Since SQLite cannot `ALTER TABLE ADD CHECK`, the options are:
 
 ---
 
-### 🟡 WARNING-02: Migration 0004 asymmetry — `internal_dependencies` not handled in up or down
-
-**Files**:  
-- `backend/sqlite/migrations/0004_dependency_schema.up.sql`  
-- `backend/sqlite/migrations/0004_dependency_schema.down.sql`
-
-**Problem**:  
-The 0004 up migration only creates `service_dependencies`:
-
-```sql
--- up.sql (full content)
-CREATE TABLE IF NOT EXISTS service_dependencies ( ... );
-```
-
-The down migration only drops `domain_dependencies`:
-
-```sql
--- down.sql (full content)
-DROP TABLE IF EXISTS domain_dependencies;
-```
-
-**Issues**:
-1. The up migration **does not** drop `domain_dependencies` or `internal_dependencies` (which previously existed). These tables may linger from older DB states.
-2. The down migration drops `domain_dependencies` but does **not** recreate it (because the up migration didn't drop it either — asymmetry).
-3. `internal_dependencies` is **never mentioned** in either direction. If it exists in a database, it persists forever.
-
-**Impact**:  
-- If `domain_dependencies` or `internal_dependencies` existed from prior schema versions, they become dead tables with stale data.
-- Rolling back 0004 → 0003 drops `domain_dependencies` but `internal_dependencies` (if it existed) stays, polluting the schema.
-
-**Recommendation**:  
-Add explicit `DROP TABLE IF EXISTS` statements to the up migration for any tables being replaced:
-
-```sql
--- 0004_dependency_schema.up.sql
-DROP TABLE IF EXISTS domain_dependencies;
-DROP TABLE IF EXISTS internal_dependencies;
-CREATE TABLE IF NOT EXISTS service_dependencies ( ... );
-```
-
-And in the down migration, recreate the original tables if they were the canonical state at migration 0003.
-
----
-
 ### 🟡 WARNING-03: `GithubPullRequest.CreatedAt`/`UpdatedAt` should be `time.Time`, not `sql.NullTime`
 
 **File**: `backend/internal/db/models.go` (GithubPullRequest struct)  

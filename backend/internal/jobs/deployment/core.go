@@ -52,8 +52,8 @@ type CreatePreviewJobParams struct {
 	Name           string    `validate:"required"`
 	PRNumber       int
 	RepoID         int
-	GitSourceType  string `validate:"required,oneof=pr branch"`
-	GitSourceValue string `validate:"required"`
+	GitSourceType  types.GitSourceType `validate:"required,oneof=pr branch"`
+	GitSourceValue string              `validate:"required"`
 	EnvCopy        bool
 }
 

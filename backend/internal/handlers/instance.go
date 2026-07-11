@@ -37,10 +37,10 @@ type GraphNode struct {
 }
 
 type GraphEdge struct {
-	Source    uuid.UUID `json:"source"`
-	Target    uuid.UUID `json:"target"`
-	TargetCol string    `json:"target_col"`
-	EnvKey    string    `json:"env_key"`
+	Source    uuid.UUID                 `json:"source"`
+	Target    uuid.UUID                 `json:"target"`
+	TargetCol types.DependencyTargetCol `json:"target_col"`
+	EnvKey    string                    `json:"env_key"`
 }
 
 type DependencyGraphRes struct {

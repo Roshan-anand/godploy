@@ -149,13 +149,13 @@ type RedisService struct {
 }
 
 type ServiceDependency struct {
-	ID              uuid.UUID `json:"id"`
-	SourceServiceID uuid.UUID `json:"source_service_id"`
-	TargetServiceID uuid.UUID `json:"target_service_id"`
-	TargetCol       string    `json:"target_col"`
-	EnvKey          string    `json:"env_key"`
-	CreatedAt       time.Time `json:"created_at"`
-	UpdatedAt       time.Time `json:"updated_at"`
+	ID              uuid.UUID                 `json:"id"`
+	SourceServiceID uuid.UUID                 `json:"source_service_id"`
+	TargetServiceID uuid.UUID                 `json:"target_service_id"`
+	TargetCol       types.DependencyTargetCol `json:"target_col"`
+	EnvKey          string                    `json:"env_key"`
+	CreatedAt       time.Time                 `json:"created_at"`
+	UpdatedAt       time.Time                 `json:"updated_at"`
 }
 
 type Session struct {

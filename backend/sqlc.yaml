@@ -83,3 +83,8 @@ sql:
             go_type:
               import: "github.com/Roshan-anand/godploy/internal/lib/types"
               type: "PredefServiceType"
+
+          - column: service_dependencies.target_col
+            go_type:
+              import: "github.com/Roshan-anand/godploy/internal/lib/types"
+              type: "DependencyTargetCol"

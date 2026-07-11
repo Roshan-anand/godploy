@@ -88,6 +88,18 @@ const (
 	PRClosed PRState = "closed"
 )
 
+type DependencyTargetCol string
+
+const (
+	TargetColInternalURL DependencyTargetCol = "internal_url"
+	TargetColDomain      DependencyTargetCol = "domain"
+	TargetColDbName      DependencyTargetCol = "db_name"
+	TargetColDbUser      DependencyTargetCol = "db_user"
+	TargetColDbPassword  DependencyTargetCol = "db_password"
+	TargetColPassword    DependencyTargetCol = "password"
+	TargetColName        DependencyTargetCol = "name"
+)
+
 // Ptr returns a pointer to v. Useful for constructing nullable sqlc overrides.
 func Ptr[T ~string](v T) *T { return &v }
 

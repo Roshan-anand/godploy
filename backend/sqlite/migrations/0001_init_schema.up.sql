@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS user (
     name TEXT NOT NULL,
     email TEXT UNIQUE NOT NULL,
     hash_pass TEXT NOT NULL,
-    role TEXT NOT NULL,
+    role TEXT NOT NULL CHECK(role IN ('admin','member')),
     avatar TEXT,
     current_org_id uuid NOT NULL REFERENCES organization(id),
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL
@@ -45,8 +45,8 @@ CREATE TABLE IF NOT EXISTS instance(
     name TEXT NOT NULL,
     network TEXT NOT NULL UNIQUE,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    git_source_type TEXT CHECK(git_source_type IN ('pr','branch')),
-    git_source_value TEXT,
+    git_source_type TEXT CHECK(git_source_type IN ('pr','branch')) NOT NULL,
+    git_source_value TEXT NOT NULL,
     status TEXT NOT NULL CHECK(status IN ('creating','ready','deleting')),
     created_by TEXT DEFAULT 'manual' CHECK(created_by IN ('manual','webhook')),
     UNIQUE (project_id, name)
@@ -55,9 +55,9 @@ CREATE TABLE IF NOT EXISTS instance(
 CREATE TABLE IF NOT EXISTS app_service (
     id uuid PRIMARY KEY,
     instance_id uuid NOT NULL REFERENCES instance(id) ON DELETE CASCADE,
-    type TEXT NOT NULL,
+    type TEXT NOT NULL CHECK(type IN ('app')),
     name TEXT NOT NULL,
-    git_provider TEXT NOT NULL,
+    git_provider TEXT NOT NULL CHECK(git_provider IN ('github','gitlab','local')),
     gh_app_id INTEGER NOT NULL REFERENCES github_app(app_id) ON DELETE SET NULL,
     gh_repo_id INTEGER NOT NULL,
     gh_repo_name TEXT NOT NULL,
@@ -95,8 +95,8 @@ CREATE TABLE IF NOT EXISTS deployments (
 CREATE TABLE IF NOT EXISTS psql_service (
     id uuid PRIMARY KEY,
     instance_id uuid NOT NULL REFERENCES instance(id) ON DELETE CASCADE,
-    status TEXT NOT NULL,
-    type TEXT NOT NULL,
+    status TEXT NOT NULL CHECK(status IN ('running','paused')),
+    type TEXT NOT NULL CHECK(type IN ('psql')),
     name TEXT NOT NULL,
     swarm_service TEXT NOT NULL,
     db_name TEXT NOT NULL,

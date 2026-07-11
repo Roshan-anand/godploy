@@ -23,28 +23,28 @@ var envKeyRegex = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*$`)
 // --- Request/Response types ---
 
 type CreateDependencyReq struct {
-	SourceServiceID uuid.UUID `json:"source_service_id" validate:"required"`
-	TargetServiceID uuid.UUID `json:"target_service_id" validate:"required"`
-	TargetCol       string    `json:"target_col" validate:"required"`
-	EnvKey          string    `json:"env_key" validate:"required"`
+	SourceServiceID uuid.UUID                 `json:"source_service_id" validate:"required"`
+	TargetServiceID uuid.UUID                 `json:"target_service_id" validate:"required"`
+	TargetCol       types.DependencyTargetCol `json:"target_col" validate:"required"`
+	EnvKey          string                    `json:"env_key" validate:"required"`
 }
 
 type UpdateDependencyReq struct {
-	TargetServiceID uuid.UUID `json:"target_service_id" validate:"required"`
-	TargetCol       string    `json:"target_col" validate:"required"`
-	EnvKey          string    `json:"env_key" validate:"required"`
+	TargetServiceID uuid.UUID                 `json:"target_service_id" validate:"required"`
+	TargetCol       types.DependencyTargetCol `json:"target_col" validate:"required"`
+	EnvKey          string                    `json:"env_key" validate:"required"`
 }
 
 type ServiceDependencyRes struct {
-	ID                uuid.UUID `json:"id"`
-	SourceServiceID   uuid.UUID `json:"source_service_id"`
-	TargetServiceID   uuid.UUID `json:"target_service_id"`
-	TargetServiceName string    `json:"target_service_name"`
-	TargetServiceType string    `json:"target_service_type"`
-	TargetCol         string    `json:"target_col"`
-	EnvKey            string    `json:"env_key"`
-	CreatedAt         time.Time `json:"created_at"`
-	UpdatedAt         time.Time `json:"updated_at"`
+	ID                uuid.UUID                 `json:"id"`
+	SourceServiceID   uuid.UUID                 `json:"source_service_id"`
+	TargetServiceID   uuid.UUID                 `json:"target_service_id"`
+	TargetServiceName string                    `json:"target_service_name"`
+	TargetServiceType string                    `json:"target_service_type"`
+	TargetCol         types.DependencyTargetCol `json:"target_col"`
+	EnvKey            string                    `json:"env_key"`
+	CreatedAt         time.Time                 `json:"created_at"`
+	UpdatedAt         time.Time                 `json:"updated_at"`
 }
 
 type ListDependenciesRes struct {
@@ -216,7 +216,7 @@ func (h *DependencyHandler) CreateServiceDependency(c *echo.Context) error {
 		return c.JSON(http.StatusBadRequest, types.Res[struct{}]{Message: "target service not found"})
 	}
 
-	if !containsString(allowedTargetCols(targetType), req.TargetCol) {
+	if !containsString(allowedTargetCols(targetType), string(req.TargetCol)) {
 		return c.JSON(http.StatusBadRequest, types.Res[struct{}]{Message: "invalid target column for service type"})
 	}
 
@@ -390,7 +390,7 @@ func (h *DependencyHandler) UpdateServiceDependency(c *echo.Context) error {
 		return c.JSON(http.StatusBadRequest, types.Res[struct{}]{Message: "target service not found"})
 	}
 
-	if !containsString(allowedTargetCols(targetType), req.TargetCol) {
+	if !containsString(allowedTargetCols(targetType), string(req.TargetCol)) {
 		return c.JSON(http.StatusBadRequest, types.Res[struct{}]{Message: "invalid target column for service type"})
 	}
 

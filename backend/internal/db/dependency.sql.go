@@ -9,6 +9,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/Roshan-anand/godploy/internal/lib/types"
 	"github.com/google/uuid"
 )
 
@@ -22,11 +23,11 @@ RETURNING id, source_service_id, target_service_id, target_col, env_key, created
 `
 
 type CreateServiceDependencyParams struct {
-	ID              uuid.UUID `json:"id"`
-	SourceServiceID uuid.UUID `json:"source_service_id"`
-	TargetServiceID uuid.UUID `json:"target_service_id"`
-	TargetCol       string    `json:"target_col"`
-	EnvKey          string    `json:"env_key"`
+	ID              uuid.UUID                 `json:"id"`
+	SourceServiceID uuid.UUID                 `json:"source_service_id"`
+	TargetServiceID uuid.UUID                 `json:"target_service_id"`
+	TargetCol       types.DependencyTargetCol `json:"target_col"`
+	EnvKey          string                    `json:"env_key"`
 }
 
 func (q *Queries) CreateServiceDependency(ctx context.Context, arg CreateServiceDependencyParams) (ServiceDependency, error) {
@@ -115,10 +116,10 @@ WHERE source.instance_id = ?
 `
 
 type GetDependencyGraphEdgesRow struct {
-	SourceServiceID uuid.UUID `json:"source_service_id"`
-	TargetServiceID uuid.UUID `json:"target_service_id"`
-	EnvKey          string    `json:"env_key"`
-	TargetCol       string    `json:"target_col"`
+	SourceServiceID uuid.UUID                 `json:"source_service_id"`
+	TargetServiceID uuid.UUID                 `json:"target_service_id"`
+	EnvKey          string                    `json:"env_key"`
+	TargetCol       types.DependencyTargetCol `json:"target_col"`
 }
 
 func (q *Queries) GetDependencyGraphEdges(ctx context.Context, instanceID uuid.UUID) ([]GetDependencyGraphEdgesRow, error) {
@@ -262,15 +263,15 @@ ORDER BY d.created_at DESC
 `
 
 type GetServiceDependenciesRow struct {
-	ID                uuid.UUID `json:"id"`
-	SourceServiceID   uuid.UUID `json:"source_service_id"`
-	TargetServiceID   uuid.UUID `json:"target_service_id"`
-	TargetCol         string    `json:"target_col"`
-	EnvKey            string    `json:"env_key"`
-	TargetServiceType string    `json:"target_service_type"`
-	TargetServiceName string    `json:"target_service_name"`
-	CreatedAt         time.Time `json:"created_at"`
-	UpdatedAt         time.Time `json:"updated_at"`
+	ID                uuid.UUID                 `json:"id"`
+	SourceServiceID   uuid.UUID                 `json:"source_service_id"`
+	TargetServiceID   uuid.UUID                 `json:"target_service_id"`
+	TargetCol         types.DependencyTargetCol `json:"target_col"`
+	EnvKey            string                    `json:"env_key"`
+	TargetServiceType string                    `json:"target_service_type"`
+	TargetServiceName string                    `json:"target_service_name"`
+	CreatedAt         time.Time                 `json:"created_at"`
+	UpdatedAt         time.Time                 `json:"updated_at"`
 }
 
 func (q *Queries) GetServiceDependencies(ctx context.Context, sourceServiceID uuid.UUID) ([]GetServiceDependenciesRow, error) {
@@ -424,10 +425,10 @@ RETURNING id, source_service_id, target_service_id, target_col, env_key, created
 `
 
 type UpdateServiceDependencyParams struct {
-	TargetServiceID uuid.UUID `json:"target_service_id"`
-	TargetCol       string    `json:"target_col"`
-	EnvKey          string    `json:"env_key"`
-	ID              uuid.UUID `json:"id"`
+	TargetServiceID uuid.UUID                 `json:"target_service_id"`
+	TargetCol       types.DependencyTargetCol `json:"target_col"`
+	EnvKey          string                    `json:"env_key"`
+	ID              uuid.UUID                 `json:"id"`
 }
 
 func (q *Queries) UpdateServiceDependency(ctx context.Context, arg UpdateServiceDependencyParams) (ServiceDependency, error) {

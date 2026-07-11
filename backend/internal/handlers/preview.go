@@ -20,13 +20,13 @@ type PreviewHandler struct {
 
 // CreatePreviewRequest is the body for preview creation.
 type CreatePreviewRequest struct {
-	ProjectID      uuid.UUID `json:"project_id" validate:"required"`
-	Name           string    `json:"name" validate:"required"`
-	PRNumber       int       `json:"pr_number"`
-	RepoID         int       `json:"repo_id"`
-	GitSourceType  string    `json:"git_source_type" validate:"required,oneof=pr branch"`
-	GitSourceValue string    `json:"git_source_value" validate:"required"`
-	EnvCopy        bool      `json:"env_copy"`
+	ProjectID      uuid.UUID           `json:"project_id" validate:"required"`
+	Name           string              `json:"name" validate:"required"`
+	PRNumber       int                 `json:"pr_number"`
+	RepoID         int                 `json:"repo_id"`
+	GitSourceType  types.GitSourceType `json:"git_source_type" validate:"required,oneof=pr branch"`
+	GitSourceValue string              `json:"git_source_value" validate:"required"`
+	EnvCopy        bool                `json:"env_copy"`
 }
 
 // DeletePreviewRequest is the body for preview deletion.

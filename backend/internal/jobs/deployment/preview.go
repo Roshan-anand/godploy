@@ -64,8 +64,8 @@ func (d *DeploymentService) CreatePreviewFromPR(ctx context.Context, input Creat
 		IsProduction:   false,
 		Name:           input.Name,
 		Network:        previewNetwork,
-		GitSourceType:  types.GitSourceType(input.GitSourceType),
-		GitSourceValue: sql.NullString{Valid: true, String: input.GitSourceValue},
+		GitSourceType:  input.GitSourceType,
+		GitSourceValue: input.GitSourceValue,
 		Status:         types.InstanceCreating,
 		CreatedBy:      types.CreatedByWebhook,
 	}); err != nil {
@@ -479,7 +479,7 @@ func slugify(name string) string {
 // resolveHeadBranch resolves the git branch to checkout for a preview.
 // For branch sources it returns the branch name directly.
 // For PR sources it checks the DB cache first, then falls back to the GitHub API.
-func (d *DeploymentService) resolveHeadBranch(ctx context.Context, q *db.Queries, prodID uuid.UUID, repoID int, prNumber int, gitSourceType, gitSourceValue string) (string, error) {
+func (d *DeploymentService) resolveHeadBranch(ctx context.Context, q *db.Queries, prodID uuid.UUID, repoID int, prNumber int, gitSourceType types.GitSourceType, gitSourceValue string) (string, error) {
 	if gitSourceType == "branch" {
 		return gitSourceValue, nil
 	}

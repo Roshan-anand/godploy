@@ -87,33 +87,6 @@ Add a query (e.g., `CheckUserProjectAccess`) or join the project → org → use
 
 ---
 
-### H2. `DeletePreview` lacks request validation
-
-**File:** `preview.go` (lines 76–95)
-
-**Problem:**  
-`DeletePreview` uses `c.Bind(&b)` without calling `BindAndValidate` or `c.Validate()`. An empty or malformed body results in a zero-value `uuid.UUID` for `PreviewID`. This zero UUID propagates to `DeletePreview` → `GetPreviewInstanceByID`, which either panics on UUID parsing or returns a confusing "preview not found" error.
-
-```go
-func (h *PreviewHandler) DeletePreview(c *echo.Context) error {
-    var b DeletePreviewRequest
-    if err := c.Bind(&b); err != nil {  // no validation
-        return c.JSON(http.StatusBadRequest, ...)
-    }
-    // b.PreviewID might be uuid.Nil here
-    if err := h.Server.Services.Deployment.DeletePreview(h.qCtx, b.PreviewID); err != nil {
-        ...
-    }
-}
-```
-
-Compare with `CreatePsqlService`, `CreateRedisService`, `CreateServiceDependency`, etc., which all use `BindAndValidate`.
-
-**Fix:**  
-Either (a) use `BindAndValidate` with the struct's `validate:"required"` tag, or (b) add an explicit `if b.PreviewID == uuid.Nil` guard.
-
----
-
 ### H3. Webhook `opened`/`reopened` not idempotent
 
 **File:** `github.go` (lines ~588–601)
