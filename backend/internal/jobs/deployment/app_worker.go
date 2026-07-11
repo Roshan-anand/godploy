@@ -19,6 +19,7 @@ import (
 )
 
 type deployData struct {
+	serviceID    uuid.UUID `validate:"required"`
 	deploymentID uuid.UUID `validate:"required"`
 	swarmService string    `validate:"required"`
 	networkName  string    `validate:"required"`
@@ -330,7 +331,8 @@ func (d *DeploymentService) RunRebuildPipeline(ctx context.Context, data *Rebuil
 		domain = s.Domain.String
 	}
 
-	if err := d.applyRebuildDeployment(ctx, s.ID, &deployData{
+	if err := d.applyRebuildDeployment(ctx, &deployData{
+		serviceID:    s.ID,
 		deploymentID: dID,
 		swarmService: s.SwarmService,
 		networkName:  network,
@@ -376,6 +378,16 @@ func (d *DeploymentService) deploy(ctx context.Context, data *deployData) error 
 		})
 
 		return fmt.Errorf("deploy:create_service: %w", err) // TODO : trigger retry logic
+	}
+
+	if err := d.PromoteDeploymentToCurrent(ctx, data.serviceID, data.deploymentID); err != nil {
+		fmt.Printf("RebuildWorker: error promoting deployment: %v\n", err)
+		d.log.EndLogs(&logbroker.EndLogData{
+			DeploymentID: data.deploymentID,
+			Status:       types.DeploymentError,
+			Message:      errorMsg(err.Error()),
+		})
+		return fmt.Errorf("apply:promote: %w", err) // TODO : trigger retry logic
 	}
 
 	fmt.Println("finished deploying :", data.swarmService)
@@ -468,7 +480,7 @@ func (d *DeploymentService) Redeploy(ctx context.Context, data *ReDeployData) er
 // built from the saved Service configuration and the candidate image and a new
 // service is created. The candidate is promoted to Current only after Docker
 // accepts the create/update.
-func (d *DeploymentService) applyRebuildDeployment(ctx context.Context, serviceID uuid.UUID, data *deployData) error {
+func (d *DeploymentService) applyRebuildDeployment(ctx context.Context, data *deployData) error {
 	if err := d.v.Struct(data); err != nil {
 		log.Printf("RebuildWorker: error validating deploy data: %v\n", err)
 		d.log.EndLogs(&logbroker.EndLogData{
@@ -541,7 +553,7 @@ func (d *DeploymentService) applyRebuildDeployment(ctx context.Context, serviceI
 		return fmt.Errorf("apply:apply_service: %w", err) // TODO : trigger retry logic
 	}
 
-	if err := d.PromoteDeploymentToCurrent(ctx, serviceID, data.deploymentID); err != nil {
+	if err := d.PromoteDeploymentToCurrent(ctx, data.serviceID, data.deploymentID); err != nil {
 		fmt.Printf("RebuildWorker: error promoting deployment: %v\n", err)
 		d.log.EndLogs(&logbroker.EndLogData{
 			DeploymentID: data.deploymentID,

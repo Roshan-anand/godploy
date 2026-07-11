@@ -208,6 +208,7 @@ func (d *DeploymentServiceUtils) getCloneRepoCmd(ctx context.Context) *exec.Cmd 
 // helper fucntion to fill deploy data
 func (d *DeploymentServiceParams) getDeployData(network string) *deployData {
 	return &deployData{
+		serviceID:    d.ServiceID,
 		deploymentID: d.DeploymentID,
 		swarmService: d.SwarmService,
 		networkName:  network,

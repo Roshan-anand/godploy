@@ -118,8 +118,10 @@ SELECT
     a.id, a.name, a.gh_repo_name, a.gh_repo_url, a.is_public, a.branch, a.swarm_service, a.domain, a.internal_url, a.port, a.created_at,
     d.status, d.commit_msg
 FROM app_service a
-JOIN deployments d ON d.service_id = a.id AND d.is_current
-WHERE a.id = ?;
+LEFT JOIN deployments d ON d.service_id = a.id
+WHERE a.id = ?
+ORDER BY d.is_current DESC, d.created_at DESC
+LIMIT 1;
 
 -- name: GetAppServiceForRebuild :one
 SELECT
