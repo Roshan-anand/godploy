@@ -8,14 +8,16 @@ import (
 	"github.com/Roshan-anand/godploy/internal/db"
 	deployjob "github.com/Roshan-anand/godploy/internal/jobs/deployment"
 	"github.com/Roshan-anand/godploy/internal/lib/types"
+	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v5"
 )
 
 // PreviewHandler exposes preview instance lifecycle endpoints.
 type PreviewHandler struct {
-	Server *config.Server
-	qCtx   context.Context
+	Server   *config.Server
+	qCtx     context.Context
+	Validate *validator.Validate
 }
 
 // CreatePreviewRequest is the body for preview creation.
@@ -37,29 +39,28 @@ type DeletePreviewRequest struct {
 // InitPreviewHandlers creates a new PreviewHandler.
 func InitPreviewHandlers(s *config.Server) *PreviewHandler {
 	return &PreviewHandler{
-		Server: s,
-		qCtx:   context.Background(),
+		Server:   s,
+		Validate: validator.New(),
+		qCtx:     context.Background(),
 	}
 }
 
 // CreatePreview spins up a preview instance from a PR or branch.
 // route: POST /api/instance/preview
 func (h *PreviewHandler) CreatePreview(c *echo.Context) error {
-	var b CreatePreviewRequest
-	if err := c.Bind(&b); err != nil {
-		return c.JSON(http.StatusBadRequest, types.Res[struct{}]{
-			Message: "invalid request body",
-		})
+	req := new(CreatePreviewRequest)
+	if Res := BindAndValidate(req, c, h.Validate); Res != nil {
+		return c.JSON(http.StatusBadRequest, Res)
 	}
 
 	if err := h.Server.Services.Deployment.AssignCreatePreview(h.qCtx, &deployjob.CreatePreviewJobParams{
-		ProjectID:      b.ProjectID,
-		Name:           b.Name,
-		PRNumber:       b.PRNumber,
-		RepoID:         b.RepoID,
-		GitSourceType:  b.GitSourceType,
-		GitSourceValue: b.GitSourceValue,
-		EnvCopy:        b.EnvCopy,
+		ProjectID:      req.ProjectID,
+		Name:           req.Name,
+		PRNumber:       req.PRNumber,
+		RepoID:         req.RepoID,
+		GitSourceType:  req.GitSourceType,
+		GitSourceValue: req.GitSourceValue,
+		EnvCopy:        req.EnvCopy,
 	}, nil); err != nil {
 		return c.JSON(http.StatusInternalServerError, types.Res[struct{}]{
 			Message: err.Error(),
@@ -74,14 +75,12 @@ func (h *PreviewHandler) CreatePreview(c *echo.Context) error {
 // DeletePreview initiates cleanup for a preview instance.
 // route: DELETE /api/instance/preview
 func (h *PreviewHandler) DeletePreview(c *echo.Context) error {
-	var b DeletePreviewRequest
-	if err := c.Bind(&b); err != nil {
-		return c.JSON(http.StatusBadRequest, types.Res[struct{}]{
-			Message: "invalid request body",
-		})
+	req := new(DeletePreviewRequest)
+	if Res := BindAndValidate(req, c, h.Validate); Res != nil {
+		return c.JSON(http.StatusBadRequest, Res)
 	}
 
-	if err := h.Server.Services.Deployment.DeletePreview(h.qCtx, b.PreviewID); err != nil {
+	if err := h.Server.Services.Deployment.DeletePreview(h.qCtx, req.PreviewID); err != nil {
 		return c.JSON(http.StatusInternalServerError, types.Res[struct{}]{
 			Message: err.Error(),
 		})
