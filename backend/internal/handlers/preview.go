@@ -24,7 +24,6 @@ type CreatePreviewRequest struct {
 	Name           string    `json:"name" validate:"required"`
 	PRNumber       int       `json:"pr_number"`
 	RepoID         int       `json:"repo_id"`
-	HeadBranch     string    `json:"head_branch" validate:"required"`
 	GitSourceType  string    `json:"git_source_type" validate:"required,oneof=pr branch"`
 	GitSourceValue string    `json:"git_source_value" validate:"required"`
 	EnvCopy        bool      `json:"env_copy"`
@@ -58,7 +57,6 @@ func (h *PreviewHandler) CreatePreview(c *echo.Context) error {
 		Name:           b.Name,
 		PRNumber:       b.PRNumber,
 		RepoID:         b.RepoID,
-		HeadBranch:     b.HeadBranch,
 		GitSourceType:  b.GitSourceType,
 		GitSourceValue: b.GitSourceValue,
 		EnvCopy:        b.EnvCopy,

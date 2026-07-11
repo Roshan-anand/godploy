@@ -511,38 +511,24 @@ func (h *GitHandler) GithubWebhook(c *echo.Context) error {
 		pr := prEvent.GetPullRequest()
 		repo := prEvent.GetRepo()
 
-		// always refresh PR cache first
-		_ = q.UpsertPullRequest(h.qCtx, db.UpsertPullRequestParams{
-			ID:         uuid.New(),
-			RepoID:     repo.GetID(),
-			PrNumber:   int64(pr.GetNumber()),
-			Title:      pr.GetTitle(),
-			HeadBranch: prEvent.GetPullRequest().GetHead().GetRef(),
-			BaseBranch: prEvent.GetPullRequest().GetBase().GetRef(),
-			State:      pr.GetState(),
-			HtmlUrl:    pr.GetHTMLURL(),
-		})
-
 		switch action {
-		case "opened", "reopened":
-			// queue preview creation for this PR
-			_ = h.Server.Services.Deployment.AssignCreatePreview(h.qCtx, &deployjob.CreatePreviewJobParams{
-				ProjectID:      uuid.Nil, // resolved inside orchestration via repo matching
-				Name:           fmt.Sprintf("pr-%d", pr.GetNumber()),
-				PRNumber:       pr.GetNumber(),
-				RepoID:         int(repo.GetID()),
-				HeadBranch:     prEvent.GetPullRequest().GetHead().GetRef(),
-				GitSourceType:  "pr",
-				GitSourceValue: fmt.Sprintf("%d", pr.GetNumber()),
-			}, nil)
-		case "synchronize":
-			// check if there is already a preview for this repo + PR
-			preview, err := h.Server.Services.Deployment.GetActivePreviewByPR(h.qCtx, int(repo.GetID()), pr.GetNumber())
-			if err == nil && preview.ID != uuid.Nil {
-				_ = h.Server.Services.Deployment.RebuildPreviewOnPush(h.qCtx, preview.ID, int(repo.GetID()), prEvent.GetPullRequest().GetHead().GetRef())
-			}
+		case "opened", "reopened", "synchronize":
+			_ = q.UpsertPullRequest(h.qCtx, db.UpsertPullRequestParams{
+				ID:         uuid.New(),
+				RepoID:     repo.GetID(),
+				PrNumber:   int64(pr.GetNumber()),
+				Title:      pr.GetTitle(),
+				HeadBranch: prEvent.GetPullRequest().GetHead().GetRef(),
+				BaseBranch: prEvent.GetPullRequest().GetBase().GetRef(),
+				State:      pr.GetState(),
+				HtmlUrl:    pr.GetHTMLURL(),
+			})
 		case "closed":
-			// trigger async cleanup for any existing preview
+			// TODO : cleaup all the projects having this PR number and repo id preview.
+			_ = q.DeletePullRequest(h.qCtx, db.DeletePullRequestParams{
+				RepoID:   repo.GetID(),
+				PrNumber: int64(pr.GetNumber()),
+			})
 			preview, err := h.Server.Services.Deployment.GetActivePreviewByPR(h.qCtx, int(repo.GetID()), pr.GetNumber())
 			if err == nil && preview.ID != uuid.Nil {
 				_ = h.Server.Services.Deployment.DeletePreview(h.qCtx, preview.ID)
@@ -557,10 +543,44 @@ func (h *GitHandler) GithubWebhook(c *echo.Context) error {
 			return c.JSON(http.StatusBadRequest, types.Res[struct{}]{Message: "Invalid issue_comment event payload"})
 		}
 
+		// verify if comment was created
 		if icEvent.GetAction() != "created" {
 			return nil
 		}
 
+		// only allow users with write/admin access to trigger deploy command
+		commenter := icEvent.GetComment().GetUser().GetLogin()
+		repoOwner := icEvent.GetRepo().GetOwner().GetLogin()
+		repoName := icEvent.GetRepo().GetName()
+
+		if icEvent.GetOrganization() != nil {
+			// org repo: check collaborator permission level via GitHub API
+			gh, err := ghservice.New(q, appID)
+			if err != nil {
+				fmt.Println("failed to create gh client for permission check:", err)
+				return nil
+			}
+			perm, _, err := gh.Client.Repositories.GetPermissionLevel(context.Background(), repoOwner, repoName, commenter)
+			if err != nil {
+				fmt.Println("failed to check collaborator permission:", err)
+				return nil
+			}
+			permLevel := perm.GetPermission()
+			if permLevel != "admin" && permLevel != "write" {
+				fmt.Printf("commenter %s lacks write/admin access to %s/%s (has: %s)\n", commenter, repoOwner, repoName, permLevel)
+				return nil
+			}
+		} else {
+			// user repo: commenter must be the repo owner
+			if repoOwner != commenter {
+				fmt.Println("not owner ", repoOwner, commenter)
+				return nil
+			}
+		}
+
+		// TODO : convert this to an array
+		// deploy : loop all project.prod-instance.service have repo_id.
+		// deploy <project> : get <project>.prod-instance.service have repo_id.
 		body := strings.TrimSpace(icEvent.GetComment().GetBody())
 		if !strings.Contains(body, "/godploy deploy") {
 			return nil
@@ -587,20 +607,22 @@ func (h *GitHandler) GithubWebhook(c *echo.Context) error {
 			HtmlUrl:    issue.GetHTMLURL(),
 		})
 
-		// attempt to create or rebuild a preview for this PR
-		preview, err := h.Server.Services.Deployment.GetActivePreviewByPR(h.qCtx, int(repo.GetID()), prNumber)
-		if err == nil && preview.ID != uuid.Nil {
-			_ = h.Server.Services.Deployment.RebuildPreviewOnPush(h.qCtx, preview.ID, int(repo.GetID()), "")
-		} else {
-			_ = h.Server.Services.Deployment.AssignCreatePreview(h.qCtx, &deployjob.CreatePreviewJobParams{
+		// attempt to create a preview for this PR
+		_, err := h.Server.Services.Deployment.GetActivePreviewByPR(h.qCtx, int(repo.GetID()), prNumber)
+		if err != nil && h.Server.DB.IsNoRowsError(err) {
+			fmt.Println("start a assign create preview")
+			if err := h.Server.Services.Deployment.AssignCreatePreview(h.qCtx, &deployjob.CreatePreviewJobParams{
 				ProjectID:      uuid.Nil,
 				Name:           fmt.Sprintf("pr-%d", prNumber),
 				PRNumber:       prNumber,
 				RepoID:         int(repo.GetID()),
-				HeadBranch:     "", // resolved inside orchestration
 				GitSourceType:  "pr",
 				GitSourceValue: fmt.Sprintf("%d", prNumber),
-			}, nil)
+			}, nil); err != nil {
+				fmt.Println("erro r ", err)
+			}
+		} else {
+			// TODO : notify back to the PR comment that preview already exists.
 		}
 	}
 

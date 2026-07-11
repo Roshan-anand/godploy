@@ -76,12 +76,6 @@ func (d *DeploymentService) cleanupPreview(ctx context.Context, previewID uuid.U
 	}
 }
 
-// RebuildPreviewOnPush triggers a rebuild of the PR-matched service in a preview.
-func (d *DeploymentService) RebuildPreviewOnPush(ctx context.Context, previewID uuid.UUID, repoID int, branch string) error {
-	// todo: find PR-matched service and trigger rebuild
-	return nil
-}
-
 // ListPreviews returns all preview instances for a project.
 func (d *DeploymentService) ListPreviews(ctx context.Context, projectID uuid.UUID) ([]db.GetPreviewInstancesByProjectRow, error) {
 	return d.db.Queries.GetPreviewInstancesByProject(ctx, projectID)

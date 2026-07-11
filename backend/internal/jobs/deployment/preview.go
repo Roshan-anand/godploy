@@ -90,7 +90,13 @@ func (d *DeploymentService) CreatePreviewFromPR(ctx context.Context, input Creat
 		return fmt.Errorf("preview:clone_redis: %w", err)
 	}
 
-	deployPlan, err := d.cloneAppServices(ctx, q, prod.ID, previewID, previewSlug, input.RepoID, input.HeadBranch, idMap)
+	headBranch, err := d.resolveHeadBranch(ctx, q, prod.ID, input.RepoID, input.PRNumber, input.GitSourceType, input.GitSourceValue)
+	if err != nil {
+		fmt.Println("PreviewWorker : resolve head branch:", err)
+		return fmt.Errorf("preview:resolve_head_branch: %w", err)
+	}
+
+	deployPlan, err := d.cloneAppServices(ctx, q, prod.ID, previewID, previewSlug, input.RepoID, headBranch, idMap)
 	if err != nil {
 		fmt.Println("PreviewWorker : clone app services:", err)
 		return fmt.Errorf("preview:clone_apps: %w", err)
@@ -468,4 +474,83 @@ func slugify(name string) string {
 	name = strings.ToLower(strings.TrimSpace(name))
 	name = strings.ReplaceAll(name, " ", "-")
 	return name
+}
+
+// resolveHeadBranch resolves the git branch to checkout for a preview.
+// For branch sources it returns the branch name directly.
+// For PR sources it checks the DB cache first, then falls back to the GitHub API.
+func (d *DeploymentService) resolveHeadBranch(ctx context.Context, q *db.Queries, prodID uuid.UUID, repoID int, prNumber int, gitSourceType, gitSourceValue string) (string, error) {
+	if gitSourceType == "branch" {
+		return gitSourceValue, nil
+	}
+
+	if prNumber <= 0 {
+		return "", fmt.Errorf("pr_number required for git_source_type=pr")
+	}
+
+	pr, err := q.GetPullRequestByRepoAndNumber(ctx, db.GetPullRequestByRepoAndNumberParams{
+		RepoID:   int64(repoID),
+		PrNumber: int64(prNumber),
+	})
+	if err == nil && pr.HeadBranch != "" {
+		return pr.HeadBranch, nil
+	}
+
+	ghAppID, err := d.getGhAppIDForRepo(ctx, q, prodID, repoID)
+	if err != nil {
+		return "", fmt.Errorf("no gh app found for repo %d: %w", repoID, err)
+	}
+
+	gh, err := ghservice.New(q, ghAppID)
+	if err != nil {
+		return "", fmt.Errorf("failed to create gh client: %w", err)
+	}
+
+	repoInfo, err := gh.GetRepo(int64(repoID))
+	if err != nil {
+		return "", fmt.Errorf("failed to resolve repo: %w", err)
+	}
+
+	parts := strings.SplitN(repoInfo.FullName, "/", 2)
+	if len(parts) != 2 {
+		return "", fmt.Errorf("invalid repo full name: %s", repoInfo.FullName)
+	}
+
+	ghPR, _, err := gh.Client.PullRequests.Get(ctx, parts[0], parts[1], prNumber)
+	if err != nil {
+		return "", fmt.Errorf("failed to fetch PR from GitHub: %w", err)
+	}
+
+	headBranch := ghPR.GetHead().GetRef()
+	if headBranch == "" {
+		return "", fmt.Errorf("head branch empty for PR %d", prNumber)
+	}
+
+	_ = q.UpsertPullRequest(ctx, db.UpsertPullRequestParams{
+		ID:         uuid.New(),
+		RepoID:     int64(repoID),
+		PrNumber:   int64(prNumber),
+		Title:      ghPR.GetTitle(),
+		HeadBranch: headBranch,
+		BaseBranch: ghPR.GetBase().GetRef(),
+		State:      ghPR.GetState(),
+		HtmlUrl:    ghPR.GetHTMLURL(),
+	})
+
+	return headBranch, nil
+}
+
+// getGhAppIDForRepo finds a gh_app_id from any app service in the production instance
+// that matches the given repo ID.
+func (d *DeploymentService) getGhAppIDForRepo(ctx context.Context, q *db.Queries, prodID uuid.UUID, repoID int) (int64, error) {
+	appSvcs, err := q.GetAppServicesByInstanceId(ctx, prodID)
+	if err != nil {
+		return 0, fmt.Errorf("failed to load app services: %w", err)
+	}
+	for _, svc := range appSvcs {
+		if int(svc.GhRepoID) == repoID {
+			return svc.GhAppID, nil
+		}
+	}
+	return 0, fmt.Errorf("no app service found for repo %d in instance %s", repoID, prodID)
 }
