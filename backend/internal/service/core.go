@@ -14,7 +14,7 @@ type Services struct {
 
 func NewServices(db *database.DataBase, docker *docker.DockerClient, badger *database.BadgerDB) *Services {
 	logBrokerService := logbroker.NewLogBrokerService(db.Queries, badger)
-	deploymentService := deployjob.NewDeploymentService(db, docker, logBrokerService)
+	deploymentService := deployjob.NewDeploymentService(db, docker, logBrokerService, badger)
 	return &Services{
 		Deployment: deploymentService,
 		LogBroker:  logBrokerService,

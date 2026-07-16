@@ -56,14 +56,16 @@ func (d *DockerClient) CloseClient() error {
 }
 
 // helper function to remove multiple image
-func (d *DockerClient) RemoveImages(imgs []string) {
+func (d *DockerClient) RemoveImages(imgs []string) error {
+	var error error
+
 	for _, img := range imgs {
 		_, err := d.Client.ImageRemove(context.Background(), img, image.RemoveOptions{
 			Force:         true,
 			PruneChildren: true,
 		})
 		if err != nil {
-			fmt.Printf("failed to remove image %s : %v\n", img, err)
+			error = err
 		}
 	}
 
@@ -71,17 +73,21 @@ func (d *DockerClient) RemoveImages(imgs []string) {
 	if _, err := d.Client.BuildCachePrune(context.Background(), build.CachePruneOptions{
 		All: true,
 	}); err != nil {
-		fmt.Printf("failed to prune build cache : %v\n", err)
+		error = err
 	}
+
+	return error
 }
 
 // helper function to remove multiple services
-func (d *DockerClient) RemoveServices(SwarmService map[string]struct{}) {
+func (d *DockerClient) RemoveServices(SwarmService map[string]struct{}) error {
+	var error error
 	for s := range SwarmService {
 		if err := d.Client.ServiceRemove(context.Background(), s); err != nil {
-			fmt.Printf("failed to remove service %s : %v\n", s, err)
+			error = err
 		}
 	}
+	return error
 }
 
 // helper function to create network if not exist
@@ -108,18 +114,23 @@ func (d *DockerClient) CreateNetwork(networkName string) error {
 }
 
 // helper function to remove networks
-func (d *DockerClient) RemoveNetwork(networks []string) {
+func (d *DockerClient) RemoveNetworks(networks []string) error {
+	var error error
 	for _, n := range networks {
 		if err := d.Client.NetworkRemove(context.Background(), n); err != nil {
-			fmt.Printf("failed to remove network %s : %v\n", n, err)
+			error = err
 		}
 	}
+	return error
 }
 
-// helper function to remove a Docker volume
-func (d *DockerClient) RemoveVolume(volumeName string) error {
-	if err := d.Client.VolumeRemove(context.Background(), volumeName, true); err != nil {
-		return fmt.Errorf("failed to remove volume %s : %w", volumeName, err)
+// helper function to remove a Docker volumes
+func (d *DockerClient) RemoveVolumes(volumeName []string) error {
+	var error error
+	for _, v := range volumeName {
+		if err := d.Client.VolumeRemove(context.Background(), v, true); err != nil {
+			error = err
+		}
 	}
-	return nil
+	return error
 }

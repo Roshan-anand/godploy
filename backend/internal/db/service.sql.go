@@ -261,6 +261,78 @@ func (q *Queries) GetAllService(ctx context.Context, instanceID uuid.UUID) ([]Ge
 	return items, nil
 }
 
+const getAllServiceForCleanup = `-- name: GetAllServiceForCleanup :many
+SELECT 
+    aps.id,
+    aps.type,
+    aps.swarm_service,
+    d.image,
+    '' AS volume,
+    d.id AS deployment_id
+FROM app_service aps
+JOIN deployments d ON d.service_id = aps.id
+WHERE aps.instance_id = ?1
+UNION ALL
+SELECT 
+    ps.id,
+    ps.type,
+    ps.swarm_service,
+    ps.image,
+    ps.volume,
+    '' AS deployment_id
+FROM psql_service ps
+WHERE ps.instance_id = ?1
+UNION ALL
+SELECT 
+    rs.id,
+    rs.type,
+    rs.swarm_service,
+    rs.image,
+    rs.volume,
+    '' AS deployment_id
+FROM redis_service rs
+WHERE rs.instance_id = ?1
+`
+
+type GetAllServiceForCleanupRow struct {
+	ID           uuid.UUID         `json:"id"`
+	Type         types.ServiceType `json:"type"`
+	SwarmService string            `json:"swarm_service"`
+	Image        sql.NullString    `json:"image"`
+	Volume       string            `json:"volume"`
+	DeploymentID uuid.UUID         `json:"deployment_id"`
+}
+
+func (q *Queries) GetAllServiceForCleanup(ctx context.Context, instanceID uuid.UUID) ([]GetAllServiceForCleanupRow, error) {
+	rows, err := q.db.QueryContext(ctx, getAllServiceForCleanup, instanceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetAllServiceForCleanupRow
+	for rows.Next() {
+		var i GetAllServiceForCleanupRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Type,
+			&i.SwarmService,
+			&i.Image,
+			&i.Volume,
+			&i.DeploymentID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getAllSwarmServiceAndImgByAppServiceId = `-- name: GetAllSwarmServiceAndImgByAppServiceId :many
 SELECT aps.swarm_service, d.id AS deployment_id, d.image
 FROM app_service aps

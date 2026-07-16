@@ -4,6 +4,12 @@
 <p>Lightweight, single-binary, self-hosted alternative to railway, render, vercel.</p>
 </div>
 
+## Features
+
+- Connect Github and deploy any repo, automatically sync latest commit.
+- Dynamic env variables management, for connecting to different service.
+- Auot Preview Enviroment creation for any PR with single cmd.
+
 # ! Project is under development, v0.0.1 will release soon
 
 ## Tech stack

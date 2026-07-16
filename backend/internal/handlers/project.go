@@ -164,7 +164,7 @@ func (h *ProjectHandler) DeleteProject(c *echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, types.Res[struct{}]{Message: "Failed to get project network"})
 	}
 
-	go h.Server.Docker.RemoveNetwork(networks)
+	go h.Server.Docker.RemoveNetworks(networks)
 
 	if err := q.DeleteProject(h.qCtx, b.ProjectID); err != nil {
 		return c.JSON(http.StatusInternalServerError, types.Res[struct{}]{Message: "Failed to delete project"})

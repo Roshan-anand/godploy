@@ -44,6 +44,38 @@ SELECT
 FROM app_service aps
 WHERE aps.instance_id = @instance_id;
 
+-- name: GetAllServiceForCleanup :many
+SELECT 
+    aps.id,
+    aps.type,
+    aps.swarm_service,
+    d.image,
+    '' AS volume,
+    d.id AS deployment_id
+FROM app_service aps
+JOIN deployments d ON d.service_id = aps.id
+WHERE aps.instance_id = @instance_id
+UNION ALL
+SELECT 
+    ps.id,
+    ps.type,
+    ps.swarm_service,
+    ps.image,
+    ps.volume,
+    '' AS deployment_id
+FROM psql_service ps
+WHERE ps.instance_id = @instance_id
+UNION ALL
+SELECT 
+    rs.id,
+    rs.type,
+    rs.swarm_service,
+    rs.image,
+    rs.volume,
+    '' AS deployment_id
+FROM redis_service rs
+WHERE rs.instance_id = @instance_id;
+
 -- name: GetServiceID :one
 SELECT ps.id
 FROM psql_service ps

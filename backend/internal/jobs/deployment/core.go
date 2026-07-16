@@ -61,6 +61,7 @@ type DeploymentService struct {
 	mu              sync.Mutex
 	v               *validator.Validate
 	db              *database.DataBase
+	badger          *database.BadgerDB
 	qCtx            context.Context
 	docker          *docker.DockerClient
 	log             *logbroker.LogBrokerService
@@ -87,11 +88,13 @@ type DeploymentService struct {
 }
 
 // NewDeploymentService initializes a new deployment service.
-func NewDeploymentService(db *database.DataBase, docker *docker.DockerClient, log *logbroker.LogBrokerService) *DeploymentService {
+func NewDeploymentService(db *database.DataBase, docker *docker.DockerClient, log *logbroker.LogBrokerService, badger *database.BadgerDB) *DeploymentService {
+
 	return &DeploymentService{
 		qCtx:            context.Background(),
 		v:               validator.New(),
 		db:              db,
+		badger:          badger,
 		docker:          docker,
 		log:             log,
 		eg:              new(errgroup.Group),

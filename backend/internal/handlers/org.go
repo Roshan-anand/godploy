@@ -231,7 +231,7 @@ func (h *OrgHandler) DeleteOrg(c *echo.Context) error {
 		if err != nil {
 			continue
 		}
-		go h.Server.Docker.RemoveNetwork(networks)
+		go h.Server.Docker.RemoveNetworks(networks)
 	}
 
 	// get and remove all orphan volumes for the org
@@ -241,7 +241,7 @@ func (h *OrgHandler) DeleteOrg(c *echo.Context) error {
 	}
 
 	for _, vol := range orphanVolumes {
-		if err := h.Server.Docker.RemoveVolume(vol.Volume); err != nil {
+		if err := h.Server.Docker.RemoveVolumes([]string{vol.Volume}); err != nil {
 			fmt.Printf("Warning: failed to remove volume %s: %v\n", vol.Volume, err)
 		}
 		// delete from DB (will also be handled by CASCADE, but explicit is cleaner)
