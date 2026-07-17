@@ -12,10 +12,10 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/Roshan-anand/godploy/internal/db"
-	"github.com/Roshan-anand/godploy/internal/jobs/logbroker"
-	"github.com/Roshan-anand/godploy/internal/lib/security"
-	"github.com/Roshan-anand/godploy/internal/lib/types"
+	"github.com/Roshan-anand/hasu/internal/db"
+	"github.com/Roshan-anand/hasu/internal/jobs/logbroker"
+	"github.com/Roshan-anand/hasu/internal/lib/security"
+	"github.com/Roshan-anand/hasu/internal/lib/types"
 	"github.com/creack/pty"
 	"github.com/docker/docker/api/types/swarm"
 	"github.com/google/uuid"
@@ -123,7 +123,7 @@ func (d *deployData) getBaseSpec() *swarm.ServiceSpec {
 	// if the service is public connect to traefik
 	if d.isPublic {
 		spec.TaskTemplate.Networks = append(spec.TaskTemplate.Networks, swarm.NetworkAttachmentConfig{
-			Target: "godploy_traefik_proxy",
+			Target: "hasu_traefik_proxy",
 		})
 		spec.Annotations.Labels["traefik.enable"] = "true"
 	} else {

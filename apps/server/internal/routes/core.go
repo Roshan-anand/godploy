@@ -3,11 +3,11 @@ package routes
 import (
 	"net/http"
 
-	"github.com/Roshan-anand/godploy/frontend"
-	"github.com/Roshan-anand/godploy/internal/config"
-	"github.com/Roshan-anand/godploy/internal/handlers"
-	"github.com/Roshan-anand/godploy/internal/lib/types"
-	"github.com/Roshan-anand/godploy/internal/middleware"
+	"github.com/Roshan-anand/hasu/frontend"
+	"github.com/Roshan-anand/hasu/internal/config"
+	"github.com/Roshan-anand/hasu/internal/handlers"
+	"github.com/Roshan-anand/hasu/internal/lib/types"
+	"github.com/Roshan-anand/hasu/internal/middleware"
 	"github.com/labstack/echo/v5"
 )
 

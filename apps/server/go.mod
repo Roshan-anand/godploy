@@ -1,4 +1,4 @@
-module github.com/Roshan-anand/godploy
+module github.com/Roshan-anand/hasu
 
 go 1.25.0
 

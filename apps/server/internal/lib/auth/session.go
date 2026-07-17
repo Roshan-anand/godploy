@@ -8,9 +8,9 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/Roshan-anand/godploy/internal/config"
-	"github.com/Roshan-anand/godploy/internal/db"
-	"github.com/Roshan-anand/godploy/internal/lib/types"
+	"github.com/Roshan-anand/hasu/internal/config"
+	"github.com/Roshan-anand/hasu/internal/db"
+	"github.com/Roshan-anand/hasu/internal/lib/types"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v5"
@@ -42,7 +42,7 @@ func generateJWT(u AuthUser, secret string) (string, error) {
 			Subject:   u.Email,
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(JWT_EXPIRY_HOUR)),
-			Issuer:    "GODPLOY", // TODO : replace with your app name from env config
+			Issuer:    "hasu", // TODO : replace with your app name from env config
 		},
 	})
 

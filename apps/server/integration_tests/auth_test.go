@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/Roshan-anand/godploy/internal/handlers"
+	"github.com/Roshan-anand/hasu/internal/handlers"
 )
 
 func TestSample(t *testing.T) {

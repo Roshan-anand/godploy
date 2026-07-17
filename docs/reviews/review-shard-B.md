@@ -54,9 +54,9 @@ func (d *DeploymentService) RebuildPreviewOnPush(ctx context.Context, previewID 
 This means:
 
 - `pull_request.synchronize` → silently does nothing (line 610 of github.go)
-- `issue_comment "/godploy deploy"` when preview exists → silently does nothing (line 695 of github.go)
+- `issue_comment "/hasu deploy"` when preview exists → silently does nothing (line 695 of github.go)
 
-Both paths call `RebuildPreviewOnPush` and discard its return value. Users pushing new commits or issuing `/godploy deploy` on an existing preview will observe zero effect.
+Both paths call `RebuildPreviewOnPush` and discard its return value. Users pushing new commits or issuing `/hasu deploy` on an existing preview will observe zero effect.
 
 **Fix:**  
 Implement the todo — find the PR-matched app-service in the preview and queue `AssignRebuild`.

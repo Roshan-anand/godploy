@@ -6,12 +6,12 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/Roshan-anand/godploy/internal/db"
-	ghservice "github.com/Roshan-anand/godploy/internal/lib/gh"
-	predef "github.com/Roshan-anand/godploy/internal/lib/predef_utils"
-	"github.com/Roshan-anand/godploy/internal/lib/security"
-	"github.com/Roshan-anand/godploy/internal/lib/types"
-	"github.com/Roshan-anand/godploy/internal/lib/utils"
+	"github.com/Roshan-anand/hasu/internal/db"
+	ghservice "github.com/Roshan-anand/hasu/internal/lib/gh"
+	predef "github.com/Roshan-anand/hasu/internal/lib/predef_utils"
+	"github.com/Roshan-anand/hasu/internal/lib/security"
+	"github.com/Roshan-anand/hasu/internal/lib/types"
+	"github.com/Roshan-anand/hasu/internal/lib/utils"
 	"github.com/google/uuid"
 )
 

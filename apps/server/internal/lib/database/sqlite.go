@@ -9,8 +9,8 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/Roshan-anand/godploy/internal/db"
-	localSql "github.com/Roshan-anand/godploy/sqlite"
+	"github.com/Roshan-anand/hasu/internal/db"
+	localSql "github.com/Roshan-anand/hasu/sqlite"
 
 	"github.com/golang-migrate/migrate/v4"
 	migrateSqlite "github.com/golang-migrate/migrate/v4/database/sqlite3"

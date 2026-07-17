@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/Roshan-anand/godploy/internal/db"
-	"github.com/Roshan-anand/godploy/internal/lib/types"
+	"github.com/Roshan-anand/hasu/internal/db"
+	"github.com/Roshan-anand/hasu/internal/lib/types"
 )
 
 func (l *LogBrokerService) publisher(d *PubData) {

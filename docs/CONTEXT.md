@@ -1,6 +1,6 @@
-# Godploy
+# HASU
 
-Godploy is a self-hosted PaaS for managing deployable services inside an organization. This glossary defines the product language used to talk about the platform's core resources.
+hasu is a self-hosted PaaS for managing deployable services inside an organization. This glossary defines the product language used to talk about the platform's core resources.
 
 ## Language
 

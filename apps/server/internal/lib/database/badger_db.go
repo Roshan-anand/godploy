@@ -5,7 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/Roshan-anand/godploy/internal/lib/sse"
+	"github.com/Roshan-anand/hasu/internal/lib/sse"
 	badger "github.com/dgraph-io/badger/v4"
 	"github.com/google/uuid"
 )

@@ -10,7 +10,7 @@ import (
 	"database/sql"
 	"time"
 
-	"github.com/Roshan-anand/godploy/internal/lib/types"
+	"github.com/Roshan-anand/hasu/internal/lib/types"
 	"github.com/google/uuid"
 )
 

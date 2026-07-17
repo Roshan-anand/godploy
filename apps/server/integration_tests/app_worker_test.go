@@ -7,13 +7,13 @@ import (
 	"net/url"
 	"testing"
 
-	"github.com/Roshan-anand/godploy/internal/db"
-	"github.com/Roshan-anand/godploy/internal/handlers"
-	deployjob "github.com/Roshan-anand/godploy/internal/jobs/deployment"
-	"github.com/Roshan-anand/godploy/internal/lib/docker"
-	"github.com/Roshan-anand/godploy/internal/lib/security"
-	"github.com/Roshan-anand/godploy/internal/lib/types"
-	"github.com/Roshan-anand/godploy/internal/lib/utils"
+	"github.com/Roshan-anand/hasu/internal/db"
+	"github.com/Roshan-anand/hasu/internal/handlers"
+	deployjob "github.com/Roshan-anand/hasu/internal/jobs/deployment"
+	"github.com/Roshan-anand/hasu/internal/lib/docker"
+	"github.com/Roshan-anand/hasu/internal/lib/security"
+	"github.com/Roshan-anand/hasu/internal/lib/types"
+	"github.com/Roshan-anand/hasu/internal/lib/utils"
 	"github.com/google/uuid"
 )
 
@@ -48,7 +48,7 @@ func TestAppWorker(t *testing.T) {
 		q := server.DB.Queries
 		qCtx := context.Background()
 
-		url := "/home/roshan-anand/workspace/personal/godploy_workspace/samples/portfolio"
+		url := "/home/roshan-anand/workspace/personal/hasu_workspace/samples/portfolio"
 
 		// used as unique image and service name
 		unique := docker.GenerateServiceAndImgName(aps.Name, aps.DefaultBranch)

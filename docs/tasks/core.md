@@ -2,7 +2,7 @@
 
 ## Issues
 
-- [ ] 01 — Install Godploy on Ubuntu from GHCR [easy]
+- [ ] 01 — Install hasu on Ubuntu from GHCR [easy]
 - [x] 02 — Create a Project with a default production Project Instance [easy]
 - [x] 03 — Create an internal application Service inside the production Project Instance [easy]
 - [x] 04 — Expose a public application Service from the production Project Instance [easy]

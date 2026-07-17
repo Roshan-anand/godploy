@@ -6,9 +6,9 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/Roshan-anand/godploy/internal/config"
-	"github.com/Roshan-anand/godploy/internal/lib/auth"
-	"github.com/Roshan-anand/godploy/internal/lib/types"
+	"github.com/Roshan-anand/hasu/internal/config"
+	"github.com/Roshan-anand/hasu/internal/lib/auth"
+	"github.com/Roshan-anand/hasu/internal/lib/types"
 	"github.com/labstack/echo/v5"
 	"github.com/labstack/echo/v5/middleware"
 )

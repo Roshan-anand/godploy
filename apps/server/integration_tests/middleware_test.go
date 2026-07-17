@@ -5,7 +5,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/Roshan-anand/godploy/internal/handlers"
+	"github.com/Roshan-anand/hasu/internal/handlers"
 )
 
 // testing middleware by sending req from dummy server

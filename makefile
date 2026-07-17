@@ -48,7 +48,7 @@ traefik-logs:
 	go run cmd/setup/main.go traefik-logs
 
 services-rm:
-	docker service rm godploy_traefik
+	docker service rm hasu_traefik
 
 # cleanup func to remove all node_modules and build artifacts
 clean-web:

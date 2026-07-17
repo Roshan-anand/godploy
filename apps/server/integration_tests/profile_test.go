@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/Roshan-anand/godploy/internal/handlers"
-	"github.com/Roshan-anand/godploy/internal/lib/types"
+	"github.com/Roshan-anand/hasu/internal/handlers"
+	"github.com/Roshan-anand/hasu/internal/lib/types"
 )
 
 func TestProfileOperations(t *testing.T) {
@@ -43,7 +43,7 @@ func TestProfileOperations(t *testing.T) {
 		updateBody := &handlers.UpdateProfileReq{
 			Name:   "Updated Name",
 			Email:  "test@email.com",
-			Avatar: "godploy-color.png",
+			Avatar: "hasu-color.png",
 		}
 
 		rec, err := TestEchoHandler(&TestEchoBody{T: t, H: h.Profile.UpdateProfile, Body: updateBody, IsAuth: true})
@@ -69,8 +69,8 @@ func TestProfileOperations(t *testing.T) {
 		if res.Data.Name != "Updated Name" {
 			t.Fatalf("expected name 'Updated Name', got '%s'", res.Data.Name)
 		}
-		if res.Data.Avatar != "godploy-color.png" {
-			t.Fatalf("expected avatar 'godploy-color.png', got '%s'", res.Data.Avatar)
+		if res.Data.Avatar != "hasu-color.png" {
+			t.Fatalf("expected avatar 'hasu-color.png', got '%s'", res.Data.Avatar)
 		}
 	})
 

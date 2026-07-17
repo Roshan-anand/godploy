@@ -7,8 +7,8 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/Roshan-anand/godploy/internal/config"
-	"github.com/Roshan-anand/godploy/internal/routes"
+	"github.com/Roshan-anand/hasu/internal/config"
+	"github.com/Roshan-anand/hasu/internal/routes"
 	"github.com/joho/godotenv"
 )
 

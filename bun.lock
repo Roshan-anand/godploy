@@ -3,7 +3,7 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "godploy",
+      "name": "hasu",
       "devDependencies": {
         "@types/bun": "latest",
       },

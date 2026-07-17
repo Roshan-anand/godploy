@@ -6,7 +6,7 @@
   },
   "scripts": {
     "dev": "go run cmd/setup/main.go dev-start",
-    "build":"go mod tidy && go build -o ./bin/godploy cmd/server/main.go",
+    "build":"go mod tidy && go build -o ./bin/hasu cmd/server/main.go",
     "check":"go build cmd/server/main.go",
     "lint": "golangci-lint run",
     "format": "golangci-lint fmt",

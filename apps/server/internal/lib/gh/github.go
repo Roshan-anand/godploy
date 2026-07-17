@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/Roshan-anand/godploy/internal/db"
-	"github.com/Roshan-anand/godploy/internal/lib/security"
+	"github.com/Roshan-anand/hasu/internal/db"
+	"github.com/Roshan-anand/hasu/internal/lib/security"
 	"github.com/bradleyfalzon/ghinstallation/v2"
 	"github.com/google/go-github/v84/github"
 )

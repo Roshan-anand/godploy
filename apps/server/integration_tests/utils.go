@@ -14,12 +14,12 @@ import (
 	"os"
 	"testing"
 
-	"github.com/Roshan-anand/godploy/internal/config"
-	"github.com/Roshan-anand/godploy/internal/db"
-	"github.com/Roshan-anand/godploy/internal/handlers"
-	"github.com/Roshan-anand/godploy/internal/lib/auth"
-	"github.com/Roshan-anand/godploy/internal/lib/types"
-	"github.com/Roshan-anand/godploy/internal/routes"
+	"github.com/Roshan-anand/hasu/internal/config"
+	"github.com/Roshan-anand/hasu/internal/db"
+	"github.com/Roshan-anand/hasu/internal/handlers"
+	"github.com/Roshan-anand/hasu/internal/lib/auth"
+	"github.com/Roshan-anand/hasu/internal/lib/types"
+	"github.com/Roshan-anand/hasu/internal/routes"
 	"github.com/google/uuid"
 	"github.com/joho/godotenv"
 	"github.com/labstack/echo/v5"
@@ -163,7 +163,7 @@ type TestDir struct {
 
 // get temp dir for testing
 func getTempDir() (*TestDir, error) {
-	p, err := os.MkdirTemp("", "godploy_test_*")
+	p, err := os.MkdirTemp("", "hasu_test_*")
 	if err != nil {
 		return nil, err
 	}

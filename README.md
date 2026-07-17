@@ -1,5 +1,5 @@
 <div align="center">
-<img src="docs/logo/logo-name-black.png" align="center" alt="logo" width="300px" />
+<img src="docs/logo/hasu-logo-with-name.png" align="center" alt="logo" width="300px" style="border-radius: 10px;" />
 <br/>
 <p>Lightweight, single-binary, self-hosted alternative to railway, render, vercel.</p>
 </div>

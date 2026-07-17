@@ -6,11 +6,11 @@ product
 
 ## Users
 
-Godploy is used by solo operators and small teams running deployable services on their own VPS infrastructure. They are usually inside operational workflows: creating projects, managing project instances, wiring services, checking runtime state, and recovering from deploy or database issues without leaving the dashboard.
+HASU is used by solo operators and small teams running deployable services on their own VPS infrastructure. They are usually inside operational workflows: creating projects, managing project instances, wiring services, checking runtime state, and recovering from deploy or database issues without leaving the dashboard.
 
 ## Product Purpose
 
-Godploy is a lightweight, self-hosted PaaS for managing projects, isolated project instances, application services, and predefined database services. Success means users can understand runtime boundaries quickly, perform common deploy and service-management actions safely, and trust the UI during demos and production-like operations.
+HASU is a lightweight, self-hosted PaaS for managing projects, isolated project instances, application services, and predefined database services. Success means users can understand runtime boundaries quickly, perform common deploy and service-management actions safely, and trust the UI during demos and production-like operations.
 
 ## Brand Personality
 

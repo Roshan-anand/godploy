@@ -1,10 +1,10 @@
 package services
 
 import (
-	deployjob "github.com/Roshan-anand/godploy/internal/jobs/deployment"
-	"github.com/Roshan-anand/godploy/internal/jobs/logbroker"
-	"github.com/Roshan-anand/godploy/internal/lib/database"
-	"github.com/Roshan-anand/godploy/internal/lib/docker"
+	deployjob "github.com/Roshan-anand/hasu/internal/jobs/deployment"
+	"github.com/Roshan-anand/hasu/internal/jobs/logbroker"
+	"github.com/Roshan-anand/hasu/internal/lib/database"
+	"github.com/Roshan-anand/hasu/internal/lib/docker"
 )
 
 type Services struct {

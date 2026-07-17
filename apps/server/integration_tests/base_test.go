@@ -5,9 +5,9 @@ import (
 	"net/url"
 	"testing"
 
-	"github.com/Roshan-anand/godploy/internal/db"
-	"github.com/Roshan-anand/godploy/internal/handlers"
-	"github.com/Roshan-anand/godploy/internal/lib/types"
+	"github.com/Roshan-anand/hasu/internal/db"
+	"github.com/Roshan-anand/hasu/internal/handlers"
+	"github.com/Roshan-anand/hasu/internal/lib/types"
 	"github.com/google/uuid"
 )
 

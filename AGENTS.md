@@ -1,8 +1,8 @@
-# Agent Rules — Godploy
+# Agent Rules — HASU
 
 ## Project Context
 
-**Godploy** is a lightweight, single-binary, self-hosted PaaS (Platform as a Service) — an alternative to Dokploy and Coolify.
+**HASU** is a lightweight, single-binary, self-hosted PaaS (Platform as a Service) — an alternative to Dokploy and Coolify.
 **Stack:** Go (Echo) · SvelteKit SPA (embedded in binary) · SQLite (via sqlc) · Docker · Traefik
 **Monorepo:** Bun workspaces + Turborepo
 
@@ -13,7 +13,7 @@ To understand the project, read:
 **Structure:**
 
 ```
-godploy/
+HASU/
 ├── apps/
 │   ├── server/            — Go backend (Echo v5, SQLite, Docker SDK)
 │   │   ├── cmd/           — entrypoints (server, setup, sample)

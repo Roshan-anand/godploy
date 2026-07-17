@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/Roshan-anand/godploy/internal/lib/docker"
+	"github.com/Roshan-anand/hasu/internal/lib/docker"
 	"github.com/docker/docker/api/types/mount"
 	"github.com/docker/docker/api/types/swarm"
 	"github.com/docker/docker/api/types/volume"

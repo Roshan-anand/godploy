@@ -4,8 +4,8 @@ services:
       context: ../apps/server
       dockerfile: Dockerfile.dev
       target: backend-dev
-    image: godploy-backend-dev
-    container_name: godploy-backend-dev
+    image: hasu-backend-dev
+    container_name: hasu-backend-dev
     develop:
       watch:
         - action: sync
@@ -24,9 +24,9 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ../apps/server/.env:/app/server/.env:rw
-      - godploy-dev-data:/app/server/data/sqlite
-      - godploy-dev-logs:/app/server/data/badger
-      - godploy-dev-codebase:/etc/godploy/code
+      - hasu-dev-data:/app/server/data/sqlite
+      - hasu-dev-logs:/app/server/data/badger
+      - hasu-dev-codebase:/etc/hasu/code
     environment:
       - JWT_SECRET=red_balloon
       - APP_ENV=development
@@ -36,16 +36,16 @@ services:
     working_dir: /app/server
     restart: unless-stopped
     networks:
-      - godploy-dev
+      - hasu-dev
 
 networks:
-  godploy-dev:
+  hasu-dev:
     attachable: true
 
 volumes:
-  godploy-dev-data:
-    name: godploy-dev-data
-  godploy-dev-logs:
-    name: godploy-dev-logs
-  godploy-dev-codebase:
-    name: godploy-dev-codebase
+  hasu-dev-data:
+    name: hasu-dev-data
+  hasu-dev-logs:
+    name: hasu-dev-logs
+  hasu-dev-codebase:
+    name: hasu-dev-codebase

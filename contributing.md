@@ -9,7 +9,7 @@
 
 ## setting up local env
 
-- add `127.0.0.1  *.godploy.localhost` in new line to your `/etc/hosts` file
+- add `127.0.0.1  *.hasu.localhost` in new line to your `/etc/hosts` file
 
 ## running the services
 
@@ -22,9 +22,9 @@
 - run `make setup` to setup traefik and build needed docker images
 - run `make start` to start all services
 - you can access services at
-  - Traefik dashboard : `https://traefik.godploy.localhost` (to access the dashboard username : `godploy`, password : `godploy`)
-  - Godploy web : `https://localhost:3000`
-  - Godploy server : `https://localhost:8000` || `https://<custom_dev_domain>`
+  - Traefik dashboard : `https://traefik.hasu.localhost` (to access the dashboard username : `hasu`, password : `hasu`)
+  - hasu web : `https://localhost:3000`
+  - hasu server : `https://localhost:8000` || `https://<custom_dev_domain>`
 
 ## watch the services
 

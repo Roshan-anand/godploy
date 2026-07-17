@@ -3,9 +3,9 @@ package config
 import (
 	"net/http"
 
-	"github.com/Roshan-anand/godploy/internal/lib/database"
-	"github.com/Roshan-anand/godploy/internal/lib/docker"
-	services "github.com/Roshan-anand/godploy/internal/service"
+	"github.com/Roshan-anand/hasu/internal/lib/database"
+	"github.com/Roshan-anand/hasu/internal/lib/docker"
+	services "github.com/Roshan-anand/hasu/internal/service"
 )
 
 // server holds the global configuration for the application

@@ -15,13 +15,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Roshan-anand/godploy/internal/config"
-	"github.com/Roshan-anand/godploy/internal/db"
-	deployjob "github.com/Roshan-anand/godploy/internal/jobs/deployment"
-	"github.com/Roshan-anand/godploy/internal/lib/auth"
-	ghservice "github.com/Roshan-anand/godploy/internal/lib/gh"
-	"github.com/Roshan-anand/godploy/internal/lib/security"
-	"github.com/Roshan-anand/godploy/internal/lib/types"
+	"github.com/Roshan-anand/hasu/internal/config"
+	"github.com/Roshan-anand/hasu/internal/db"
+	deployjob "github.com/Roshan-anand/hasu/internal/jobs/deployment"
+	"github.com/Roshan-anand/hasu/internal/lib/auth"
+	ghservice "github.com/Roshan-anand/hasu/internal/lib/gh"
+	"github.com/Roshan-anand/hasu/internal/lib/security"
+	"github.com/Roshan-anand/hasu/internal/lib/types"
 	"github.com/go-playground/validator/v10"
 	"github.com/google/go-github/v84/github"
 	"github.com/google/uuid"
@@ -543,7 +543,7 @@ func (h *GitHandler) GithubWebhook(c *echo.Context) error {
 		}
 	}
 
-	// issue_comment: handle /godploy deploy command
+	// issue_comment: handle /hasu deploy command
 	if eventType == "issue_comment" {
 		icEvent, ok := event.(*github.IssueCommentEvent)
 		if !ok {
@@ -589,7 +589,7 @@ func (h *GitHandler) GithubWebhook(c *echo.Context) error {
 		cmd := strings.Split(strings.TrimSpace(icEvent.GetComment().GetBody()), " ")
 		len := len(cmd)
 
-		if len < 2 || cmd[0] != "/godploy" || cmd[1] != "deploy" {
+		if len < 2 || cmd[0] != "/hasu" || cmd[1] != "deploy" {
 			return nil
 		}
 

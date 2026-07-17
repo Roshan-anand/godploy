@@ -1,6 +1,6 @@
 package handlers
 
-import "github.com/Roshan-anand/godploy/internal/config"
+import "github.com/Roshan-anand/hasu/internal/config"
 
 type Handler struct {
 	Health       *HealthHandler

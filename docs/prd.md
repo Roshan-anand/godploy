@@ -1,6 +1,6 @@
 ## Problem Statement
 
-Godploy's MVP already proves the core deployment loop for an application **Service**, but the current multi-branch approach is flawed for realistic preview testing. Branch deploys currently behave like extra runtimes inside the same project shape, which means a user testing a branch or pull request can still depend on production-connected sibling services and production-like shared topology.
+hasu's MVP already proves the core deployment loop for an application **Service**, but the current multi-branch approach is flawed for realistic preview testing. Branch deploys currently behave like extra runtimes inside the same project shape, which means a user testing a branch or pull request can still depend on production-connected sibling services and production-like shared topology.
 
 The V1 gaps are now centered around four areas:
 
@@ -9,22 +9,22 @@ The V1 gaps are now centered around four areas:
 - **Predefined Database Services** still need to exist as a first-class product capability inside each instance
 - installation, frontend completeness, runtime visibility, and GitHub automation still need to be tightened before a reliable demo-stable release
 
-From the user's perspective, V1 should let them install Godploy on an Ubuntu VPS, create a **Project**, get a default production **Project Instance**, create isolated preview **Project Instances** from branches or pull requests, run internal **Predefined Database Services** such as Postgres and Redis inside each instance, and manage the product through a polished UI with fewer demo-breaking surprises.
+From the user's perspective, V1 should let them install hasu on an Ubuntu VPS, create a **Project**, get a default production **Project Instance**, create isolated preview **Project Instances** from branches or pull requests, run internal **Predefined Database Services** such as Postgres and Redis inside each instance, and manage the product through a polished UI with fewer demo-breaking surprises.
 
 ## Solution
 
-V1 will turn Godploy into a demo-stable self-hosted PaaS centered on **Projects** as the long-lived grouping boundary and **Project Instances** as the runtime boundary. Every **Project** owns exactly one production **Project Instance** by default, and may also own multiple preview **Project Instances** created from a selected branch or pull request. Each **Project Instance** owns its own private network, cloned service set, runtime state, deployment history, and routing.
+V1 will turn hasu into a demo-stable self-hosted PaaS centered on **Projects** as the long-lived grouping boundary and **Project Instances** as the runtime boundary. Every **Project** owns exactly one production **Project Instance** by default, and may also own multiple preview **Project Instances** created from a selected branch or pull request. Each **Project Instance** owns its own private network, cloned service set, runtime state, deployment history, and routing.
 
 Application **Services** no longer use runtime-level **Service Branches** as the preview model. Instead, each application **Service** inside an instance points to a **Git Source**. A **Git Source** may be the inherited production branch, a manually selected branch, or a pull request. Preview creation snapshots the current production instance, clones all services into a new preview instance, rebuilds only the services selected by the chosen **Git Source** rules, and reuses pinned ready images for the unchanged application services.
 
 **Predefined Database Services** continue to be implemented through a backend-managed **Predefined Service Template** catalog for Postgres and Redis, but they are now instance-scoped. Preview instances always get fresh isolated stateful services and fresh volumes rather than sharing production data.
 
-Godploy itself will be distributed for V1 as a single core Go server component packaged as a container image from GHCR, alongside Traefik as the ingress proxy. Installation will target Ubuntu VPS environments through an `install.sh` flow that installs Docker if missing, initializes swarm mode, pulls the required GHCR images, provisions persistence for Godploy metadata, and starts the runtime with the required Docker and Traefik configuration.
+hasu itself will be distributed for V1 as a single core Go server component packaged as a container image from GHCR, alongside Traefik as the ingress proxy. Installation will target Ubuntu VPS environments through an `install.sh` flow that installs Docker if missing, initializes swarm mode, pulls the required GHCR images, provisions persistence for hasu metadata, and starts the runtime with the required Docker and Traefik configuration.
 
 ## User Stories
 
-1. As a solo operator, I want to install Godploy on an Ubuntu VPS with one script, so that I can start using the platform quickly.
-2. As a solo operator, I want Godploy to pull its runtime images from GHCR, so that I can install the product from a predictable registry.
+1. As a solo operator, I want to install hasu on an Ubuntu VPS with one script, so that I can start using the platform quickly.
+2. As a solo operator, I want hasu to pull its runtime images from GHCR, so that I can install the product from a predictable registry.
 3. As a logged-in user, I want to create a **Project** inside my **Organization**, so that I can group related deployable systems.
 4. As a logged-in user, I want each new **Project** to automatically create one production **Project Instance**, so that I can start from a stable default runtime.
 5. As a logged-in user, I want every **Project Instance** to provide its own private instance network, so that services inside one instance are isolated from services in other instances.
@@ -53,7 +53,7 @@ Godploy itself will be distributed for V1 as a single core Go server component p
 28. As a logged-in user, I want to create a Redis **Predefined Database Service** from a built-in template, so that I can run internal caching or queue infrastructure easily.
 29. As a logged-in user, I want template fields to be prefilled but editable, so that I can move quickly while still customizing service name, credentials, and version.
 30. As a logged-in user, I want every **Predefined Database Service** to remain internal-only, so that databases are never exposed publicly by mistake.
-31. As a logged-in user, I want Godploy to show me the full **Internal URL** for a **Predefined Database Service**, so that I can manually wire it into an application **Service**.
+31. As a logged-in user, I want hasu to show me the full **Internal URL** for a **Predefined Database Service**, so that I can manually wire it into an application **Service**.
 32. As a logged-in user, I want editing a **Predefined Database Service** to require an explicit redeploy before runtime changes apply, so that stateful changes do not happen unexpectedly.
 33. As a logged-in user, I want to delete a **Predefined Database Service** with an optional data deletion checkbox, so that I can choose between removing runtime only or removing runtime plus data.
 34. As a logged-in user, I want preserved database data to become an **Orphan Volume**, so that I can reuse it later instead of losing it.
@@ -129,7 +129,7 @@ Godploy itself will be distributed for V1 as a single core Go server component p
 - Editing predefined database settings updates saved configuration and requires an explicit redeploy before runtime changes take effect.
 - The stored **Internal URL** for a **Predefined Database Service** is a full private connection string, not only a host or port.
 - When credentials or logical database settings change, the generated **Internal URL** must be recomputed from the new stored values.
-- Predefined database attachment to application **Services** remains manual in V1. Godploy shows the **Internal URL**, and the user places it into service environment settings themselves.
+- Predefined database attachment to application **Services** remains manual in V1. hasu shows the **Internal URL**, and the user places it into service environment settings themselves.
 - **Service Dependency Graph** provides an optional explicit connection mechanism between application **Services** and other **Services** within the same **Project Instance**. A user can connect an application **Service** to another **Service** via a "Connect Service" action in service settings, specifying an environment variable name and selecting a target service and column (e.g., `internal_url`, `db_password`). The system stores the dependency record and resolves the value dynamically at deploy time, merging dependency-derived environment variables with user-defined environment variables (dependency values take precedence on conflict). When a dependency service changes (e.g., credentials rotated), a background routine updates all stored dependency records and notifies affected services. During preview instance creation, dependency records are cloned and rewritten to point to the preview-cloned counterparts, enabling automatic environment injection in previews. The dependency graph is visible in the UI as a service connection flow diagram. This feature is fully optional — manual environment configuration continues to work for users who do not use the connect feature.
 - Deleting a predefined database service includes an optional data-purge choice.
 - If data is preserved, it becomes an **Orphan Volume** instead of remaining attached to the deleted service.
@@ -145,11 +145,11 @@ Godploy itself will be distributed for V1 as a single core Go server component p
 - Frontend work for V1 is a first-class workstream, not a thin finishing pass. It includes complete UI coverage for backend actions, instance switching, responsiveness, loaders, confirmations, and overall UX cleanup.
 - Installation targets Ubuntu VPS environments only.
 - The V1 installer is an `install.sh` flow.
-- The installer installs Docker when missing, initializes swarm mode, pulls GHCR images for Godploy and Traefik, provisions persistence for Godploy metadata, and starts the required runtime resources.
-- Godploy runs as a standalone Docker container for V1.
+- The installer installs Docker when missing, initializes swarm mode, pulls GHCR images for hasu and Traefik, provisions persistence for hasu metadata, and starts the required runtime resources.
+- hasu runs as a standalone Docker container for V1.
 - Traefik runs as a swarm service for V1.
-- Godploy metadata persists through dedicated storage for SQLite and Badger data.
-- The Godploy dashboard itself is accessed through the server's public address on port `8080` in V1.
+- hasu metadata persists through dedicated storage for SQLite and Badger data.
+- The hasu dashboard itself is accessed through the server's public address on port `8080` in V1.
 - Git provider integrations remain **Organization**-scoped.
 
 ### Major Modules
@@ -164,7 +164,7 @@ Godploy itself will be distributed for V1 as a single core Go server component p
 - **Storage Module**: owns **Orphan Volume** persistence, visibility, compatibility checks, and reattachment workflows.
 - **Status Aggregation Module**: owns separation and presentation of instance status, deployment status, and runtime health.
 - **GitHub Event Intake Module**: owns webhook verification, open-PR cache updates, and deploy-target expansion rules.
-- **Installer Bootstrap Module**: owns Ubuntu installation behavior, GHCR image pulls, Docker and swarm bootstrap, and Godploy runtime startup.
+- **Installer Bootstrap Module**: owns Ubuntu installation behavior, GHCR image pulls, Docker and swarm bootstrap, and hasu runtime startup.
 - **Service Dependency Graph Module**: owns explicit service-to-service connection declarations, dependency record lifecycle, dynamic env var injection at deploy time, and automatic dependency rewriting during preview instance creation.
 - **Frontend Experience Module**: owns dashboard flows for projects, instance switching, preview creation, service details, predefined services, storage, confirmations, and responsive UI polish.
 
@@ -202,6 +202,6 @@ These modules should be kept deep where possible: the project-instance orchestra
 ### TODO
 
 - Review the GitHub App manifest webhook endpoint behavior against the currently implemented webhook endpoint.
-- Review the Godploy public server URL and runtime scheme alignment used for GitHub redirects and webhook flows.
+- Review the hasu public server URL and runtime scheme alignment used for GitHub redirects and webhook flows.
 - Finalize the V1 testing strategy and task breakdown for critical flows.
 - Finalize the rate-limiting plan for route classes and Traefik-level user-configurable service limits.

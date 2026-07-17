@@ -22,7 +22,7 @@ var (
 // Uses PBKDF2 to derive encryption key from master secret
 func EncryptPEM(plaintext string) (string, error) {
 	// Derive 32-byte key from master secret using PBKDF2
-	salt := []byte("godploy-github-app")
+	salt := []byte("hasu-github-app")
 	key := pbkdf2.Key([]byte(masterSecret), salt, 10000, 32, sha256.New)
 
 	block, err := aes.NewCipher(key)
@@ -47,7 +47,7 @@ func EncryptPEM(plaintext string) (string, error) {
 // Decrypt GitHub App PEM key using AES-256-GCM
 // Returns decrypted PEM key as byte slice
 func DecryptPEM(ciphertext string) ([]byte, error) {
-	salt := []byte("godploy-github-app")
+	salt := []byte("hasu-github-app")
 	key := pbkdf2.Key([]byte(masterSecret), salt, 10000, 32, sha256.New)
 
 	data, err := base64.StdEncoding.DecodeString(ciphertext)

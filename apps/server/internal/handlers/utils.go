@@ -6,10 +6,10 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/Roshan-anand/godploy/internal/db"
-	ghservice "github.com/Roshan-anand/godploy/internal/lib/gh"
-	"github.com/Roshan-anand/godploy/internal/lib/types"
-	"github.com/Roshan-anand/godploy/internal/lib/utils"
+	"github.com/Roshan-anand/hasu/internal/db"
+	ghservice "github.com/Roshan-anand/hasu/internal/lib/gh"
+	"github.com/Roshan-anand/hasu/internal/lib/types"
+	"github.com/Roshan-anand/hasu/internal/lib/utils"
 	"github.com/go-playground/validator/v10"
 	"github.com/labstack/echo/v5"
 )
@@ -51,7 +51,7 @@ func generateGitHubManifestAppName() (string, error) {
 		suffix[i] = chars[int(b)%len(chars)]
 	}
 
-	return "godploy-" + string(suffix), nil
+	return "hasu-" + string(suffix), nil
 }
 
 // remove the session data

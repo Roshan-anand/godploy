@@ -48,7 +48,7 @@ services:
       - "--providers.swarm.exposedbydefault=false"
 
       # Specify the default network for Traefik to connect to services
-      - "--providers.swarm.network=godploy_traefik_proxy"
+      - "--providers.swarm.network=hasu_traefik_proxy"
 
       # API & Dashboard
       - "--api.dashboard=true" # Enable the dashboard
@@ -76,13 +76,13 @@ services:
         - "traefik.enable=true"
 
         # Dashboard router
-        - "traefik.http.routers.dashboard.rule=Host(`traefik.godploy.localhost`)"
+        - "traefik.http.routers.dashboard.rule=Host(`traefik.hasu.localhost`)"
         - "traefik.http.routers.dashboard.entrypoints=websecure"
         - "traefik.http.routers.dashboard.service=api@internal"
         - "traefik.http.routers.dashboard.tls=true"
 
         # Basic‑auth middleware
-        - "traefik.http.middlewares.dashboard-auth.basicauth.users=godploy:$$apr1$$zyqu2b.x$$ZvVecZIlqLoPDI2MqGWSM0"
+        - "traefik.http.middlewares.dashboard-auth.basicauth.users=hasu:$$apr1$$dC8ZtEPI$$fqwt1ZCXVVp4AvD2/jzPq/"
         - "traefik.http.routers.dashboard.middlewares=dashboard-auth@swarm"
 
         # Service hint

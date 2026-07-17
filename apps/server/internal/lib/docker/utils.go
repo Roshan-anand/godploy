@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/Roshan-anand/godploy/internal/lib/security"
+	"github.com/Roshan-anand/hasu/internal/lib/security"
 )
 
 type GenerateNameRes struct {
