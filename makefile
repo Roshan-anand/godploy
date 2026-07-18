@@ -25,12 +25,18 @@ setup: install build
 	@turbo setup
 
 start:
+	turbo dev --ui tui --filter=web --filter=server
+
+start-landing:
+	turbo dev --ui tui --filter=landing
+
+start-all:
 	turbo dev --ui tui
 
 stop:
-	@pkill -f "make start" && \
-	cd apps/server && \
-	go run cmd/setup/main.go dev-stop
+	@cd apps/server && \
+	go run cmd/setup/main.go dev-stop && \
+	pkill -f "turbo dev" 
 
 cloud-tunnel:
 	cloudflared tunnel run dev
